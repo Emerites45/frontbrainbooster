@@ -1,0 +1,32 @@
+mon-projet-fullstack/
+├── .gitignore
+├── README.md
+│
+├── backend/                  # Partie Java (Spring Boot)
+│   ├── pom.xml               # Fichier de config Maven (ou build.gradle si Gradle)
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/monprojet/
+│   │   │   │   ├── BackendApplication.java  # Point d'entrée de l'application
+│   │   │   │   ├── controller/             # Les API REST (endpoints)
+│   │   │   │   ├── model/                  # Les entités / classes de données
+│   │   │   │   ├── repository/             # Accès à la base de données (JPA)
+│   │   │   │   └── service/                # Logique métier
+│   │   │   └── resources/
+│   │   │       ├── application.properties  # Configuration (BDD, port, etc.)
+│   │   │       └── static/                 # Fichiers statiques (si besoin)
+│   │   └── test/                           # Tests unitaires et d'intégration
+│   └── target/                             # Fichiers compilés (généré)
+│
+└── frontend/                 # Partie React (Vite ou Create React App)
+    ├── package.json          # Dépendances et scripts Node.js
+    ├── vite.config.js        # Config de Vite (si utilisé, fortement recommandé)
+    ├── index.html
+    ├── public/               # Fichiers publics (images, icônes)
+    └── src/
+        ├── main.jsx          # Point d'entrée React
+        ├── App.jsx           # Composant racine
+        ├── index.css
+        ├── components/       # Composants réutilisables (boutons, cartes...)
+        ├── pages/            # Écrans/Pages (Accueil, Login...)
+        └── services/         # Appels API vers le backend Java (ex: avec Axios/Fetch)
