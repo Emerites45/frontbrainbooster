@@ -46,11 +46,11 @@ function TaskModal({ task, allTasks, actions, onClose, onCreateSubtask, onEditTa
 
         <h3>Sous-tâches</h3>
         <SubtaskList
-  subtasks={subtasks}
-  onAddSubtask={(t) => onCreateSubtask(task.id, t)}
-  onEditSubtask={onEditTask}
-  onDeleteSubtask={onDeleteTask}
-/>
+          subtasks={subtasks}
+          onAddSubtask={(title, assigneeId) => onCreateSubtask(task.id, title, assigneeId)}
+          onEditSubtask={onEditTask}
+          onDeleteSubtask={onDeleteTask}
+        />
 
         <h3>Historique</h3>
         <HistoryTimeline actions={taskActions} />

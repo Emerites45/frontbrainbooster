@@ -58,16 +58,31 @@ function App() {
     if (!currentUser) return [];
     if (currentUser.role === "ADMIN") return tasks;
 
-    if (currentUser.role === "SCRUM_MASTER") {
-      return tasks.filter(
-        (t) => t.creatorId === currentUser.id || t.assigneeId === currentUser.id,
-      );
-    }
+    const isDirectlyVisible = (t) => {
+      if (currentUser.role === "SCRUM_MASTER") {
+        return t.creatorId === currentUser.id || t.assigneeId === currentUser.id;
+      }
+      return t.assigneeId === currentUser.id; // MEMBER
+    };
 
-    // MEMBER
-    return tasks.filter((t) => t.assigneeId === currentUser.id);
+    const visibleIds = new Set(
+      tasks.filter(isDirectlyVisible).map((t) => t.id),
+    );
+
+    tasks.forEach((t) => {
+      if (visibleIds.has(t.id) && t.parentTaskId) {
+        visibleIds.add(t.parentTaskId);
+      }
+    });
+
+    tasks.forEach((t) => {
+      if (t.parentTaskId && visibleIds.has(t.parentTaskId)) {
+        visibleIds.add(t.id);
+      }
+    });
+
+    return tasks.filter((t) => visibleIds.has(t.id));
   }
-
   const visibleTasks = getVisibleTasks();
 
   function handleStatusChange(taskId) {
@@ -76,7 +91,9 @@ function App() {
     const nouveauStatut = NEXT_STATUS[ancienStatut];
 
     setTasks((prevTasks) =>
-      prevTasks.map((t) => (t.id === taskId ? { ...t, status: nouveauStatut } : t)),
+      prevTasks.map((t) =>
+        t.id === taskId ? { ...t, status: nouveauStatut } : t,
+      ),
     );
 
     setActions((prevActions) => [
@@ -96,13 +113,19 @@ function App() {
   }
 
   function handleCreateTask(newTask) {
-    setTasks((prevTasks) => [...prevTasks, newTask]);
+    const taskWithMeta = {
+      ...newTask,
+      creatorId: currentUser?.id ?? null,
+      assigneeId: newTask.assigneeId ?? currentUser?.id ?? null,
+    };
+
+    setTasks((prevTasks) => [...prevTasks, taskWithMeta]);
 
     setActions((prevActions) => [
       ...prevActions,
       {
         id: Date.now() + 1,
-        id_tache: newTask.id,
+        id_tache: taskWithMeta.id,
         id_user: currentUser?.email ?? "inconnu",
         nom_user: currentUser?.name ?? "Utilisateur",
         type_action: "CREATION",
@@ -114,13 +137,14 @@ function App() {
     ]);
   }
 
-  function handleCreateSubtask(parentTaskId, title) {
+  function handleCreateSubtask(parentTaskId, title, assigneeId) {
     handleCreateTask({
       id: Date.now(),
       title,
       description: "",
       status: "A_FAIRE",
       parentTaskId,
+      assigneeId,
     });
   }
 
@@ -173,7 +197,7 @@ function App() {
                   actions={actions}
                   onStatusChange={handleStatusChange}
                   onCreateTask={handleCreateTask}
-                  onCreateSubtask={handleCreateSubtask} 
+                  onCreateSubtask={handleCreateSubtask}
                   onEditTask={handleEditTask}
                   onDeleteTask={handleDeleteTask}
                 />

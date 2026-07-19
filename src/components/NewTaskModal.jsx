@@ -3,6 +3,7 @@ import { useState } from "react";
 function NewTaskModal({ onClose, onCreate }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -13,6 +14,7 @@ function NewTaskModal({ onClose, onCreate }) {
       title,
       description,
       status: "A_FAIRE",
+      assigneeId: assigneeId ? Number(assigneeId) : undefined,
     });
     onClose();
   }
@@ -34,6 +36,12 @@ function NewTaskModal({ onClose, onCreate }) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description"
           />
+          <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
+            <option value="">Assigner à moi-même</option>
+            <option value="1">Marcus Chen (ADMIN)</option>
+            <option value="2">Alex Rivera (SCRUM_MASTER)</option>
+            <option value="3">Sarah Jenkins (MEMBER)</option>
+          </select>
           <button type="submit">Créer</button>
         </form>
       </div>
