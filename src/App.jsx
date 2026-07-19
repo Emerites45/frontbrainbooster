@@ -54,6 +54,22 @@ function App() {
       .finally(() => setLoading(false));
   }, []);
 
+  function getVisibleTasks() {
+    if (!currentUser) return [];
+    if (currentUser.role === "ADMIN") return tasks;
+
+    if (currentUser.role === "SCRUM_MASTER") {
+      return tasks.filter(
+        (t) => t.creatorId === currentUser.id || t.assigneeId === currentUser.id,
+      );
+    }
+
+    // MEMBER
+    return tasks.filter((t) => t.assigneeId === currentUser.id);
+  }
+
+  const visibleTasks = getVisibleTasks();
+
   function handleStatusChange(taskId) {
     const task = tasks.find((t) => t.id === taskId);
     const ancienStatut = task.status;
@@ -78,63 +94,64 @@ function App() {
       },
     ]);
   }
-function handleCreateTask(newTask) {
-  setTasks((prevTasks) => [...prevTasks, newTask]);
 
-  setActions((prevActions) => [
-    ...prevActions,
-    {
-      id: Date.now() + 1,
-      id_tache: newTask.id,
-      id_user: currentUser?.email ?? "inconnu",
-      nom_user: currentUser?.name ?? "Utilisateur",
-      type_action: "CREATION",
-      champ_modifie: null,
-      ancienne_valeur: null,
-      nouvelle_valeur: null,
-      date_action: new Date().toISOString(),
-    },
-  ]);
-}
+  function handleCreateTask(newTask) {
+    setTasks((prevTasks) => [...prevTasks, newTask]);
 
-function handleCreateSubtask(parentTaskId, title) {
-  handleCreateTask({
-    id: Date.now(),
-    title,
-    description: "",
-    status: "A_FAIRE",
-    parentTaskId,
-  });
-}
+    setActions((prevActions) => [
+      ...prevActions,
+      {
+        id: Date.now() + 1,
+        id_tache: newTask.id,
+        id_user: currentUser?.email ?? "inconnu",
+        nom_user: currentUser?.name ?? "Utilisateur",
+        type_action: "CREATION",
+        champ_modifie: null,
+        ancienne_valeur: null,
+        nouvelle_valeur: null,
+        date_action: new Date().toISOString(),
+      },
+    ]);
+  }
 
-function handleEditTask(taskId, updatedFields) {
-  const task = tasks.find((t) => t.id === taskId);
-
-  setTasks((prevTasks) =>
-    prevTasks.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t)),
-  );
-
-  setActions((prevActions) => [
-    ...prevActions,
-    {
+  function handleCreateSubtask(parentTaskId, title) {
+    handleCreateTask({
       id: Date.now(),
-      id_tache: taskId,
-      id_user: currentUser?.email ?? "inconnu",
-      nom_user: currentUser?.name ?? "Utilisateur",
-      type_action: "MODIFICATION",
-      champ_modifie: "titre/description",
-      ancienne_valeur: task.title,
-      nouvelle_valeur: updatedFields.title,
-      date_action: new Date().toISOString(),
-    },
-  ]);
-}
+      title,
+      description: "",
+      status: "A_FAIRE",
+      parentTaskId,
+    });
+  }
 
-function handleDeleteTask(taskId) {
-  setTasks((prevTasks) =>
-    prevTasks.filter((t) => t.id !== taskId && t.parentTaskId !== taskId),
-  );
-}
+  function handleEditTask(taskId, updatedFields) {
+    const task = tasks.find((t) => t.id === taskId);
+
+    setTasks((prevTasks) =>
+      prevTasks.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t)),
+    );
+
+    setActions((prevActions) => [
+      ...prevActions,
+      {
+        id: Date.now(),
+        id_tache: taskId,
+        id_user: currentUser?.email ?? "inconnu",
+        nom_user: currentUser?.name ?? "Utilisateur",
+        type_action: "MODIFICATION",
+        champ_modifie: "titre/description",
+        ancienne_valeur: task.title,
+        nouvelle_valeur: updatedFields.title,
+        date_action: new Date().toISOString(),
+      },
+    ]);
+  }
+
+  function handleDeleteTask(taskId) {
+    setTasks((prevTasks) =>
+      prevTasks.filter((t) => t.id !== taskId && t.parentTaskId !== taskId),
+    );
+  }
 
   return (
     <BrowserRouter>
@@ -148,7 +165,7 @@ function handleDeleteTask(taskId) {
             <ProtectedRoute isLoggedIn={!!currentUser}>
               <AppLayout currentUser={currentUser} onLogout={handleLogout}>
                 <BoardPage
-                  tasks={tasks}
+                  tasks={visibleTasks}
                   loading={loading}
                   error={error}
                   selectedTask={selectedTask}
@@ -170,7 +187,7 @@ function handleDeleteTask(taskId) {
           element={
             <ProtectedRoute isLoggedIn={!!currentUser}>
               <AppLayout currentUser={currentUser} onLogout={handleLogout}>
-                <DashboardPage tasks={tasks} />
+                <DashboardPage tasks={visibleTasks} />
               </AppLayout>
             </ProtectedRoute>
           }

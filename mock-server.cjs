@@ -18,13 +18,22 @@ app.post('/auth/signup', (req, res) => {
 
 app.post('/auth/login', (req, res) => {
   const { email } = req.body;
+
+  const testUsers = {
+    'admin@aaprovidir.com': { id: 1, name: 'Marcus Chen', role: 'ADMIN' },
+    'scrum@aaprovidir.com': { id: 2, name: 'Alex Rivera', role: 'SCRUM_MASTER' },
+    'member@aaprovidir.com': { id: 3, name: 'Sarah Jenkins', role: 'MEMBER' },
+  };
+
+  const user = testUsers[email] || { id: 3, name: 'Utilisateur Test', role: 'MEMBER' };
+
   res.json({
     token: 'fake-mock-token-' + Date.now(),
     type: 'Bearer',
-    id: 1,
-    name: email ? email.split('@')[0] : 'Utilisateur Test',
-    email: email || 'test@aaprovidir.com',
-    role: 'USER',
+    id: user.id,
+    name: user.name,
+    email,
+    role: user.role,
   });
 });
 

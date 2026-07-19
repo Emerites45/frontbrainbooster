@@ -13,14 +13,15 @@ function BoardPage({
   onStatusChange,
   onCreateTask,
   onCreateSubtask,
-  onEditTask,    // <-- AJOUTÉ ICI
-  onDeleteTask,  // <-- AJOUTÉ ICI
+  onEditTask,
+  onDeleteTask,
 }) {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
   if (loading) return <p>Chargement des tâches...</p>;
   if (error) return <p>Erreur : {error}</p>;
 
+  // Filtrage des tâches principales (sans parent) parmi les tâches visibles reçues
   const rootTasks = tasks.filter((t) => !t.parentTaskId);
   const aFaire = rootTasks.filter((t) => t.status === "A_FAIRE");
   const enCours = rootTasks.filter((t) => t.status === "EN_COURS");
@@ -58,7 +59,7 @@ function BoardPage({
       {selectedTask && (
         <TaskModal
           task={selectedTask}
-          allTasks={tasks}
+          allTasks={tasks} // Reçoit visibleTasks depuis App.jsx pour lister/lier les sous-tâches
           actions={actions}
           onClose={() => setSelectedTask(null)}
           onCreateSubtask={onCreateSubtask}
