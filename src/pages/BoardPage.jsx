@@ -28,29 +28,31 @@ function BoardPage({
 
   return (
     <>
-      <button onClick={() => setShowNewTaskModal(true)}>
-        + Nouvelle tâche
-      </button>
+      <div style={{ padding: "24px 40px" }}>
+        <button onClick={() => setShowNewTaskModal(true)}>
+          + Nouvelle tâche
+        </button>
 
-      <div style={{ display: "flex" }}>
-        <TaskColumn
-          title="À faire"
-          tasks={aFaire}
-          onStatusChange={onStatusChange}
-          onCardClick={setSelectedTask}
-        />
-        <TaskColumn
-          title="En cours"
-          tasks={enCours}
-          onStatusChange={onStatusChange}
-          onCardClick={setSelectedTask}
-        />
-        <TaskColumn
-          title="Terminé"
-          tasks={termine}
-          onStatusChange={onStatusChange}
-          onCardClick={setSelectedTask}
-        />
+        <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
+          <TaskColumn
+            title="À faire"
+            tasks={aFaire}
+            onStatusChange={onStatusChange}
+            onCardClick={setSelectedTask}
+          />
+          <TaskColumn
+            title="En cours"
+            tasks={enCours}
+            onStatusChange={onStatusChange}
+            onCardClick={setSelectedTask}
+          />
+          <TaskColumn
+            title="Terminé"
+            tasks={termine}
+            onStatusChange={onStatusChange}
+            onCardClick={setSelectedTask}
+          />
+        </div>
       </div>
 
       {selectedTask && (
