@@ -78,8 +78,7 @@ function App() {
       },
     ]);
   }
-
-  function handleCreateTask(newTask) {
+function handleCreateTask(newTask) {
   setTasks((prevTasks) => [...prevTasks, newTask]);
 
   setActions((prevActions) => [
@@ -98,6 +97,15 @@ function App() {
   ]);
 }
 
+function handleCreateSubtask(parentTaskId, title) {
+  handleCreateTask({
+    id: Date.now(),
+    title,
+    description: "",
+    status: "A_FAIRE",
+    parentTaskId,
+  });
+}
   return (
     <BrowserRouter>
       <Routes>
@@ -118,6 +126,7 @@ function App() {
                   actions={actions}
                   onStatusChange={handleStatusChange}
                   onCreateTask={handleCreateTask}
+                  onCreateSubtask={handleCreateSubtask} 
                 />
               </AppLayout>
             </ProtectedRoute>

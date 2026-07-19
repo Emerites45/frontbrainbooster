@@ -3,7 +3,17 @@ import TaskColumn from "../components/TaskColumn";
 import TaskModal from "../components/TaskModal";
 import NewTaskModal from "../components/NewTaskModal";
 
-function BoardPage({ tasks, loading, error, selectedTask, setSelectedTask, actions, onStatusChange, onCreateTask }) {
+function BoardPage({
+  tasks,
+  loading,
+  error,
+  selectedTask,
+  setSelectedTask,
+  actions,
+  onStatusChange,
+  onCreateTask,
+  onCreateSubtask,
+}) {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
   if (loading) return <p>Chargement des tâches...</p>;
@@ -16,17 +26,46 @@ function BoardPage({ tasks, loading, error, selectedTask, setSelectedTask, actio
 
   return (
     <>
-      <button onClick={() => setShowNewTaskModal(true)}>+ Nouvelle tâche</button>
+      <button onClick={() => setShowNewTaskModal(true)}>
+        + Nouvelle tâche
+      </button>
+
       <div style={{ display: "flex" }}>
-        <TaskColumn title="À faire" tasks={aFaire} onStatusChange={onStatusChange} onCardClick={setSelectedTask} />
-        <TaskColumn title="En cours" tasks={enCours} onStatusChange={onStatusChange} onCardClick={setSelectedTask} />
-        <TaskColumn title="Terminé" tasks={termine} onStatusChange={onStatusChange} onCardClick={setSelectedTask} />
+        <TaskColumn
+          title="À faire"
+          tasks={aFaire}
+          onStatusChange={onStatusChange}
+          onCardClick={setSelectedTask}
+        />
+        <TaskColumn
+          title="En cours"
+          tasks={enCours}
+          onStatusChange={onStatusChange}
+          onCardClick={setSelectedTask}
+        />
+        <TaskColumn
+          title="Terminé"
+          tasks={termine}
+          onStatusChange={onStatusChange}
+          onCardClick={setSelectedTask}
+        />
       </div>
+
       {selectedTask && (
-        <TaskModal task={selectedTask} allTasks={tasks} actions={actions} onClose={() => setSelectedTask(null)} />
+        <TaskModal
+          task={selectedTask}
+          allTasks={tasks}
+          actions={actions}
+          onClose={() => setSelectedTask(null)}
+          onCreateSubtask={onCreateSubtask}
+        />
       )}
+
       {showNewTaskModal && (
-        <NewTaskModal onClose={() => setShowNewTaskModal(false)} onCreate={onCreateTask} />
+        <NewTaskModal
+          onClose={() => setShowNewTaskModal(false)}
+          onCreate={onCreateTask}
+        />
       )}
     </>
   );
