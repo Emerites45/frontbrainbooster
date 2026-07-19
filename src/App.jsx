@@ -4,7 +4,7 @@ import TaskColumn from "./components/TaskColumn";
 import TaskModal from "./components/TaskModal";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { fetchTasks } from "./api/api";
+import { fetchTasks, fetchProjects, createProject } from "./api/api"; 
 import BoardPage from "./pages/BoardPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";

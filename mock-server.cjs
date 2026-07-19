@@ -37,6 +37,19 @@ app.post('/auth/login', (req, res) => {
   });
 });
 
+// --- Projects ---
+app.get('/projects', (req, res) => {
+  res.json(readDb().projects);
+});
+
+app.post('/projects', (req, res) => {
+  const db = readDb();
+  const newProject = { id: Date.now(), ...req.body };
+  db.projects.push(newProject);
+  writeDb(db);
+  res.status(201).json(newProject);
+});
+
 // --- Tasks, lit/écrit vraiment dans db.json ---
 app.get('/tasks', (req, res) => {
   res.json(readDb().tasks);

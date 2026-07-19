@@ -1,4 +1,10 @@
 {
+
+   "projects": [
+    { "id": 1, "name": "Approvisionnement Cacao Q3", "description": "Sourcing et audits fournisseurs cacao bio.", "creatorId": 2 },
+    { "id": 2, "name": "Expansion Sésame Nord", "description": "Développement de nouveaux partenariats sésame.", "creatorId": 2 }
+  ],
+
   "tasks": [
     { "id": 1, "title": "Auditer fournisseur cacao", "status": "EN_COURS", "description": "Vérifier les certifications bio du fournisseur.", "creatorId": 2, "assigneeId": 3 },
     { "id": 2, "title": "Sourcing sésame région Nord", "status": "A_FAIRE", "description": "Identifier 3 producteurs potentiels.", "creatorId": 2, "assigneeId": 2 },

@@ -30,3 +30,25 @@ export async function loginUser(email, password) {
   if (!response.ok) throw new Error("Identifiants invalides");
   return response.json();
 }
+export async function fetchProjects() {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/projects`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function createProject(project) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/projects`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentUser?.token}`,
+    },
+    body: JSON.stringify(project),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
