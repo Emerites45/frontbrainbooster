@@ -13,6 +13,8 @@ function BoardPage({
   onStatusChange,
   onCreateTask,
   onCreateSubtask,
+  onEditTask,    // <-- AJOUTÉ ICI
+  onDeleteTask,  // <-- AJOUTÉ ICI
 }) {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
@@ -58,6 +60,8 @@ function BoardPage({
           actions={actions}
           onClose={() => setSelectedTask(null)}
           onCreateSubtask={onCreateSubtask}
+          onEditTask={onEditTask}
+          onDeleteTask={onDeleteTask}
         />
       )}
 

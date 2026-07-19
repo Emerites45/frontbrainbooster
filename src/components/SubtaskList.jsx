@@ -1,13 +1,25 @@
 import { useState } from "react";
 
-function SubtaskList({ subtasks, onAddSubtask }) {
+function SubtaskList({ subtasks, onAddSubtask, onEditSubtask, onDeleteSubtask }) {
   const [title, setTitle] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
 
   function handleSubmit(e) {
     e.preventDefault();
     if (!title.trim()) return;
     onAddSubtask(title);
     setTitle("");
+  }
+
+  function startEdit(subtask) {
+    setEditingId(subtask.id);
+    setEditTitle(subtask.title);
+  }
+
+  function saveEdit(subtaskId) {
+    onEditSubtask(subtaskId, { title: editTitle });
+    setEditingId(null);
   }
 
   return (
@@ -18,12 +30,19 @@ function SubtaskList({ subtasks, onAddSubtask }) {
         <ul>
           {subtasks.map((subtask) => (
             <li key={subtask.id}>
-              <input
-                type="checkbox"
-                checked={subtask.status === "TERMINE"}
-                readOnly
-              />
-              {subtask.title}
+              {editingId === subtask.id ? (
+                <>
+                  <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                  <button onClick={() => saveEdit(subtask.id)}>OK</button>
+                </>
+              ) : (
+                <>
+                  <input type="checkbox" checked={subtask.status === "TERMINE"} readOnly />
+                  {subtask.title}
+                  <button onClick={() => startEdit(subtask)}>Modifier</button>
+                  <button onClick={() => onDeleteSubtask(subtask.id)}>Supprimer</button>
+                </>
+              )}
             </li>
           ))}
         </ul>

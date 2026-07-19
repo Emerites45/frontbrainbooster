@@ -106,6 +106,36 @@ function handleCreateSubtask(parentTaskId, title) {
     parentTaskId,
   });
 }
+
+function handleEditTask(taskId, updatedFields) {
+  const task = tasks.find((t) => t.id === taskId);
+
+  setTasks((prevTasks) =>
+    prevTasks.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t)),
+  );
+
+  setActions((prevActions) => [
+    ...prevActions,
+    {
+      id: Date.now(),
+      id_tache: taskId,
+      id_user: currentUser?.email ?? "inconnu",
+      nom_user: currentUser?.name ?? "Utilisateur",
+      type_action: "MODIFICATION",
+      champ_modifie: "titre/description",
+      ancienne_valeur: task.title,
+      nouvelle_valeur: updatedFields.title,
+      date_action: new Date().toISOString(),
+    },
+  ]);
+}
+
+function handleDeleteTask(taskId) {
+  setTasks((prevTasks) =>
+    prevTasks.filter((t) => t.id !== taskId && t.parentTaskId !== taskId),
+  );
+}
+
   return (
     <BrowserRouter>
       <Routes>
@@ -127,6 +157,8 @@ function handleCreateSubtask(parentTaskId, title) {
                   onStatusChange={handleStatusChange}
                   onCreateTask={handleCreateTask}
                   onCreateSubtask={handleCreateSubtask} 
+                  onEditTask={handleEditTask}
+                  onDeleteTask={handleDeleteTask}
                 />
               </AppLayout>
             </ProtectedRoute>
