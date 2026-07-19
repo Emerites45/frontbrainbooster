@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MOCK_USERS } from "../constants/mockUsers";
 
 function SubtaskList({ subtasks, onAddSubtask, onEditSubtask, onDeleteSubtask }) {
   const [title, setTitle] = useState("");
@@ -57,9 +58,9 @@ function SubtaskList({ subtasks, onAddSubtask, onEditSubtask, onDeleteSubtask })
         />
         <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
           <option value="">Assigner à moi-même</option>
-          <option value="1">Marcus Chen (ADMIN)</option>
-          <option value="2">Alex Rivera (SCRUM_MASTER)</option>
-          <option value="3">Sarah Jenkins (MEMBER)</option>
+          {MOCK_USERS.map((u) => (
+            <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+          ))}
         </select>
         <button type="submit">Ajouter</button>
       </form>

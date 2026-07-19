@@ -9,6 +9,7 @@ function TaskColumn({ title, tasks, onStatusChange, onCardClick }) {
           key={task.id}
           title={task.title}
           status={task.status}
+          assigneeId={task.assigneeId}
           onStatusChange={() => onStatusChange(task.id)}
           onClick={() => onCardClick(task)}
         />
