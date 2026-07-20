@@ -1,0 +1,17 @@
+{
+
+   "projects": [
+    { "id": 1, "name": "Approvisionnement Cacao Q3", "description": "Sourcing et audits fournisseurs cacao bio.", "creatorId": 2 },
+    { "id": 2, "name": "Expansion Sésame Nord", "description": "Développement de nouveaux partenariats sésame.", "creatorId": 2 }
+  ],
+
+  "tasks": [
+    { "id": 1, "title": "Auditer fournisseur cacao", "status": "EN_COURS", "description": "Vérifier les certifications bio du fournisseur.", "creatorId": 2, "assigneeId": 3 },
+    { "id": 2, "title": "Sourcing sésame région Nord", "status": "A_FAIRE", "description": "Identifier 3 producteurs potentiels.", "creatorId": 2, "assigneeId": 2 },
+    { "id": 3, "title": "Rapport traçabilité café", "status": "TERMINE", "description": "Compiler les données de traçabilité Q3.", "creatorId": 1, "assigneeId": 3 },
+    { "id": 4, "title": "Contrat exportateur mangue", "status": "A_FAIRE", "description": "Rédiger les termes du contrat.", "creatorId": 2, "assigneeId": 3 },
+    { "id": 5, "title": "Compiler la liste des contacts fournisseurs", "status": "TERMINE", "description": "", "parentTaskId": 1, "creatorId": 2, "assigneeId": 3 },
+    { "id": 6, "title": "Envoyer le questionnaire d'auto-évaluation", "status": "A_FAIRE", "description": "", "parentTaskId": 1, "creatorId": 2, "assigneeId": 3 },
+    { "id": 7, "title": "Réserver la salle de réunion pour le debrief", "status": "TERMINE", "description": "", "parentTaskId": 1, "creatorId": 2, "assigneeId": 3 }
+  ]
+}
