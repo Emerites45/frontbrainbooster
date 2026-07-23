@@ -1,0 +1,143 @@
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--cream);
+  padding: 40px 20px;
+}
+
+/* NEW: the card that holds both sides */
+.auth-card {
+  display: flex;
+  width: 100%;
+  max-width: 860px;
+  background: #ffffff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(26, 58, 92, 0.08);
+}
+
+/* --- Left side: form --- */
+.auth-form-side {
+  flex: 0 0 45%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 48px;
+  background: #ffffff;
+}
+.auth-showcase-side {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 40px 36px;           /* remove padding, image fills the space */
+  background: #04122e;  /* fallback color matching the image's blue, in case of gaps */
+  overflow: hidden;
+}
+
+.showcase-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;   /* fills the panel, cropping if needed, no distortion */
+}
+
+.showcase-icon-wrap {
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.showcase-icon-circle {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(26, 58, 92, 0.15);
+}
+
+.showcase-shield {
+  width: 70px;
+  height: 70px;
+  color: var(--navy);
+}
+
+.showcase-icon-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--navy);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.showcase-title {
+  color: var(--navy);
+  font-size: 26px;
+  line-height: 1.3;
+  margin: 0 0 16px 0;
+}
+
+.showcase-text {
+  color: var(--text-light);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 380px;
+  margin: 0 0 40px 0;
+}
+
+.showcase-features {
+  display: flex;
+  gap: 32px;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+.feature-icon {
+  font-size: 20px;
+}
+
+/* AuthLayout.css — add this at the end */
+.auth-showcase-side--fill {
+  padding: 0;
+  background: #04122e;
+}
+
+
+/* --- Responsive: stack on smaller screens --- */
+@media (max-width: 900px) {
+  .auth-card {
+    flex-direction: column;
+    border-radius: 16px;
+  }
+  .auth-form-side,
+  .auth-showcase-side {
+    flex: none;
+    width: 100%;
+    padding: 40px 24px;
+  }
+  .auth-showcase-side {
+    order: -1;
+    padding-bottom: 32px;
+  }
+}
