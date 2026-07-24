@@ -8,7 +8,11 @@ import { fetchTasks, fetchProjects, createProject } from "./api/api";
 import BoardPage from "./pages/BoardPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
+import ProjectsPage from "./pages/ProjectsPage"; // 1. Import de la nouvelle page
 import Navbar from "./components/Navbar";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 const NEXT_STATUS = {
   A_FAIRE: "EN_COURS",
@@ -27,6 +31,7 @@ function AppLayout({ children, currentUser, onLogout }) {
 
 function App() {
   const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]); // 2. State pour les projets
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,42 +52,69 @@ function App() {
     setCurrentUser(null);
   }
 
+  // 3. Chargement initial des données (Tasks + Projects)
   useEffect(() => {
-    fetchTasks()
-      .then((data) => setTasks(data))
+    setLoading(true);
+    Promise.all([fetchTasks(), fetchProjects()])
+      .then(([tasksData, projectsData]) => {
+        setTasks(tasksData);
+        setProjects(projectsData);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
-  function getVisibleTasks() {
-    if (!currentUser) return [];
-    if (currentUser.role === "ADMIN") return tasks;
+  // --- Handlers pour les Projets ---
+  const handleCreateProject = async (projectData) => {
+    try {
+      const newProject = await createProject(projectData);
+      setProjects((prev) => [...prev, newProject]);
+    } catch (err) {
+      alert("Erreur lors de la création du projet");
+    }
+  };
 
-    const isDirectlyVisible = (t) => {
-      if (currentUser.role === "SCRUM_MASTER") {
-        return t.creatorId === currentUser.id || t.assigneeId === currentUser.id;
-      }
-      return t.assigneeId === currentUser.id; // MEMBER
-    };
+  const handleSelectProject = (projectId) => {
+    console.log("Projet sélectionné :", projectId);
+    // Ici, vous pourriez naviguer vers / ou filtrer les tâches par projectId
+  };
 
-    const visibleIds = new Set(
-      tasks.filter(isDirectlyVisible).map((t) => t.id),
-    );
+  // --- Logique des Tâches ---
+function getVisibleTasks() {
+  if (!currentUser) return [];
+  if (currentUser.role === "ADMIN") return tasks;
+
+  const isDirectlyVisible = (t) => {
+    if (currentUser.role === "SCRUM_MASTER") {
+      return t.creatorId === currentUser.id || t.assigneeId === currentUser.id;
+    }
+    return t.assigneeId === currentUser.id; // MEMBER
+  };
+
+  const visibleIds = new Set(tasks.filter(isDirectlyVisible).map((t) => t.id));
+
+  // On répète tant qu'un ajout a eu lieu, pour couvrir n'importe quelle profondeur
+  let changed = true;
+  while (changed) {
+    changed = false;
 
     tasks.forEach((t) => {
-      if (visibleIds.has(t.id) && t.parentTaskId) {
+      // Remonter : si l'enfant est visible, son parent doit l'être aussi
+      if (visibleIds.has(t.id) && t.parentTaskId && !visibleIds.has(t.parentTaskId)) {
         visibleIds.add(t.parentTaskId);
+        changed = true;
       }
-    });
-
-    tasks.forEach((t) => {
-      if (t.parentTaskId && visibleIds.has(t.parentTaskId)) {
+      // Redescendre : si le parent est visible, l'enfant doit l'être aussi
+      if (t.parentTaskId && visibleIds.has(t.parentTaskId) && !visibleIds.has(t.id)) {
         visibleIds.add(t.id);
+        changed = true;
       }
     });
-
-    return tasks.filter((t) => visibleIds.has(t.id));
   }
+
+  return tasks.filter((t) => visibleIds.has(t.id));
+}
+  
   const visibleTasks = getVisibleTasks();
 
   function handleStatusChange(taskId) {
@@ -120,21 +152,6 @@ function App() {
     };
 
     setTasks((prevTasks) => [...prevTasks, taskWithMeta]);
-
-    setActions((prevActions) => [
-      ...prevActions,
-      {
-        id: Date.now() + 1,
-        id_tache: taskWithMeta.id,
-        id_user: currentUser?.email ?? "inconnu",
-        nom_user: currentUser?.name ?? "Utilisateur",
-        type_action: "CREATION",
-        champ_modifie: null,
-        ancienne_valeur: null,
-        nouvelle_valeur: null,
-        date_action: new Date().toISOString(),
-      },
-    ]);
   }
 
   function handleCreateSubtask(parentTaskId, title, assigneeId) {
@@ -149,40 +166,43 @@ function App() {
   }
 
   function handleEditTask(taskId, updatedFields) {
-    const task = tasks.find((t) => t.id === taskId);
-
     setTasks((prevTasks) =>
       prevTasks.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t)),
     );
-
-    setActions((prevActions) => [
-      ...prevActions,
-      {
-        id: Date.now(),
-        id_tache: taskId,
-        id_user: currentUser?.email ?? "inconnu",
-        nom_user: currentUser?.name ?? "Utilisateur",
-        type_action: "MODIFICATION",
-        champ_modifie: "titre/description",
-        ancienne_valeur: task.title,
-        nouvelle_valeur: updatedFields.title,
-        date_action: new Date().toISOString(),
-      },
-    ]);
   }
 
-  function handleDeleteTask(taskId) {
-    setTasks((prevTasks) =>
-      prevTasks.filter((t) => t.id !== taskId && t.parentTaskId !== taskId),
-    );
-  }
+  function handleVerify(code) {
+  console.log("Code entered:", code);
+  // later: call backend to confirm, then navigate to /login or /
+}
+
+
+function handleDeleteTask(taskId) {
+  setTasks((prevTasks) => {
+    const idsToDelete = new Set([taskId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      prevTasks.forEach((t) => {
+        if (t.parentTaskId && idsToDelete.has(t.parentTaskId) && !idsToDelete.has(t.id)) {
+          idsToDelete.add(t.id);
+          changed = true;
+        }
+      });
+    }
+    return prevTasks.filter((t) => !idsToDelete.has(t.id));
+  });
+}
+  
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
         <Route path="/signup" element={<SignupPage />} />
-
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        {/* Route Tableau de Bord (Board) */}
         <Route
           path="/"
           element={
@@ -206,6 +226,22 @@ function App() {
           }
         />
 
+        {/* 4. Nouvelle Route Projects */}
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute isLoggedIn={!!currentUser}>
+              <AppLayout currentUser={currentUser} onLogout={handleLogout}>
+                <ProjectsPage
+                  projects={projects}
+                  onCreateProject={handleCreateProject}
+                  onSelectProject={handleSelectProject}
+                />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={
@@ -216,6 +252,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+          <Route path="/verify-email" element={<VerifyEmailPage onVerify={handleVerify} />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
