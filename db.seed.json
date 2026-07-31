@@ -1,0 +1,212 @@
+{
+  "departments": [
+    { "id": 1, "name": "Dev" },
+    { "id": 2, "name": "Design" },
+    { "id": 3, "name": "Data/IA" },
+    { "id": 4, "name": "Droit" }
+  ],
+
+  "users": [
+    {
+      "id": 1,
+      "firstName": "Marcus",
+      "lastName": "Chen",
+      "email": "marcus.chen@aaprovidir.com",
+      "globalRoles": ["ADMIN"],
+      "departmentRoles": [],
+      "mustChangePassword": false
+    },
+    {
+      "id": 2,
+      "firstName": "Alex",
+      "lastName": "Rivera",
+      "email": "alex.rivera@aaprovidir.com",
+      "globalRoles": [],
+      "departmentRoles": [
+        { "departmentId": 1, "departmentName": "Dev", "role": "SCRUM_MASTER" }
+      ],
+      "mustChangePassword": false
+    },
+    {
+      "id": 3,
+      "firstName": "Sarah",
+      "lastName": "Jenkins",
+      "email": "sarah.jenkins@aaprovidir.com",
+      "globalRoles": [],
+      "departmentRoles": [
+        { "departmentId": 1, "departmentName": "Dev", "role": "MEMBER" }
+      ],
+      "mustChangePassword": false
+    },
+    {
+      "id": 4,
+      "firstName": "Elena",
+      "lastName": "Rodriguez",
+      "email": "elena.rodriguez@aaprovidir.com",
+      "globalRoles": [],
+      "departmentRoles": [
+        { "departmentId": 2, "departmentName": "Design", "role": "SCRUM_MASTER" }
+      ],
+      "mustChangePassword": false
+    },
+    {
+      "id": 5,
+      "firstName": "Michael",
+      "lastName": "Scott",
+      "email": "michael.scott@aaprovidir.com",
+      "globalRoles": [],
+      "departmentRoles": [
+        { "departmentId": 2, "departmentName": "Design", "role": "MEMBER" }
+      ],
+      "mustChangePassword": false
+    },
+    {
+      "id": 6,
+      "firstName": "Priya",
+      "lastName": "Nadal",
+      "email": "priya.nadal@aaprovidir.com",
+      "globalRoles": [],
+      "departmentRoles": [
+        { "departmentId": 3, "departmentName": "Data/IA", "role": "MEMBER" }
+      ],
+      "mustChangePassword": false
+    },
+    {
+      "id": 7,
+      "firstName": "Karim",
+      "lastName": "Diallo",
+      "email": "karim.diallo@aaprovidir.com",
+      "globalRoles": [],
+      "departmentRoles": [
+        { "departmentId": 4, "departmentName": "Droit", "role": "MEMBER" }
+      ],
+      "mustChangePassword": false
+    },
+    {
+      "id": 8,
+      "firstName": "Nouveau",
+      "lastName": "Membre",
+      "email": "nouveau.membre@aaprovidir.com",
+      "globalRoles": [],
+      "departmentRoles": [
+        { "departmentId": 1, "departmentName": "Dev", "role": "MEMBER" }
+      ],
+      "mustChangePassword": true
+    }
+  ],
+
+  "projects": [
+    {
+      "id": 1,
+      "name": "Approvisionnement Cacao Q3",
+      "description": "Sourcing et audits fournisseurs cacao bio.",
+      "departmentId": 1,
+      "creatorId": 2,
+      "status": "EN_COURS",
+      "startDate": "2026-07-01",
+      "endDate": "2026-09-30"
+    },
+    {
+      "id": 2,
+      "name": "Expansion Sésame Nord",
+      "description": "Développement de nouveaux partenariats sésame.",
+      "departmentId": 1,
+      "creatorId": 2,
+      "status": "A_FAIRE",
+      "startDate": "2026-08-15",
+      "endDate": "2026-11-30"
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Auditer fournisseur cacao",
+      "status": "EN_COURS",
+      "description": "Vérifier les certifications bio du fournisseur.",
+      "projectId": 1,
+      "creatorId": 2,
+      "assigneeIds": [3, 6],
+      "startDate": "2026-07-05",
+      "endDate": "2026-08-20",
+      "dueDate": "2026-08-20"
+    },
+    {
+      "id": 2,
+      "title": "Sourcing sésame région Nord",
+      "status": "A_FAIRE",
+      "description": "Identifier 3 producteurs potentiels.",
+      "projectId": 2,
+      "creatorId": 2,
+      "assigneeIds": [2],
+      "startDate": "2026-08-15",
+      "endDate": "2026-09-15",
+      "dueDate": "2026-09-15"
+    },
+    {
+      "id": 3,
+      "title": "Rapport traçabilité café",
+      "status": "TERMINE",
+      "description": "Compiler les données de traçabilité Q3.",
+      "projectId": 1,
+      "creatorId": 1,
+      "assigneeIds": [3],
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-20",
+      "dueDate": "2026-07-20"
+    },
+    {
+      "id": 4,
+      "title": "Contrat exportateur mangue",
+      "status": "A_FAIRE",
+      "description": "Rédiger les termes du contrat.",
+      "projectId": 1,
+      "creatorId": 2,
+      "assigneeIds": [7],
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-25",
+      "dueDate": "2026-08-25"
+    },
+    {
+      "id": 5,
+      "title": "Compiler la liste des contacts fournisseurs",
+      "status": "TERMINE",
+      "description": "",
+      "parentTaskId": 1,
+      "projectId": 1,
+      "creatorId": 2,
+      "assigneeIds": [3],
+      "startDate": "2026-07-05",
+      "endDate": "2026-07-12",
+      "dueDate": "2026-07-12"
+    },
+    {
+      "id": 6,
+      "title": "Envoyer le questionnaire d'auto-évaluation",
+      "status": "A_FAIRE",
+      "description": "",
+      "parentTaskId": 1,
+      "projectId": 1,
+      "creatorId": 2,
+      "assigneeIds": [3, 6],
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-18",
+      "dueDate": "2026-08-18"
+    },
+    {
+      "id": 7,
+      "title": "Réserver la salle de réunion pour le debrief",
+      "status": "TERMINE",
+      "description": "",
+      "parentTaskId": 1,
+      "projectId": 1,
+      "creatorId": 2,
+      "assigneeIds": [3],
+      "startDate": "2026-07-15",
+      "endDate": "2026-07-15",
+      "dueDate": "2026-07-15"
+    }
+  ],
+
+  "actions": []
+}

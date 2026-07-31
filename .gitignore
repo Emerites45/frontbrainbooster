@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+# Données mock locales — mutées par mock-server.cjs à chaque test (POST/PUT/DELETE).
+# Ne jamais commit ce fichier après le seed initial, sinon conflits Git permanents.
+# Le seed versionné est db.seed.json — voir README pour le reset.
+db.json
