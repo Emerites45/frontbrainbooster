@@ -130,14 +130,13 @@
     flex-direction: column;
     border-radius: 16px;
   }
-  .auth-form-side,
-  .auth-showcase-side {
+  .auth-form-side {
     flex: none;
     width: 100%;
     padding: 40px 24px;
   }
-  .auth-showcase-side {
-    order: -1;
-    padding-bottom: 32px;
+  .auth-showcase-side,
+  .auth-showcase-side--fill {
+    display: none;   /* hide the illustration panel entirely on mobile */
   }
 }

@@ -1,8 +1,7 @@
 import { useState } from "react";
-import TaskColumn from "../components/TaskColumn";
-import TaskModal from "../components/TaskModal";
-import NewTaskModal from "../components/NewTaskModal";
-
+import TaskColumn from "../../components/TaskColumn";
+import TaskModal from "../../components/TaskModal";
+import NewTaskModal from "../../components/NewTaskModal";
 function BoardPage({
   tasks,
   loading,

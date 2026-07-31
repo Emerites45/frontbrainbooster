@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";import AuthLayout from "../components/AuthLayout";
-import aaprovidirLogo from "../assets/aaprovidir-logo.png";
-import marinaImg from "../assets/marina.png";
-import { loginUser } from "../api/api";
-import "./LoginPage.css";
+import { useNavigate } from "react-router-dom";
+import AuthLayout from "../../components/AuthLayout";
+//import wallyLogo from "../../assets/wally-logo.png";
+import marinaImg from "../../assets/Marina.png";
+import { loginUser } from "../../api/api";
 
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -20,7 +20,7 @@ function LoginPage({ onLogin }) {
     try {
       const data = await loginUser(email, password); // vrai appel API
       if (onLogin) {
-        onLogin(data); // data contient { token, ... } venant du serveur
+        onLogin(data); // data doit contenir { token, ... } venant du serveur
       }
       navigate("/"); // redirection après succès
     } catch (err) {
@@ -31,17 +31,13 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    // après
-<AuthLayout
-  fillRight={true}
-  rightContent={
-    <img src={marinaImg} alt="Nourrir un avenir radieux" className="showcase-image" />
-  }
->
+    <AuthLayout
+      rightContent={
+        <img src={marinaImg} alt="Nourrir un avenir radieux" className="showcase-image" />
+      }
+    >
       <div className="login-form-wrap">
-	<div className="login-logo">
-          <img src={aaprovidirLogo} alt="Aaprovidir" className="logo-img" />
-        </div>
+
         <div className="login-header">
           <h1 className="login-title">Bon retour</h1>
           <p className="login-subtitle">
@@ -75,7 +71,7 @@ function LoginPage({ onLogin }) {
           <div className="form-group">
             <div className="label-row">
               <label htmlFor="password">Mot de passe</label>
-              <Link to="/forgot-password" className="link-small">Mot de passe oublié ?</Link>
+              <a href="#" className="link-small">Mot de passe oublié ?</a>
             </div>
             <div className="input-wrapper">
               <span className="input-icon">
