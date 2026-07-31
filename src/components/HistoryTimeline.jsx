@@ -9,10 +9,13 @@ function formatTempsEcoule(dateAction) {
 }
 
 function libelleAction(action) {
+  if (action.type_action === 'CREATION') {
+    return `a créé cette tâche`;
+  }
   if (action.type_action === 'CHANGEMENT_STATUT') {
     return `a changé le statut de ${action.ancienne_valeur} à ${action.nouvelle_valeur}`;
   }
-  return `a modifié ${action.champ_modifie}`;
+  return `a modifié ${action.champ_modifie} (de "${action.ancienne_valeur}" à "${action.nouvelle_valeur}")`;
 }
 
 function HistoryTimeline({ actions }) {

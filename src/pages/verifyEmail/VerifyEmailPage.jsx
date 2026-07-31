@@ -1,8 +1,7 @@
 // après
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import AuthLayout from "../components/AuthLayout";
-import "./VerifyEmailPage.css";
+import AuthLayout from "../../components/AuthLayout";import "./VerifyEmailPage.css";
 
 const CODE_LENGTH = 6;
 const EXPIRY_SECONDS = 5 * 60;
