@@ -98,3 +98,36 @@ export async function resetPassword({ email, otp, newPassword }) {
 
   return res.json();
 }
+// --- À AJOUTER dans src/api/api.js, à la suite des fonctions existantes ---
+
+export async function fetchUsers() {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/users`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function fetchDepartments() {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/departments`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function createAdminUser(userData) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/admin/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentUser?.token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
