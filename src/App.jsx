@@ -2,17 +2,17 @@ import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import TaskColumn from "./components/TaskColumn";
 import TaskModal from "./components/TaskModal";
-import LoginPage from "./pages/LoginPage";
+import LoginPage from "./pages/login/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { fetchTasks, fetchProjects, createProject } from "./api/api"; 
 import BoardPage from "./pages/BoardPage";
-import SignupPage from "./pages/SignupPage";
+import SignupPage from "./pages/signup/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProjectsPage from "./pages/ProjectsPage"; // 1. Import de la nouvelle page
 import Navbar from "./components/Navbar";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ForgotPasswordPage from "./pages/resetpassword/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/resetpassword/ResetPasswordPage";
 
 const NEXT_STATUS = {
   A_FAIRE: "EN_COURS",
