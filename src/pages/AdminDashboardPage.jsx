@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchUsers, fetchDepartments, createAdminUser } from "../api/api";
-import "../AdminDashboard.css";
+import "./AdminDashboard.css";
 function computeStats(tasks) {
   const total = tasks.length;
   const termine = tasks.filter((t) => t.status === "TERMINE").length;
