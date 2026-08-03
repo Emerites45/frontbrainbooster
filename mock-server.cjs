@@ -139,5 +139,22 @@ app.delete('/tasks/:id', (req, res) => {
   res.status(204).end();
 });
 
+// --- Journal d'actions (ACTION_HISTORY) — F5 ---
+// GET renvoie tout l'historique ; POST ajoute une entrée telle qu'envoyée par le
+// front (App.jsx génère déjà un id côté client via generateActionId(), on le
+// respecte s'il est fourni plutôt que d'en recréer un).
+app.get('/actions', (req, res) => {
+  res.json(readDb().actions || []);
+});
+
+app.post('/actions', (req, res) => {
+  const db = readDb();
+  const newAction = { id: req.body.id ?? Date.now(), ...req.body };
+  db.actions = db.actions || [];
+  db.actions.push(newAction);
+  writeDb(db);
+  res.status(201).json(newAction);
+});
+
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Mock server sur http://localhost:${PORT}`));

@@ -98,7 +98,6 @@ export async function resetPassword({ email, otp, newPassword }) {
 
   return res.json();
 }
-// --- À AJOUTER dans src/api/api.js, à la suite des fonctions existantes ---
 
 export async function fetchUsers() {
   const currentUser = JSON.parse(localStorage.getItem("currentUser"));
@@ -127,6 +126,30 @@ export async function createAdminUser(userData) {
       Authorization: `Bearer ${currentUser?.token}`,
     },
     body: JSON.stringify(userData),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+// --- Journal d'actions (ACTION_HISTORY) — F5 ---
+export async function fetchActions() {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/actions`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function createAction(actionData) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/actions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentUser?.token}`,
+    },
+    body: JSON.stringify(actionData),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
