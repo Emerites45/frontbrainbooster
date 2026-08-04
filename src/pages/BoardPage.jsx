@@ -2,9 +2,14 @@ import { useState } from "react";
 import TaskColumn from "../components/TaskColumn";
 import TaskModal from "../components/TaskModal";
 import NewTaskModal from "../components/NewTaskModal";
+import "./AdminDashboard.css";
+import "./Board.css";
 
 function BoardPage({
   tasks,
+  users,
+  projects,
+  currentUser,
   loading,
   error,
   selectedTask,
@@ -18,10 +23,15 @@ function BoardPage({
 }) {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
-  if (loading) return <p>Chargement des tâches...</p>;
-  if (error) return <p>Erreur : {error}</p>;
+  if (loading) return <p className="loading-text">Chargement des tâches...</p>;
+  if (error) return <p className="empty-state">Erreur : {error}</p>;
 
-  // Filtrage des tâches principales (sans parent) parmi les tâches visibles reçues
+  // Seuls Admin et Scrum Master créent des tâches — un Membre ne fait que
+  // consulter/avancer les siennes (cohérent avec la vue F4 "Membre").
+  const isAdmin = currentUser?.globalRoles?.includes("ADMIN");
+  const isScrumMaster = currentUser?.departmentRoles?.some((dr) => dr.role === "SCRUM_MASTER");
+  const canCreateTask = isAdmin || isScrumMaster;
+
   const rootTasks = tasks.filter((t) => !t.parentTaskId);
   const aFaire = rootTasks.filter((t) => t.status === "A_FAIRE");
   const enCours = rootTasks.filter((t) => t.status === "EN_COURS");
@@ -29,27 +39,34 @@ function BoardPage({
 
   return (
     <>
-      <div style={{ padding: "24px 40px" }}>
-        <button onClick={() => setShowNewTaskModal(true)}>
-          + Nouvelle tâche
-        </button>
+      <div className="board-page">
+        <div className="board-header">
+          {canCreateTask && (
+            <button className="btn-new-task" onClick={() => setShowNewTaskModal(true)}>
+              + Nouvelle tâche
+            </button>
+          )}
+        </div>
 
-        <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
+        <div className="board-columns">
           <TaskColumn
             title="À faire"
             tasks={aFaire}
+            users={users}
             onStatusChange={onStatusChange}
             onCardClick={setSelectedTask}
           />
           <TaskColumn
             title="En cours"
             tasks={enCours}
+            users={users}
             onStatusChange={onStatusChange}
             onCardClick={setSelectedTask}
           />
           <TaskColumn
             title="Terminé"
             tasks={termine}
+            users={users}
             onStatusChange={onStatusChange}
             onCardClick={setSelectedTask}
           />
@@ -59,7 +76,8 @@ function BoardPage({
       {selectedTask && (
         <TaskModal
           task={selectedTask}
-          allTasks={tasks} // Reçoit visibleTasks depuis App.jsx pour lister/lier les sous-tâches
+          allTasks={tasks}
+          users={users}
           actions={actions}
           onClose={() => setSelectedTask(null)}
           onCreateSubtask={onCreateSubtask}
@@ -68,8 +86,11 @@ function BoardPage({
         />
       )}
 
-      {showNewTaskModal && (
+      {showNewTaskModal && canCreateTask && (
         <NewTaskModal
+          users={users}
+          projects={projects}
+          currentUser={currentUser}
           onClose={() => setShowNewTaskModal(false)}
           onCreate={onCreateTask}
         />

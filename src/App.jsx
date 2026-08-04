@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/login/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { fetchTasks, fetchProjects, createProject } from "./api/api";
+import { fetchTasks, fetchProjects, fetchUsers, fetchActions, createProject, createAction } from "./api/api";
+import { normalizeAssignments } from "./utils/dashboardHelpers";
 import BoardPage from "./pages/BoardPage";
 import SignupPage from "./pages/signup/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import ScrumMasterDashboardPage from "./pages/ScrumMasterDashboardPage";
+import MemberDashboardPage from "./pages/MemberDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import Navbar from "./components/Navbar";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
@@ -36,6 +39,7 @@ function AppLayout({ children, currentUser, onLogout }) {
 function App() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,14 +63,28 @@ function App() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchTasks(), fetchProjects()])
-      .then(([tasksData, projectsData]) => {
+    Promise.all([fetchTasks(), fetchProjects(), fetchUsers(), fetchActions()])
+      .then(([tasksData, projectsData, usersData, actionsData]) => {
         setTasks(tasksData);
         setProjects(projectsData);
+        setUsers(usersData);
+        setActions(actionsData);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  // Persiste une entrée d'historique côté mock-server, en plus de la mise à
+  // jour optimiste locale déjà faite par l'appelant. Échec silencieux (juste
+  // loggé) : on ne bloque jamais l'UI pour un souci d'historique — l'action
+  // métier elle-même (changement de statut, création...) a déjà réussi.
+  async function persistAction(action) {
+    try {
+      await createAction(action);
+    } catch (err) {
+      console.error("Impossible d'enregistrer l'action dans l'historique :", err);
+    }
+  }
 
   const handleCreateProject = async (projectData) => {
     try {
@@ -91,7 +109,12 @@ function App() {
     const isScrumMasterOf = (deptId) =>
       myDeptRoles.some((dr) => dr.departmentId === deptId && dr.role === "SCRUM_MASTER");
 
-    const isAssignedToMe = (t) => (t.assigneeIds || []).includes(currentUser.id);
+    // Format TASK_ASSIGNMENT : task.assignments = [{ userId, assignedBy, assignedAt, unassignedAt? }]
+    // ⚠️ Ce format colle à la table TASK_ASSIGNMENT du MCD validé par Franck, mais n'a
+    // pas fait l'objet d'une confirmation écrite explicite de Joel/Verdream (contrairement
+    // au format de /auth/login qui, lui, est bien acté dans contrat-api-auth.md).
+    const isAssignedToMe = (t) =>
+      (t.assignments || []).some((a) => a.userId === currentUser.id && !a.unassignedAt);
 
     const isDirectlyVisible = (t) => {
       if (myDeptRoles.some((dr) => dr.role === "SCRUM_MASTER")) {
@@ -123,6 +146,7 @@ function App() {
 
   const visibleTasks = getVisibleTasks();
   const isAdmin = currentUser?.globalRoles?.includes("ADMIN");
+  const isScrumMaster = currentUser?.departmentRoles?.some((dr) => dr.role === "SCRUM_MASTER");
 
   function handleStatusChange(taskId) {
     const task = tasks.find((t) => t.id === taskId);
@@ -135,55 +159,66 @@ function App() {
       ),
     );
 
-    setActions((prevActions) => [
-      ...prevActions,
-      {
-        id: generateActionId(),
-        id_tache: taskId,
-        id_user: currentUser?.email ?? "inconnu",
-        nom_user: currentUser?.firstName ?? "Utilisateur",
-        type_action: "CHANGEMENT_STATUT",
-        champ_modifie: "statut",
-        ancienne_valeur: ancienStatut,
-        nouvelle_valeur: nouveauStatut,
-        date_action: new Date().toISOString(),
-      },
-    ]);
+    const newAction = {
+      id: generateActionId(),
+      id_tache: taskId,
+      id_user: currentUser?.email ?? "inconnu",
+      nom_user: currentUser?.firstName ?? "Utilisateur",
+      type_action: "CHANGEMENT_STATUT",
+      champ_modifie: "statut",
+      ancienne_valeur: ancienStatut,
+      nouvelle_valeur: nouveauStatut,
+      date_action: new Date().toISOString(),
+    };
+
+    setActions((prevActions) => [...prevActions, newAction]);
+    persistAction(newAction);
   }
 
   function handleCreateTask(newTask) {
+    // normalizeAssignments accepte aussi bien un tableau d'objets enrichis
+    // qu'un simple tableau d'IDs (cas de NewTaskModal / SubtaskList) — on ne
+    // suppose jamais que ce qui arrive ici respecte déjà le format attendu.
+    const normalized = normalizeAssignments(newTask.assignments, currentUser);
+    const assignments =
+      normalized.length > 0
+        ? normalized
+        : currentUser?.id
+        ? [{ userId: currentUser.id, assignedBy: currentUser.id, assignedAt: new Date().toISOString() }]
+        : [];
+
     const taskWithMeta = {
       ...newTask,
       creatorId: currentUser?.id ?? null,
-      assigneeIds: newTask.assigneeIds ?? (currentUser?.id ? [currentUser.id] : []),
+      assignments,
     };
 
     setTasks((prevTasks) => [...prevTasks, taskWithMeta]);
 
-    setActions((prevActions) => [
-      ...prevActions,
-      {
-        id: generateActionId(),
-        id_tache: taskWithMeta.id,
-        id_user: currentUser?.email ?? "inconnu",
-        nom_user: currentUser?.firstName ?? "Utilisateur",
-        type_action: "CREATION",
-        champ_modifie: null,
-        ancienne_valeur: null,
-        nouvelle_valeur: null,
-        date_action: new Date().toISOString(),
-      },
-    ]);
+    const newAction = {
+      id: generateActionId(),
+      id_tache: taskWithMeta.id,
+      id_user: currentUser?.email ?? "inconnu",
+      nom_user: currentUser?.firstName ?? "Utilisateur",
+      type_action: "CREATION",
+      champ_modifie: null,
+      ancienne_valeur: null,
+      nouvelle_valeur: null,
+      date_action: new Date().toISOString(),
+    };
+
+    setActions((prevActions) => [...prevActions, newAction]);
+    persistAction(newAction);
   }
 
-  function handleCreateSubtask(parentTaskId, title, assigneeIds) {
+  function handleCreateSubtask(parentTaskId, title, assignments) {
     handleCreateTask({
       id: Date.now(),
       title,
       description: "",
       status: "A_FAIRE",
       parentTaskId,
-      assigneeIds,
+      assignments,
     });
   }
 
@@ -218,18 +253,18 @@ function App() {
 
     if (changedActions.length === 0) return;
 
-    setActions((prevActions) => [
-      ...prevActions,
-      ...changedActions.map((a) => ({
-        id: generateActionId(),
-        id_tache: taskId,
-        id_user: currentUser?.email ?? "inconnu",
-        nom_user: currentUser?.firstName ?? "Utilisateur",
-        type_action: "MODIFICATION",
-        ...a,
-        date_action: new Date().toISOString(),
-      })),
-    ]);
+    const newActions = changedActions.map((a) => ({
+      id: generateActionId(),
+      id_tache: taskId,
+      id_user: currentUser?.email ?? "inconnu",
+      nom_user: currentUser?.firstName ?? "Utilisateur",
+      type_action: "MODIFICATION",
+      ...a,
+      date_action: new Date().toISOString(),
+    }));
+
+    setActions((prevActions) => [...prevActions, ...newActions]);
+    newActions.forEach(persistAction);
   }
 
   function handleVerify(code) {
@@ -267,6 +302,9 @@ function App() {
               <AppLayout currentUser={currentUser} onLogout={handleLogout}>
                 <BoardPage
                   tasks={visibleTasks}
+                  users={users}
+                  projects={projects}
+                  currentUser={currentUser}
                   loading={loading}
                   error={error}
                   selectedTask={selectedTask}
@@ -296,18 +334,26 @@ function App() {
             </ProtectedRoute>
           }
         />
-        {/* Route unique /dashboard : Admin voit AdminDashboardPage, tout le monde
-            d'autre voit encore l'ancien DashboardPage générique en attendant que
-            les dashboards Scrum Master / Membre soient codés (prochaines étapes F4). */}
+        {/* Route unique /dashboard : chaque rôle voit sa propre vue. */}
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute isLoggedIn={!!currentUser}>
               <AppLayout currentUser={currentUser} onLogout={handleLogout}>
                 {isAdmin ? (
-                  <AdminDashboardPage tasks={visibleTasks} projects={projects} />
+                  <AdminDashboardPage tasks={visibleTasks} projects={projects} actions={actions} />
+                ) : isScrumMaster ? (
+                  <ScrumMasterDashboardPage
+                    tasks={visibleTasks}
+                    projects={projects}
+                    currentUser={currentUser}
+                  />
                 ) : (
-                  <DashboardPage tasks={visibleTasks} />
+                  <MemberDashboardPage
+                    tasks={visibleTasks}
+                    projects={projects}
+                    currentUser={currentUser}
+                  />
                 )}
               </AppLayout>
             </ProtectedRoute>
