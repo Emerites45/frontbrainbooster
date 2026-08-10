@@ -1,20 +1,43 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
 import LoginPage from "./pages/login/LoginPage";
-import ProtectedRoute from "./components/ProtectedRoute";
-import { fetchTasks, fetchProjects, fetchUsers, fetchActions, createProject, createAction } from "./api/api";
-import { normalizeAssignments } from "./utils/dashboardHelpers";
-import BoardPage from "./pages/BoardPage";
 import SignupPage from "./pages/signup/SignupPage";
-import DashboardPage from "./pages/DashboardPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import ScrumMasterDashboardPage from "./pages/ScrumMasterDashboardPage";
-import MemberDashboardPage from "./pages/MemberDashboardPage";
-import ProjectsPage from "./pages/ProjectsPage";
-import Navbar from "./components/Navbar";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/resetpassword/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/resetpassword/ResetPasswordPage";
+
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import ScrumMasterDashboardPage from "./pages/ScrumMasterDashboardPage";
+import MemberDashboardPage from "./pages/MemberDashboardPage";
+
+import BoardPage from "./pages/BoardPage";
+import ProjectsPage from "./pages/ProjectsPage";
+
+import MemberTasksPage from "./pages/MemberTasksPage";
+import MemberProjectsPage from "./pages/MemberProjectsPage";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+import Navbar from "./components/Navbar";
+import MemberLayout from "./components/member/MemberLayout";
+
+import {
+  fetchTasks,
+  fetchProjects,
+  fetchUsers,
+  fetchActions,
+  createProject,
+  createAction,
+} from "./api/api";
+
+import {
+  normalizeAssignments,
+} from "./utils/dashboardHelpers";
 
 const NEXT_STATUS = {
   A_FAIRE: "EN_COURS",
@@ -22,15 +45,24 @@ const NEXT_STATUS = {
   TERMINE: "A_FAIRE",
 };
 
-// Génère un id unique et robuste pour les entrées d'historique
 function generateActionId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
 }
 
-function AppLayout({ children, currentUser, onLogout }) {
+function AppLayout({
+  children,
+  currentUser,
+  onLogout,
+}) {
   return (
     <>
-      <Navbar currentUser={currentUser} onLogout={onLogout} />
+      <Navbar
+        currentUser={currentUser}
+        onLogout={onLogout}
+      />
+
       {children}
     </>
   );
@@ -41,18 +73,38 @@ function App() {
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
   const [actions, setActions] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedTask, setSelectedTask] = useState(null);
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem("currentUser");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [selectedTask, setSelectedTask] =
+    useState(null);
+
+  const [currentUser, setCurrentUser] =
+    useState(() => {
+      const saved =
+        localStorage.getItem("currentUser");
+
+      return saved
+        ? JSON.parse(saved)
+        : null;
+    });
+
+  /* =========================================================
+     AUTH
+  ========================================================= */
 
   function handleLogin(data) {
-    const merged = { ...data.user, token: data.token };
-    localStorage.setItem("currentUser", JSON.stringify(merged));
+    const merged = {
+      ...data.user,
+      token: data.token,
+    };
+
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(merged)
+    );
+
     setCurrentUser(merged);
   }
 
@@ -61,306 +113,938 @@ function App() {
     setCurrentUser(null);
   }
 
+  /* =========================================================
+     CHARGEMENT DES DONNÉES
+  ========================================================= */
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchTasks(), fetchProjects(), fetchUsers(), fetchActions()])
-      .then(([tasksData, projectsData, usersData, actionsData]) => {
-        setTasks(tasksData);
-        setProjects(projectsData);
-        setUsers(usersData);
-        setActions(actionsData);
+
+    Promise.all([
+      fetchTasks(),
+      fetchProjects(),
+      fetchUsers(),
+      fetchActions(),
+    ])
+      .then(
+        ([
+          tasksData,
+          projectsData,
+          usersData,
+          actionsData,
+        ]) => {
+          setTasks(tasksData);
+          setProjects(projectsData);
+          setUsers(usersData);
+          setActions(actionsData);
+        }
+      )
+      .catch((err) => {
+        setError(err.message);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
-  // Persiste une entrée d'historique côté mock-server, en plus de la mise à
-  // jour optimiste locale déjà faite par l'appelant. Échec silencieux (juste
-  // loggé) : on ne bloque jamais l'UI pour un souci d'historique — l'action
-  // métier elle-même (changement de statut, création...) a déjà réussi.
+  /* =========================================================
+     HISTORIQUE INTERNE
+  ========================================================= */
+
   async function persistAction(action) {
     try {
       await createAction(action);
     } catch (err) {
-      console.error("Impossible d'enregistrer l'action dans l'historique :", err);
+      console.error(
+        "Impossible d'enregistrer l'action :",
+        err
+      );
     }
   }
 
-  const handleCreateProject = async (projectData) => {
+  /* =========================================================
+     PROJETS
+  ========================================================= */
+
+  const handleCreateProject = async (
+    projectData
+  ) => {
     try {
-      const newProject = await createProject(projectData);
-      setProjects((prev) => [...prev, newProject]);
+      const newProject =
+        await createProject(projectData);
+
+      setProjects((prev) => [
+        ...prev,
+        newProject,
+      ]);
     } catch (err) {
-      alert("Erreur lors de la création du projet");
+      alert(
+        "Erreur lors de la création du projet"
+      );
     }
   };
 
-  const handleSelectProject = (projectId) => {
-    console.log("Projet sélectionné :", projectId);
+  const handleSelectProject = (
+    projectId
+  ) => {
+    console.log(
+      "Projet sélectionné :",
+      projectId
+    );
   };
 
+  /* =========================================================
+     VISIBILITÉ DES TÂCHES
+  ========================================================= */
+
   function getVisibleTasks() {
-    if (!currentUser) return [];
+    if (!currentUser) {
+      return [];
+    }
 
-    const isAdmin = currentUser.globalRoles?.includes("ADMIN");
-    if (isAdmin) return tasks;
+    const userIsAdmin =
+      currentUser.globalRoles?.includes(
+        "ADMIN"
+      );
 
-    const myDeptRoles = currentUser.departmentRoles || [];
-    const isScrumMasterOf = (deptId) =>
-      myDeptRoles.some((dr) => dr.departmentId === deptId && dr.role === "SCRUM_MASTER");
+    if (userIsAdmin) {
+      return tasks;
+    }
 
-    // Format TASK_ASSIGNMENT : task.assignments = [{ userId, assignedBy, assignedAt, unassignedAt? }]
-    // ⚠️ Ce format colle à la table TASK_ASSIGNMENT du MCD validé par Franck, mais n'a
-    // pas fait l'objet d'une confirmation écrite explicite de Joel/Verdream (contrairement
-    // au format de /auth/login qui, lui, est bien acté dans contrat-api-auth.md).
-    const isAssignedToMe = (t) =>
-      (t.assignments || []).some((a) => a.userId === currentUser.id && !a.unassignedAt);
+    const myDeptRoles =
+      currentUser.departmentRoles || [];
 
-    const isDirectlyVisible = (t) => {
-      if (myDeptRoles.some((dr) => dr.role === "SCRUM_MASTER")) {
-        const project = projects.find((p) => p.id === t.projectId);
-        if (project && isScrumMasterOf(project.departmentId)) return true;
+    const isScrumMasterOf = (
+      deptId
+    ) =>
+      myDeptRoles.some(
+        (departmentRole) =>
+          departmentRole.departmentId ===
+            deptId &&
+          departmentRole.role ===
+            "SCRUM_MASTER"
+      );
+
+    const isAssignedToMe = (
+      task
+    ) =>
+      (task.assignments || []).some(
+        (assignment) =>
+          String(
+            assignment.userId
+          ) ===
+            String(
+              currentUser.id
+            ) &&
+          !assignment.unassignedAt
+      );
+
+    const isDirectlyVisible = (
+      task
+    ) => {
+      const isScrumMaster =
+        myDeptRoles.some(
+          (departmentRole) =>
+            departmentRole.role ===
+            "SCRUM_MASTER"
+        );
+
+      if (isScrumMaster) {
+        const project =
+          projects.find(
+            (project) =>
+              String(project.id) ===
+              String(task.projectId)
+          );
+
+        if (
+          project &&
+          isScrumMasterOf(
+            project.departmentId
+          )
+        ) {
+          return true;
+        }
       }
-      return isAssignedToMe(t);
+
+      return isAssignedToMe(task);
     };
 
-    const visibleIds = new Set(tasks.filter(isDirectlyVisible).map((t) => t.id));
+    const visibleIds = new Set(
+      tasks
+        .filter(isDirectlyVisible)
+        .map((task) => task.id)
+    );
 
     let changed = true;
+
     while (changed) {
       changed = false;
-      tasks.forEach((t) => {
-        if (visibleIds.has(t.id) && t.parentTaskId && !visibleIds.has(t.parentTaskId)) {
-          visibleIds.add(t.parentTaskId);
+
+      tasks.forEach((task) => {
+        if (
+          visibleIds.has(task.id) &&
+          task.parentTaskId &&
+          !visibleIds.has(
+            task.parentTaskId
+          )
+        ) {
+          visibleIds.add(
+            task.parentTaskId
+          );
+
           changed = true;
         }
-        if (t.parentTaskId && visibleIds.has(t.parentTaskId) && !visibleIds.has(t.id)) {
-          visibleIds.add(t.id);
+
+        if (
+          task.parentTaskId &&
+          visibleIds.has(
+            task.parentTaskId
+          ) &&
+          !visibleIds.has(task.id)
+        ) {
+          visibleIds.add(task.id);
+
           changed = true;
         }
       });
     }
 
-    return tasks.filter((t) => visibleIds.has(t.id));
+    return tasks.filter((task) =>
+      visibleIds.has(task.id)
+    );
   }
 
-  const visibleTasks = getVisibleTasks();
-  const isAdmin = currentUser?.globalRoles?.includes("ADMIN");
-  const isScrumMaster = currentUser?.departmentRoles?.some((dr) => dr.role === "SCRUM_MASTER");
+  const visibleTasks =
+    getVisibleTasks();
+
+  const isAdmin =
+    currentUser?.globalRoles?.includes(
+      "ADMIN"
+    );
+
+  const isScrumMaster =
+    currentUser?.departmentRoles?.some(
+      (departmentRole) =>
+        departmentRole.role ===
+        "SCRUM_MASTER"
+    );
+
+  /* =========================================================
+     CHANGEMENT DE STATUT
+  ========================================================= */
 
   function handleStatusChange(taskId) {
-    const task = tasks.find((t) => t.id === taskId);
-    const ancienStatut = task.status;
-    const nouveauStatut = NEXT_STATUS[ancienStatut];
+    const task = tasks.find(
+      (task) =>
+        String(task.id) ===
+        String(taskId)
+    );
+
+    if (!task) {
+      console.error(
+        "Tâche introuvable :",
+        taskId
+      );
+
+      return;
+    }
+
+    const ancienStatut =
+      task.status;
+
+    const nouveauStatut =
+      NEXT_STATUS[ancienStatut];
+
+    if (!nouveauStatut) {
+      console.error(
+        "Statut inconnu :",
+        ancienStatut
+      );
+
+      return;
+    }
 
     setTasks((prevTasks) =>
-      prevTasks.map((t) =>
-        t.id === taskId ? { ...t, status: nouveauStatut } : t,
-      ),
+      prevTasks.map((currentTask) =>
+        String(currentTask.id) ===
+        String(taskId)
+          ? {
+              ...currentTask,
+              status:
+                nouveauStatut,
+            }
+          : currentTask
+      )
     );
 
     const newAction = {
       id: generateActionId(),
+
       id_tache: taskId,
-      id_user: currentUser?.email ?? "inconnu",
-      nom_user: currentUser?.firstName ?? "Utilisateur",
-      type_action: "CHANGEMENT_STATUT",
-      champ_modifie: "statut",
-      ancienne_valeur: ancienStatut,
-      nouvelle_valeur: nouveauStatut,
-      date_action: new Date().toISOString(),
+
+      id_user:
+        currentUser?.email ??
+        "inconnu",
+
+      nom_user:
+        currentUser?.firstName ??
+        "Utilisateur",
+
+      type_action:
+        "CHANGEMENT_STATUT",
+
+      champ_modifie:
+        "statut",
+
+      ancienne_valeur:
+        ancienStatut,
+
+      nouvelle_valeur:
+        nouveauStatut,
+
+      date_action:
+        new Date().toISOString(),
     };
 
-    setActions((prevActions) => [...prevActions, newAction]);
+    setActions((prevActions) => [
+      ...prevActions,
+      newAction,
+    ]);
+
     persistAction(newAction);
   }
 
-  function handleCreateTask(newTask) {
-    // normalizeAssignments accepte aussi bien un tableau d'objets enrichis
-    // qu'un simple tableau d'IDs (cas de NewTaskModal / SubtaskList) — on ne
-    // suppose jamais que ce qui arrive ici respecte déjà le format attendu.
-    const normalized = normalizeAssignments(newTask.assignments, currentUser);
+  /* =========================================================
+     CRÉATION D'UNE TÂCHE
+  ========================================================= */
+
+  function handleCreateTask(
+    newTask
+  ) {
+    const normalized =
+      normalizeAssignments(
+        newTask.assignments,
+        currentUser
+      );
+
     const assignments =
       normalized.length > 0
         ? normalized
         : currentUser?.id
-        ? [{ userId: currentUser.id, assignedBy: currentUser.id, assignedAt: new Date().toISOString() }]
+        ? [
+            {
+              userId:
+                currentUser.id,
+
+              assignedBy:
+                currentUser.id,
+
+              assignedAt:
+                new Date().toISOString(),
+            },
+          ]
         : [];
 
     const taskWithMeta = {
       ...newTask,
-      creatorId: currentUser?.id ?? null,
+
+      creatorId:
+        currentUser?.id ??
+        null,
+
       assignments,
     };
 
-    setTasks((prevTasks) => [...prevTasks, taskWithMeta]);
+    setTasks((prevTasks) => [
+      ...prevTasks,
+      taskWithMeta,
+    ]);
 
     const newAction = {
       id: generateActionId(),
-      id_tache: taskWithMeta.id,
-      id_user: currentUser?.email ?? "inconnu",
-      nom_user: currentUser?.firstName ?? "Utilisateur",
-      type_action: "CREATION",
-      champ_modifie: null,
-      ancienne_valeur: null,
-      nouvelle_valeur: null,
-      date_action: new Date().toISOString(),
+
+      id_tache:
+        taskWithMeta.id,
+
+      id_user:
+        currentUser?.email ??
+        "inconnu",
+
+      nom_user:
+        currentUser?.firstName ??
+        "Utilisateur",
+
+      type_action:
+        "CREATION",
+
+      champ_modifie:
+        null,
+
+      ancienne_valeur:
+        null,
+
+      nouvelle_valeur:
+        null,
+
+      date_action:
+        new Date().toISOString(),
     };
 
-    setActions((prevActions) => [...prevActions, newAction]);
+    setActions((prevActions) => [
+      ...prevActions,
+      newAction,
+    ]);
+
     persistAction(newAction);
   }
 
-  function handleCreateSubtask(parentTaskId, title, assignments) {
+  /* =========================================================
+     CRÉATION D'UNE SOUS-TÂCHE
+  ========================================================= */
+
+  function handleCreateSubtask(
+    parentTaskId,
+    title,
+    assignments
+  ) {
+    const parentTask =
+      tasks.find(
+        (task) =>
+          String(task.id) ===
+          String(parentTaskId)
+      );
+
+    if (!parentTask) {
+      console.error(
+        "Impossible de créer la sous-tâche : tâche parente introuvable."
+      );
+
+      return;
+    }
+
+    const cleanTitle =
+      title?.trim();
+
+    if (!cleanTitle) {
+      console.error(
+        "Impossible de créer la sous-tâche : le titre est obligatoire."
+      );
+
+      return;
+    }
+
     handleCreateTask({
       id: Date.now(),
-      title,
+
+      title: cleanTitle,
+
       description: "",
+
       status: "A_FAIRE",
-      parentTaskId,
+
+      parentTaskId:
+        parentTask.id,
+
+      projectId:
+        parentTask.projectId,
+
       assignments,
     });
   }
 
-  function handleEditTask(taskId, updatedFields) {
-    const task = tasks.find((t) => t.id === taskId);
-    if (!task) return;
+  /* =========================================================
+     MODIFICATION D'UNE TÂCHE
+  ========================================================= */
+
+  function handleEditTask(
+    taskId,
+    updatedFields
+  ) {
+    const task = tasks.find(
+      (task) =>
+        String(task.id) ===
+        String(taskId)
+    );
+
+    if (!task) {
+      return;
+    }
 
     setTasks((prevTasks) =>
-      prevTasks.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t)),
+      prevTasks.map(
+        (currentTask) =>
+          String(
+            currentTask.id
+          ) ===
+          String(taskId)
+            ? {
+                ...currentTask,
+                ...updatedFields,
+              }
+            : currentTask
+      )
     );
 
     const changedActions = [];
 
-    if (updatedFields.title !== undefined && updatedFields.title !== task.title) {
+    if (
+      updatedFields.title !==
+        undefined &&
+      updatedFields.title !==
+        task.title
+    ) {
       changedActions.push({
-        champ_modifie: "titre",
-        ancienne_valeur: task.title,
-        nouvelle_valeur: updatedFields.title,
+        champ_modifie:
+          "titre",
+
+        ancienne_valeur:
+          task.title,
+
+        nouvelle_valeur:
+          updatedFields.title,
       });
     }
 
     if (
-      updatedFields.description !== undefined &&
-      updatedFields.description !== task.description
+      updatedFields.description !==
+        undefined &&
+      updatedFields.description !==
+        task.description
     ) {
       changedActions.push({
-        champ_modifie: "description",
-        ancienne_valeur: task.description,
-        nouvelle_valeur: updatedFields.description,
+        champ_modifie:
+          "description",
+
+        ancienne_valeur:
+          task.description,
+
+        nouvelle_valeur:
+          updatedFields.description,
       });
     }
 
-    if (changedActions.length === 0) return;
+    if (
+      changedActions.length ===
+      0
+    ) {
+      return;
+    }
 
-    const newActions = changedActions.map((a) => ({
-      id: generateActionId(),
-      id_tache: taskId,
-      id_user: currentUser?.email ?? "inconnu",
-      nom_user: currentUser?.firstName ?? "Utilisateur",
-      type_action: "MODIFICATION",
-      ...a,
-      date_action: new Date().toISOString(),
-    }));
+    const newActions =
+      changedActions.map(
+        (action) => ({
+          id: generateActionId(),
 
-    setActions((prevActions) => [...prevActions, ...newActions]);
-    newActions.forEach(persistAction);
+          id_tache:
+            taskId,
+
+          id_user:
+            currentUser?.email ??
+            "inconnu",
+
+          nom_user:
+            currentUser?.firstName ??
+            "Utilisateur",
+
+          type_action:
+            "MODIFICATION",
+
+          ...action,
+
+          date_action:
+            new Date().toISOString(),
+        })
+      );
+
+    setActions(
+      (prevActions) => [
+        ...prevActions,
+        ...newActions,
+      ]
+    );
+
+    newActions.forEach(
+      persistAction
+    );
   }
 
-  function handleVerify(code) {
-    console.log("Code entered:", code);
-  }
+  /* =========================================================
+     SUPPRESSION
+  ========================================================= */
 
-  function handleDeleteTask(taskId) {
+  function handleDeleteTask(
+    taskId
+  ) {
     setTasks((prevTasks) => {
-      const idsToDelete = new Set([taskId]);
+      const idsToDelete =
+        new Set([taskId]);
+
       let changed = true;
+
       while (changed) {
         changed = false;
-        prevTasks.forEach((t) => {
-          if (t.parentTaskId && idsToDelete.has(t.parentTaskId) && !idsToDelete.has(t.id)) {
-            idsToDelete.add(t.id);
-            changed = true;
+
+        prevTasks.forEach(
+          (task) => {
+            if (
+              task.parentTaskId &&
+              idsToDelete.has(
+                task.parentTaskId
+              ) &&
+              !idsToDelete.has(
+                task.id
+              )
+            ) {
+              idsToDelete.add(
+                task.id
+              );
+
+              changed = true;
+            }
           }
-        });
+        );
       }
-      return prevTasks.filter((t) => !idsToDelete.has(t.id));
+
+      return prevTasks.filter(
+        (task) =>
+          !idsToDelete.has(
+            task.id
+          )
+      );
     });
   }
+
+  /* =========================================================
+     EMAIL
+  ========================================================= */
+
+  function handleVerify(code) {
+    console.log(
+      "Code entered:",
+      code
+    );
+  }
+
+  /* =========================================================
+     ÉCRANS CHARGEMENT / ERREUR
+  ========================================================= */
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          padding: "30px",
+        }}
+      >
+        Chargement...
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error(error);
+  }
+
+  /* =========================================================
+     ROUTES
+  ========================================================= */
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+        {/* ROUTES PUBLIQUES */}
+
+        <Route
+          path="/login"
+          element={
+            <LoginPage
+              onLogin={handleLogin}
+            />
+          }
+        />
+
+        <Route
+          path="/signup"
+          element={<SignupPage />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={
+            <ResetPasswordPage />
+          }
+        />
+
+        <Route
+          path="/forgot-password"
+          element={
+            <ForgotPasswordPage />
+          }
+        />
+
+        <Route
+          path="/verify-email"
+          element={
+            <VerifyEmailPage
+              onVerify={
+                handleVerify
+              }
+            />
+          }
+        />
+
+        {/* ROUTE RACINE */}
+
         <Route
           path="/"
           element={
-            <ProtectedRoute isLoggedIn={!!currentUser}>
-              <AppLayout currentUser={currentUser} onLogout={handleLogout}>
-                <BoardPage
-                  tasks={visibleTasks}
-                  users={users}
-                  projects={projects}
-                  currentUser={currentUser}
-                  loading={loading}
-                  error={error}
-                  selectedTask={selectedTask}
-                  setSelectedTask={setSelectedTask}
-                  actions={actions}
-                  onStatusChange={handleStatusChange}
-                  onCreateTask={handleCreateTask}
-                  onCreateSubtask={handleCreateSubtask}
-                  onEditTask={handleEditTask}
-                  onDeleteTask={handleDeleteTask}
+            <ProtectedRoute
+              isLoggedIn={
+                !!currentUser
+              }
+            >
+              {!isAdmin &&
+              !isScrumMaster ? (
+                <Navigate
+                  to="/dashboard"
+                  replace
                 />
-              </AppLayout>
+              ) : (
+                <AppLayout
+                  currentUser={
+                    currentUser
+                  }
+                  onLogout={
+                    handleLogout
+                  }
+                >
+                  <BoardPage
+                    tasks={
+                      visibleTasks
+                    }
+                    users={users}
+                    projects={
+                      projects
+                    }
+                    currentUser={
+                      currentUser
+                    }
+                    onStatusChange={
+                      handleStatusChange
+                    }
+                    onTaskClick={
+                      setSelectedTask
+                    }
+                    onCreateTask={
+                      handleCreateTask
+                    }
+                  />
+                </AppLayout>
+              )}
             </ProtectedRoute>
           }
         />
+
+        {/* PROJETS ADMIN / SCRUM */}
+
         <Route
           path="/projects"
           element={
-            <ProtectedRoute isLoggedIn={!!currentUser}>
-              <AppLayout currentUser={currentUser} onLogout={handleLogout}>
+            <ProtectedRoute
+              isLoggedIn={
+                !!currentUser
+              }
+            >
+              <AppLayout
+                currentUser={
+                  currentUser
+                }
+                onLogout={
+                  handleLogout
+                }
+              >
                 <ProjectsPage
-                  projects={projects}
-                  onCreateProject={handleCreateProject}
-                  onSelectProject={handleSelectProject}
+                  projects={
+                    projects
+                  }
+                  onCreateProject={
+                    handleCreateProject
+                  }
+                  onSelectProject={
+                    handleSelectProject
+                  }
                 />
               </AppLayout>
             </ProtectedRoute>
           }
         />
-        {/* Route unique /dashboard : chaque rôle voit sa propre vue. */}
+
+        {/* DASHBOARD */}
+
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute isLoggedIn={!!currentUser}>
-              <AppLayout currentUser={currentUser} onLogout={handleLogout}>
-                {isAdmin ? (
-                  <AdminDashboardPage tasks={visibleTasks} projects={projects} actions={actions} />
-                ) : isScrumMaster ? (
+            <ProtectedRoute
+              isLoggedIn={
+                !!currentUser
+              }
+            >
+              {isAdmin ? (
+                <AppLayout
+                  currentUser={
+                    currentUser
+                  }
+                  onLogout={
+                    handleLogout
+                  }
+                >
+                  <AdminDashboardPage
+                    tasks={
+                      visibleTasks
+                    }
+                    projects={
+                      projects
+                    }
+                    actions={
+                      actions
+                    }
+                  />
+                </AppLayout>
+              ) : isScrumMaster ? (
+                <AppLayout
+                  currentUser={
+                    currentUser
+                  }
+                  onLogout={
+                    handleLogout
+                  }
+                >
                   <ScrumMasterDashboardPage
-                    tasks={visibleTasks}
-                    projects={projects}
-                    currentUser={currentUser}
+                    tasks={
+                      visibleTasks
+                    }
+                    projects={
+                      projects
+                    }
+                    currentUser={
+                      currentUser
+                    }
                   />
-                ) : (
+                </AppLayout>
+              ) : (
+                <MemberLayout
+                  currentUser={
+                    currentUser
+                  }
+                  onLogout={
+                    handleLogout
+                  }
+                >
                   <MemberDashboardPage
-                    tasks={visibleTasks}
-                    projects={projects}
-                    currentUser={currentUser}
+                    tasks={
+                      visibleTasks
+                    }
+                    projects={
+                      projects
+                    }
+                    currentUser={
+                      currentUser
+                    }
                   />
-                )}
-              </AppLayout>
+                </MemberLayout>
+              )}
             </ProtectedRoute>
           }
         />
-        <Route path="/verify-email" element={<VerifyEmailPage onVerify={handleVerify} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+
+        {/* MES TÂCHES - MEMBER */}
+
+        <Route
+          path="/member/tasks"
+          element={
+            <ProtectedRoute
+              isLoggedIn={
+                !!currentUser
+              }
+            >
+              <MemberLayout
+                currentUser={
+                  currentUser
+                }
+                onLogout={
+                  handleLogout
+                }
+              >
+                <MemberTasksPage
+                  tasks={
+                    visibleTasks
+                  }
+                  users={users}
+                  projects={
+                    projects
+                  }
+                  currentUser={
+                    currentUser
+                  }
+                  onStatusChange={
+                    handleStatusChange
+                  }
+                  onCreateSubtask={
+                    handleCreateSubtask
+                  }
+                />
+              </MemberLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* PROJETS - MEMBER */}
+
+        <Route
+          path="/member/projects"
+          element={
+            <ProtectedRoute
+              isLoggedIn={
+                !!currentUser
+              }
+            >
+              <MemberLayout
+                currentUser={
+                  currentUser
+                }
+                onLogout={
+                  handleLogout
+                }
+              >
+                <MemberProjectsPage
+                  currentUser={
+                    currentUser
+                  }
+                  projects={
+                    projects
+                  }
+                  tasks={
+                    visibleTasks
+                  }
+                />
+              </MemberLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* FALLBACK */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

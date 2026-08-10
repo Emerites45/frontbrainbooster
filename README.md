@@ -34,7 +34,21 @@ VITE_API_URL=http://localhost:3001
 - `admin@aaprovidir.com` → rôle ADMIN, voit toutes les tâches
 - `scrum@aaprovidir.com` → rôle SCRUM_MASTER, voit ses tâches + celles de son équipe
 - `member@aaprovidir.com` → rôle MEMBER, voit ses tâches assignées
-(n'importe quel mot de passe fonctionne en mode mock)
+(n'importe quel mot de passe fonctionne en mode mock)## Comptes de test disponibles
+
+Tous avec n'importe quel mot de passe (c'est un mock, aucune vérification réelle) :
+
+| Email | Rôle |
+|---|---|
+| `marcus.chen@aaprovidir.com` | Admin |
+| `alex.rivera@aaprovidir.com` | Scrum Master (Dev) |
+| `elena.rodriguez@aaprovidir.com` | Scrum Master (Design) |
+| `sarah.jenkins@aaprovidir.com` | Membre (Dev) |
+| `michael.scott@aaprovidir.com` | Membre (Design) |
+| `priya.nadal@aaprovidir.com` | Membre (Data/IA) |
+| `karim.diallo@aaprovidir.com` | Membre (Droit) |
+| `nouveau.membre@aaprovidir.com` | Membre (Dev) — avec `mustChangePassword: true`, utile pour tester la page forcée de Flore |
+
 
 ## Fonctionnalités actuelles
 - Auth (signup / login / logout, persistée en localStorage)
