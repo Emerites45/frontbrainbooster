@@ -122,7 +122,7 @@ function LoginPage({ onLogin }) {
 
         <p className="login-footer">
           Pas encore de compte ?{" "}
-          <a href="/signup" className="link">Demandez l'accès à votre manager</a>
+          <a href="" className="link">Demandez l'accès à votre manager</a>
         </p>
       </div>
     </AuthLayout>

@@ -1,173 +1,41 @@
-:root {
-  --navy: #1a3a5c;
-  --navy-dark: #0f2740;
-  --cream: #faf7f2;
-  --card-bg: #ffffff;
-  --border: #e5e0d8;
-  --text: #2c2c2c;
-  --text-light: #6b6b6b;
-  --a-faire: #d97706;
-  --en-cours: #2563eb;
-  --termine: #16a34a;
+@import "tailwindcss";
+
+@theme{
+  --color-navy: #1a3a5c;
+  --color-navy-dark: #0f2740;
+  --color-cream: #faf7f2;
+  --color-card: #ffffff;
+  --color-border: #e5e0d8;
+  --color-text: #2c2c2c;
+  --color-text-light: #6b6b6b;
+  --color-a-faire: #d97706;
+  --color-en-cours: #2563eb;
+  --color-termine: #16a34a;
 }
 
-* {
-  box-sizing: border-box;
+
+@theme {
+  --color-cream: #FBF7F3;
+  --color-navy: #0B438C;
+  --color-navy-dark: #082f66;
+  --color-green: #20A036;
+  --color-green-light: #66B86B;
+  --color-yellow: #FFDE21;
 }
+
+
+/* Variables classiques pour les fichiers CSS existants (auth pages) qui
+   utilisent var(--navy) au lieu des classes utilitaires Tailwind. */
+:root {
+  --navy: #0B438C;
+  --navy-dark: #082f66;
+  --cream: #FBF7F3;
+  --text: #1e293b;
+  --text-light: #6b6b6b;
+}
+
 
 body {
   margin: 0;
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--cream);
-  color: var(--text);
-}
-
-button {
-  cursor: pointer;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  background: var(--navy);
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.15s;
-}
-button:hover {
-  background: var(--navy-dark);
-}
-
-input, textarea {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 14px;
-  font-family: inherit;
-  width: 100%;
-  margin-bottom: 12px;
-}
-input:focus, textarea:focus {
-  outline: 2px solid var(--navy);
-  outline-offset: -1px;
-}
-
-/* --- Navbar --- */
-nav {
-  background: var(--navy);
-  color: white;
-  align-items: center;
-}
-nav a {
-  color: white;
-  text-decoration: none;
-  font-weight: 500;
-}
-nav a:hover {
-  text-decoration: underline;
-}
-nav button {
-  background: transparent;
-  border: 1px solid white;
-}
-nav button:hover {
-  background: rgba(255,255,255,0.15);
-}
-
-/* --- Login / Signup --- */
-.login-page, .signup-page {
-  max-width: 380px;
-  margin: 80px auto;
-  background: var(--card-bg);
-  padding: 32px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-}
-.login-page h1, .signup-page h1 {
-  color: var(--navy);
-  margin-top: 0;
-}
-
-/* --- Board / colonnes --- */
-.task-card {
-  background: var(--card-bg);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  padding: 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  cursor: pointer;
-  transition: box-shadow 0.15s;
-}
-.task-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.task-card h3 {
-  margin: 0 0 6px 0;
-  font-size: 15px;
-}
-.task-card span {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: #eee;
-  color: var(--text-light);
-  margin-bottom: 8px;
-}
-
-/* --- Modals --- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-.modal-content {
-  background: var(--card-bg);
-  padding: 28px;
-  border-radius: 12px;
-  width: 480px;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-}
-.modal-content h2 {
-  color: var(--navy);
-  margin-top: 0;
-}
-
-/* --- Dashboard --- */
-.dashboard-page {
-  padding: 24px 40px;
-}
-.dashboard-page h1 {
-  color: var(--navy);
-}
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-.stat-card {
-  background: var(--card-bg);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-}
-.stat-card h3 {
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  color: var(--text-light);
-  text-transform: uppercase;
-}
-.stat-number {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--navy);
-  margin: 0;
 }

@@ -9,7 +9,7 @@ function formatTempsEcoule(dateAction) {
 }
 
 function libelleAction(action) {
-  if (action.type_action === 'CHANGEMENT_STATUT') {
+  if (action.type_action === "CHANGEMENT_STATUT") {
     return `a changé le statut de ${action.ancienne_valeur} à ${action.nouvelle_valeur}`;
   }
   return `a modifié ${action.champ_modifie}`;
@@ -17,16 +17,19 @@ function libelleAction(action) {
 
 function HistoryTimeline({ actions }) {
   if (actions.length === 0) {
-    return <p>Aucun historique pour cette tâche.</p>;
+    return <p className="text-[13px] text-slate-400">Aucun historique pour cette tâche.</p>;
   }
 
   return (
-    <ul>
-      {actions.map(action => (
-        <li key={action.id}>
-          <strong>{action.nom_user}</strong> {libelleAction(action)}
-          <br />
-          <small>{formatTempsEcoule(action.date_action)}</small>
+    <ul className="relative space-y-4 before:absolute before:inset-y-0 before:left-[3px] before:w-px before:bg-slate-100">
+      {actions.map((action) => (
+        <li key={action.id} className="relative pl-5">
+          <span className="absolute left-0 top-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <p className="text-[13px] text-slate-700 leading-snug">
+            <span className="font-medium text-slate-900">{action.nom_user}</span>{" "}
+            {libelleAction(action)}
+          </p>
+          <span className="text-[11px] text-slate-400">{formatTempsEcoule(action.date_action)}</span>
         </li>
       ))}
     </ul>

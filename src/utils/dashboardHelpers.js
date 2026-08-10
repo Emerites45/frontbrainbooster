@@ -3,7 +3,6 @@ export const STATUS_LABEL = {
   EN_COURS: "En cours",
   TERMINE: "Terminé",
 };
-
 export function timeAgo(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -14,11 +13,9 @@ export function timeAgo(iso) {
   const days = Math.floor(hours / 24);
   return `il y a ${days}j`;
 }
-
 export function initials(firstName, lastName) {
   return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
 }
-
 // Format TASK_ASSIGNMENT déduit du MCD validé par Franck (voir contrat-api-auth.md
 // pour ce qui est réellement confirmé par écrit par Joel/Verdream — ça ne couvrait
 // que /auth/login, pas l'assignation de tâches) :
@@ -29,7 +26,6 @@ export function getAssigneeIds(task) {
     .filter((a) => !a.unassignedAt)
     .map((a) => a.userId);
 }
-
 // Convertit une liste d'IDs assignés en noms lisibles, pour l'affichage
 // (cartes de tâche, détail de tâche). Centralisé ici pour éviter la
 // duplication qu'il y avait entre TaskCard.jsx et TaskModal.jsx.
@@ -42,7 +38,6 @@ export function getAssigneeNames(userIds = [], users = []) {
     })
     .join(", ");
 }
-
 // Filet de sécurité : certains formulaires (NewTaskModal, SubtaskList) peuvent
 // encore produire un simple tableau d'IDs bruts au lieu d'objets enrichis.
 // Cette fonction accepte les deux formats en entrée et renvoie toujours des
@@ -59,33 +54,34 @@ export function normalizeAssignments(input, currentUser) {
     return { userId: item, assignedBy: currentUser?.id ?? null, assignedAt: now };
   });
 }
-
-export function computeTaskStats(tasks) {
+// On utilise le journal d'actions (source de vérité datée par événement)
+// plutôt que task.endDate, qui n'est jamais mis à jour au moment du passage
+// à TERMINE (voir handleStatusChange dans App.jsx) et ne reflète donc pas
+// la date réelle de complétion — juste la date planifiée à la création.
+export function computeTaskStats(tasks, actions = []) {
   const total = tasks.length;
   const done = tasks.filter((t) => t.status === "TERMINE").length;
   const active = tasks.filter((t) => t.status !== "TERMINE").length;
   const overdue = tasks.filter(
     (t) => t.status !== "TERMINE" && t.dueDate && new Date(t.dueDate) < new Date()
   ).length;
-
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const doneThisWeek = tasks.filter(
-    (t) => t.status === "TERMINE" && t.endDate && new Date(t.endDate) >= sevenDaysAgo
+  const doneThisWeek = actions.filter(
+    (a) =>
+      a.type_action === "CHANGEMENT_STATUT" &&
+      a.nouvelle_valeur === "TERMINE" &&
+      new Date(a.date_action) >= sevenDaysAgo
   ).length;
-
   const progression = total === 0 ? 0 : Math.round((done / total) * 100);
-
   return { total, done, active, overdue, doneThisWeek, progression };
 }
-
 export function projectProgress(project, tasks) {
   const pTasks = tasks.filter((t) => t.projectId === project.id);
   if (pTasks.length === 0) return 0;
   const done = pTasks.filter((t) => t.status === "TERMINE").length;
   return Math.round((done / pTasks.length) * 100);
 }
-
 export function projectTeam(project, tasks, users) {
   const pTasks = tasks.filter((t) => t.projectId === project.id);
   const ids = [...new Set(pTasks.flatMap((t) => getAssigneeIds(t)))];
