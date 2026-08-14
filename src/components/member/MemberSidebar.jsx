@@ -44,6 +44,24 @@ function ProjectsIcon() {
   );
 }
 
+/* =========================================================
+   NOUVELLE ICÔNE : BILAN PERSONNEL
+========================================================= */
+
+function PersonalReportIcon() {
+  return (
+    <svg viewBox="0 0 24 24">
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+      />
+
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
 function LogoutIcon() {
   return (
     <svg viewBox="0 0 24 24">
@@ -91,7 +109,9 @@ function MemberSidebar({
   onLogout,
 }) {
   const navigate = useNavigate();
-  const profileRef = useRef(null);
+
+  const profileRef =
+    useRef(null);
 
   const [
     profileOpen,
@@ -134,6 +154,10 @@ function MemberSidebar({
       lastName?.[0] ?? ""
     }`.toUpperCase();
 
+  /* =======================================================
+     LOGOUT
+  ======================================================= */
+
   function handleLogout() {
     setProfileOpen(false);
 
@@ -142,8 +166,14 @@ function MemberSidebar({
     navigate("/login");
   }
 
+  /* =======================================================
+     FERMETURE PROFIL
+  ======================================================= */
+
   useEffect(() => {
-    function handleOutsideClick(event) {
+    function handleOutsideClick(
+      event
+    ) {
       if (
         profileRef.current &&
         !profileRef.current.contains(
@@ -154,8 +184,13 @@ function MemberSidebar({
       }
     }
 
-    function handleEscape(event) {
-      if (event.key === "Escape") {
+    function handleEscape(
+      event
+    ) {
+      if (
+        event.key ===
+        "Escape"
+      ) {
         setProfileOpen(false);
       }
     }
@@ -183,14 +218,22 @@ function MemberSidebar({
     };
   }, []);
 
+  /* =======================================================
+     RENDER
+  ======================================================= */
+
   return (
     <aside className="member-sidebar">
-      {/* BRAND */}
+
+      {/* =================================================
+          BRAND
+      ================================================= */}
 
       <div className="member-brand">
         <div className="member-brand-top">
           <div className="member-brand-mark">
             <span className="member-brand-leaf member-brand-leaf-left" />
+
             <span className="member-brand-leaf member-brand-leaf-right" />
           </div>
 
@@ -204,16 +247,23 @@ function MemberSidebar({
         </p>
       </div>
 
-      {/* NAVIGATION */}
+      {/* =================================================
+          NAVIGATION
+      ================================================= */}
 
       <div className="member-sidebar-section-label">
         Navigation
       </div>
 
       <nav className="member-navigation">
+
+        {/* TABLEAU DE BORD */}
+
         <NavLink
           to="/dashboard"
-          className={({ isActive }) =>
+          className={({
+            isActive,
+          }) =>
             `member-nav-link ${
               isActive
                 ? "member-nav-link-active"
@@ -230,9 +280,13 @@ function MemberSidebar({
           </span>
         </NavLink>
 
+        {/* MES TÂCHES */}
+
         <NavLink
           to="/member/tasks"
-          className={({ isActive }) =>
+          className={({
+            isActive,
+          }) =>
             `member-nav-link ${
               isActive
                 ? "member-nav-link-active"
@@ -249,9 +303,13 @@ function MemberSidebar({
           </span>
         </NavLink>
 
+        {/* PROJETS */}
+
         <NavLink
           to="/member/projects"
-          className={({ isActive }) =>
+          className={({
+            isActive,
+          }) =>
             `member-nav-link ${
               isActive
                 ? "member-nav-link-active"
@@ -267,11 +325,41 @@ function MemberSidebar({
             Projets
           </span>
         </NavLink>
+
+        {/* =================================================
+            NOUVEAU : BILAN PERSONNEL
+        ================================================= */}
+
+        <NavLink
+          to="/member/personal-report"
+          className={({
+            isActive,
+          }) =>
+            `member-nav-link ${
+              isActive
+                ? "member-nav-link-active"
+                : ""
+            }`
+          }
+        >
+          <span className="member-nav-icon">
+            <PersonalReportIcon />
+          </span>
+
+          <span className="member-nav-label">
+            Bilan personnel
+          </span>
+        </NavLink>
       </nav>
 
-      {/* BAS SIDEBAR */}
+      {/* =================================================
+          BAS SIDEBAR
+      ================================================= */}
 
       <div className="member-sidebar-bottom">
+
+        {/* DÉCONNEXION */}
+
         <button
           type="button"
           className="member-logout"
@@ -288,6 +376,10 @@ function MemberSidebar({
 
         <div className="member-profile-divider" />
 
+        {/* =================================================
+            PROFIL
+        ================================================= */}
+
         <div
           className="member-profile-wrapper"
           ref={profileRef}
@@ -301,22 +393,31 @@ function MemberSidebar({
             }`}
             onClick={() =>
               setProfileOpen(
-                (current) =>
+                (
+                  current
+                ) =>
                   !current
               )
             }
-            aria-expanded={profileOpen}
+            aria-expanded={
+              profileOpen
+            }
           >
             <div className="member-profile-avatar-wrap">
               {profilePicture ? (
                 <img
-                  src={profilePicture}
-                  alt={fullName}
+                  src={
+                    profilePicture
+                  }
+                  alt={
+                    fullName
+                  }
                   className="member-profile-avatar"
                 />
               ) : (
                 <div className="member-profile-avatar member-profile-initials">
-                  {initials || "U"}
+                  {initials ||
+                    "U"}
                 </div>
               )}
 
@@ -338,19 +439,30 @@ function MemberSidebar({
             </span>
           </button>
 
+          {/* =============================================
+              MENU PROFIL
+          ============================================= */}
+
           {profileOpen && (
             <div className="member-profile-menu">
+
               <div className="member-profile-menu-accent" />
 
               <div className="member-profile-menu-header">
+
                 <div className="member-profile-menu-avatar">
                   {profilePicture ? (
                     <img
-                      src={profilePicture}
-                      alt={fullName}
+                      src={
+                        profilePicture
+                      }
+                      alt={
+                        fullName
+                      }
                     />
                   ) : (
-                    initials || "U"
+                    initials ||
+                    "U"
                   )}
                 </div>
 
@@ -365,7 +477,14 @@ function MemberSidebar({
                 </div>
               </div>
 
+              {/* =========================================
+                  INFOS PROFIL
+              ========================================= */}
+
               <div className="member-profile-menu-info">
+
+                {/* EMAIL */}
+
                 <div className="member-profile-menu-info-row">
                   <span className="member-profile-menu-info-icon">
                     <MailIcon />
@@ -381,6 +500,8 @@ function MemberSidebar({
                     </strong>
                   </div>
                 </div>
+
+                {/* DÉPARTEMENT */}
 
                 <div className="member-profile-menu-info-row">
                   <span className="member-profile-menu-info-icon">
@@ -399,10 +520,16 @@ function MemberSidebar({
                 </div>
               </div>
 
+              {/* =========================================
+                  FOOTER PROFIL
+              ========================================= */}
+
               <div className="member-profile-menu-footer">
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={
+                    handleLogout
+                  }
                 >
                   <LogoutIcon />
 

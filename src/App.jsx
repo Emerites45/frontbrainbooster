@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import {
   BrowserRouter,
   Routes,
@@ -21,6 +22,7 @@ import ProjectsPage from "./pages/ProjectsPage";
 
 import MemberTasksPage from "./pages/MemberTasksPage";
 import MemberProjectsPage from "./pages/MemberProjectsPage";
+import MemberPersonalReportPage from "./pages/MemberPersonalReportPage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
@@ -33,11 +35,17 @@ import {
   fetchActions,
   createProject,
   createAction,
+  createTask,
+  updateTask,
 } from "./api/api";
 
 import {
   normalizeAssignments,
 } from "./utils/dashboardHelpers";
+
+/* =========================================================
+   STATUTS
+========================================================= */
 
 const NEXT_STATUS = {
   A_FAIRE: "EN_COURS",
@@ -45,11 +53,25 @@ const NEXT_STATUS = {
   TERMINE: "A_FAIRE",
 };
 
+const ALLOWED_TASK_STATUSES = [
+  "A_FAIRE",
+  "EN_COURS",
+  "TERMINE",
+];
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
 function generateActionId() {
   return `${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}`;
 }
+
+/* =========================================================
+   LAYOUT ADMIN / SCRUM
+========================================================= */
 
 function AppLayout({
   children,
@@ -68,27 +90,47 @@ function AppLayout({
   );
 }
 
+/* =========================================================
+   APP
+========================================================= */
+
 function App() {
-  const [tasks, setTasks] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [actions, setActions] = useState([]);
+  const [tasks, setTasks] =
+    useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [projects, setProjects] =
+    useState([]);
 
-  const [selectedTask, setSelectedTask] =
+  const [users, setUsers] =
+    useState([]);
+
+  const [actions, setActions] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
     useState(null);
 
-  const [currentUser, setCurrentUser] =
-    useState(() => {
-      const saved =
-        localStorage.getItem("currentUser");
+  const [
+    selectedTask,
+    setSelectedTask,
+  ] = useState(null);
 
-      return saved
-        ? JSON.parse(saved)
-        : null;
-    });
+  const [
+    currentUser,
+    setCurrentUser,
+  ] = useState(() => {
+    const saved =
+      localStorage.getItem(
+        "currentUser"
+      );
+
+    return saved
+      ? JSON.parse(saved)
+      : null;
+  });
 
   /* =========================================================
      AUTH
@@ -109,16 +151,20 @@ function App() {
   }
 
   function handleLogout() {
-    localStorage.removeItem("currentUser");
+    localStorage.removeItem(
+      "currentUser"
+    );
+
     setCurrentUser(null);
   }
 
   /* =========================================================
-     CHARGEMENT DES DONNÉES
+     CHARGEMENT INITIAL
   ========================================================= */
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
 
     Promise.all([
       fetchTasks(),
@@ -133,13 +179,41 @@ function App() {
           usersData,
           actionsData,
         ]) => {
-          setTasks(tasksData);
-          setProjects(projectsData);
-          setUsers(usersData);
-          setActions(actionsData);
+          setTasks(
+            Array.isArray(tasksData)
+              ? tasksData
+              : []
+          );
+
+          setProjects(
+            Array.isArray(
+              projectsData
+            )
+              ? projectsData
+              : []
+          );
+
+          setUsers(
+            Array.isArray(usersData)
+              ? usersData
+              : []
+          );
+
+          setActions(
+            Array.isArray(
+              actionsData
+            )
+              ? actionsData
+              : []
+          );
         }
       )
       .catch((err) => {
+        console.error(
+          "Erreur chargement données :",
+          err
+        );
+
         setError(err.message);
       })
       .finally(() => {
@@ -148,17 +222,29 @@ function App() {
   }, []);
 
   /* =========================================================
-     HISTORIQUE INTERNE
+     HISTORIQUE / ACTIONS
   ========================================================= */
 
-  async function persistAction(action) {
+  async function persistAction(
+    action
+  ) {
     try {
-      await createAction(action);
+      const savedAction =
+        await createAction(
+          action
+        );
+
+      return (
+        savedAction ??
+        action
+      );
     } catch (err) {
       console.error(
         "Impossible d'enregistrer l'action :",
         err
       );
+
+      return action;
     }
   }
 
@@ -166,23 +252,35 @@ function App() {
      PROJETS
   ========================================================= */
 
-  const handleCreateProject = async (
-    projectData
-  ) => {
-    try {
-      const newProject =
-        await createProject(projectData);
+  const handleCreateProject =
+    async (projectData) => {
+      try {
+        const newProject =
+          await createProject(
+            projectData
+          );
 
-      setProjects((prev) => [
-        ...prev,
-        newProject,
-      ]);
-    } catch (err) {
-      alert(
-        "Erreur lors de la création du projet"
-      );
-    }
-  };
+        setProjects(
+          (previous) => [
+            ...previous,
+            newProject,
+          ]
+        );
+
+        return newProject;
+      } catch (err) {
+        console.error(
+          "Erreur création projet :",
+          err
+        );
+
+        alert(
+          "Erreur lors de la création du projet"
+        );
+
+        return null;
+      }
+    };
 
   const handleSelectProject = (
     projectId
@@ -212,15 +310,18 @@ function App() {
     }
 
     const myDeptRoles =
-      currentUser.departmentRoles || [];
+      currentUser.departmentRoles ||
+      [];
 
     const isScrumMasterOf = (
       deptId
     ) =>
       myDeptRoles.some(
         (departmentRole) =>
-          departmentRole.departmentId ===
-            deptId &&
+          String(
+            departmentRole.departmentId
+          ) ===
+            String(deptId) &&
           departmentRole.role ===
             "SCRUM_MASTER"
       );
@@ -228,7 +329,9 @@ function App() {
     const isAssignedToMe = (
       task
     ) =>
-      (task.assignments || []).some(
+      (
+        task.assignments || []
+      ).some(
         (assignment) =>
           String(
             assignment.userId
@@ -253,8 +356,12 @@ function App() {
         const project =
           projects.find(
             (project) =>
-              String(project.id) ===
-              String(task.projectId)
+              String(
+                project.id
+              ) ===
+              String(
+                task.projectId
+              )
           );
 
         if (
@@ -267,51 +374,79 @@ function App() {
         }
       }
 
-      return isAssignedToMe(task);
+      return isAssignedToMe(
+        task
+      );
     };
 
-    const visibleIds = new Set(
-      tasks
-        .filter(isDirectlyVisible)
-        .map((task) => task.id)
-    );
+    const visibleIds =
+      new Set(
+        tasks
+          .filter(
+            isDirectlyVisible
+          )
+          .map((task) =>
+            String(task.id)
+          )
+      );
 
     let changed = true;
 
     while (changed) {
       changed = false;
 
-      tasks.forEach((task) => {
-        if (
-          visibleIds.has(task.id) &&
-          task.parentTaskId &&
-          !visibleIds.has(
-            task.parentTaskId
-          )
-        ) {
-          visibleIds.add(
-            task.parentTaskId
-          );
+      tasks.forEach(
+        (task) => {
+          const taskId =
+            String(task.id);
 
-          changed = true;
+          const parentId =
+            task.parentTaskId
+              ? String(
+                  task.parentTaskId
+                )
+              : null;
+
+          if (
+            visibleIds.has(
+              taskId
+            ) &&
+            parentId &&
+            !visibleIds.has(
+              parentId
+            )
+          ) {
+            visibleIds.add(
+              parentId
+            );
+
+            changed = true;
+          }
+
+          if (
+            parentId &&
+            visibleIds.has(
+              parentId
+            ) &&
+            !visibleIds.has(
+              taskId
+            )
+          ) {
+            visibleIds.add(
+              taskId
+            );
+
+            changed = true;
+          }
         }
-
-        if (
-          task.parentTaskId &&
-          visibleIds.has(
-            task.parentTaskId
-          ) &&
-          !visibleIds.has(task.id)
-        ) {
-          visibleIds.add(task.id);
-
-          changed = true;
-        }
-      });
+      );
     }
 
-    return tasks.filter((task) =>
-      visibleIds.has(task.id)
+    return tasks.filter(
+      (task) =>
+        visibleIds.has(
+          String(task.id)
+        )
     );
   }
 
@@ -330,16 +465,27 @@ function App() {
         "SCRUM_MASTER"
     );
 
+  const isSimpleMember =
+    !!currentUser &&
+    !isAdmin &&
+    !isScrumMaster;
+
   /* =========================================================
      CHANGEMENT DE STATUT
+     IMPORTANT :
+     maintenant persisté dans le mock/backend
   ========================================================= */
 
-  function handleStatusChange(taskId) {
-    const task = tasks.find(
-      (task) =>
-        String(task.id) ===
-        String(taskId)
-    );
+  async function handleStatusChange(
+    taskId,
+    requestedStatus = null
+  ) {
+    const task =
+      tasks.find(
+        (task) =>
+          String(task.id) ===
+          String(taskId)
+      );
 
     if (!task) {
       console.error(
@@ -350,11 +496,53 @@ function App() {
       return;
     }
 
+    /* -------------------------------------------------------
+       Sécurité côté interface pour MEMBER
+    ------------------------------------------------------- */
+
+    if (isSimpleMember) {
+      const assigned =
+        (
+          task.assignments || []
+        ).some(
+          (assignment) =>
+            String(
+              assignment.userId
+            ) ===
+              String(
+                currentUser.id
+              ) &&
+            !assignment.unassignedAt
+        );
+
+      if (!assigned) {
+        console.error(
+          "Le membre ne peut pas modifier le statut de cette tâche."
+        );
+
+        return;
+      }
+    }
+
     const ancienStatut =
       task.status;
 
-    const nouveauStatut =
-      NEXT_STATUS[ancienStatut];
+    let nouveauStatut;
+
+    if (
+      requestedStatus &&
+      ALLOWED_TASK_STATUSES.includes(
+        requestedStatus
+      )
+    ) {
+      nouveauStatut =
+        requestedStatus;
+    } else {
+      nouveauStatut =
+        NEXT_STATUS[
+          ancienStatut
+        ];
+    }
 
     if (!nouveauStatut) {
       console.error(
@@ -365,61 +553,119 @@ function App() {
       return;
     }
 
-    setTasks((prevTasks) =>
-      prevTasks.map((currentTask) =>
-        String(currentTask.id) ===
-        String(taskId)
-          ? {
-              ...currentTask,
-              status:
-                nouveauStatut,
-            }
-          : currentTask
-      )
-    );
+    if (
+      nouveauStatut ===
+      ancienStatut
+    ) {
+      return;
+    }
 
-    const newAction = {
-      id: generateActionId(),
+    try {
+      /*
+        Sauvegarde réelle dans
+        db.json / backend.
+      */
 
-      id_tache: taskId,
+      const updatedTask =
+        await updateTask(
+          taskId,
+          {
+            status:
+              nouveauStatut,
+          }
+        );
 
-      id_user:
-        currentUser?.email ??
-        "inconnu",
+      /*
+        Mise à jour de React avec
+        la réponse du serveur.
+      */
 
-      nom_user:
-        currentUser?.firstName ??
-        "Utilisateur",
+      setTasks(
+        (previousTasks) =>
+          previousTasks.map(
+            (
+              currentTask
+            ) =>
+              String(
+                currentTask.id
+              ) ===
+              String(taskId)
+                ? {
+                    ...currentTask,
+                    ...updatedTask,
+                    status:
+                      nouveauStatut,
+                  }
+                : currentTask
+          )
+      );
 
-      type_action:
-        "CHANGEMENT_STATUT",
+      /*
+        Historique / notification.
+      */
 
-      champ_modifie:
-        "statut",
+      const actionToCreate =
+        {
+          id:
+            generateActionId(),
 
-      ancienne_valeur:
-        ancienStatut,
+          id_tache:
+            taskId,
 
-      nouvelle_valeur:
-        nouveauStatut,
+          id_user:
+            currentUser?.email ??
+            "inconnu",
 
-      date_action:
-        new Date().toISOString(),
-    };
+          nom_user:
+            currentUser?.firstName ??
+            "Utilisateur",
 
-    setActions((prevActions) => [
-      ...prevActions,
-      newAction,
-    ]);
+          type_action:
+            "CHANGEMENT_STATUT",
 
-    persistAction(newAction);
+          champ_modifie:
+            "statut",
+
+          ancienne_valeur:
+            ancienStatut,
+
+          nouvelle_valeur:
+            nouveauStatut,
+
+          date_action:
+            new Date().toISOString(),
+        };
+
+      const savedAction =
+        await persistAction(
+          actionToCreate
+        );
+
+      setActions(
+        (previousActions) => [
+          ...previousActions,
+          savedAction,
+        ]
+      );
+    } catch (err) {
+      console.error(
+        "Impossible de modifier le statut :",
+        err
+      );
+
+      alert(
+        "Impossible de modifier le statut de la tâche."
+      );
+    }
   }
 
   /* =========================================================
      CRÉATION D'UNE TÂCHE
+     IMPORTANT :
+     maintenant persistée dans le mock/backend
   ========================================================= */
 
-  function handleCreateTask(
+  async function handleCreateTask(
     newTask
   ) {
     const normalized =
@@ -446,7 +692,7 @@ function App() {
           ]
         : [];
 
-    const taskWithMeta = {
+    const taskToCreate = {
       ...newTask,
 
       creatorId:
@@ -456,54 +702,113 @@ function App() {
       assignments,
     };
 
-    setTasks((prevTasks) => [
-      ...prevTasks,
-      taskWithMeta,
-    ]);
+    /*
+      Le serveur mock génère
+      l'identifiant de la tâche.
 
-    const newAction = {
-      id: generateActionId(),
+      On retire donc l'id local
+      éventuellement envoyé.
+    */
 
-      id_tache:
-        taskWithMeta.id,
+    delete taskToCreate.id;
 
-      id_user:
-        currentUser?.email ??
-        "inconnu",
+    try {
+      const createdTask =
+        await createTask(
+          taskToCreate
+        );
 
-      nom_user:
-        currentUser?.firstName ??
-        "Utilisateur",
+      if (!createdTask) {
+        throw new Error(
+          "La tâche créée n'a pas été retournée par l'API."
+        );
+      }
 
-      type_action:
-        "CREATION",
+      /*
+        Maintenant la tâche
+        existe réellement dans
+        db.json.
+      */
 
-      champ_modifie:
-        null,
+      setTasks(
+        (previousTasks) => [
+          ...previousTasks,
+          createdTask,
+        ]
+      );
 
-      ancienne_valeur:
-        null,
+      /*
+        Création de l'action.
+        Cette action alimentera
+        les notifications.
+      */
 
-      nouvelle_valeur:
-        null,
+      const actionToCreate =
+        {
+          id:
+            generateActionId(),
 
-      date_action:
-        new Date().toISOString(),
-    };
+          id_tache:
+            createdTask.id,
 
-    setActions((prevActions) => [
-      ...prevActions,
-      newAction,
-    ]);
+          id_user:
+            currentUser?.email ??
+            "inconnu",
 
-    persistAction(newAction);
+          nom_user:
+            currentUser?.firstName ??
+            "Utilisateur",
+
+          type_action:
+            "CREATION",
+
+          champ_modifie:
+            null,
+
+          ancienne_valeur:
+            null,
+
+          nouvelle_valeur:
+            null,
+
+          date_action:
+            new Date().toISOString(),
+        };
+
+      const savedAction =
+        await persistAction(
+          actionToCreate
+        );
+
+      setActions(
+        (previousActions) => [
+          ...previousActions,
+          savedAction,
+        ]
+      );
+
+      return createdTask;
+    } catch (err) {
+      console.error(
+        "Impossible de créer la tâche :",
+        err
+      );
+
+      alert(
+        "Impossible de créer la tâche."
+      );
+
+      return null;
+    }
   }
 
   /* =========================================================
      CRÉATION D'UNE SOUS-TÂCHE
+     Elle passe maintenant elle aussi
+     par createTask() et est persistée.
   ========================================================= */
 
-  function handleCreateSubtask(
+  async function handleCreateSubtask(
     parentTaskId,
     title,
     assignments
@@ -512,7 +817,9 @@ function App() {
       tasks.find(
         (task) =>
           String(task.id) ===
-          String(parentTaskId)
+          String(
+            parentTaskId
+          )
       );
 
     if (!parentTask) {
@@ -520,7 +827,7 @@ function App() {
         "Impossible de créer la sous-tâche : tâche parente introuvable."
       );
 
-      return;
+      return null;
     }
 
     const cleanTitle =
@@ -531,12 +838,41 @@ function App() {
         "Impossible de créer la sous-tâche : le titre est obligatoire."
       );
 
-      return;
+      return null;
     }
 
-    handleCreateTask({
-      id: Date.now(),
+    /*
+      Protection MEMBER :
+      la tâche principale doit
+      lui être assignée.
+    */
 
+    if (isSimpleMember) {
+      const parentAssigned =
+        (
+          parentTask.assignments ||
+          []
+        ).some(
+          (assignment) =>
+            String(
+              assignment.userId
+            ) ===
+              String(
+                currentUser.id
+              ) &&
+            !assignment.unassignedAt
+        );
+
+      if (!parentAssigned) {
+        console.error(
+          "Vous ne pouvez pas créer une sous-tâche sur cette tâche."
+        );
+
+        return null;
+      }
+    }
+
+    return handleCreateTask({
       title: cleanTitle,
 
       description: "",
@@ -557,162 +893,214 @@ function App() {
      MODIFICATION D'UNE TÂCHE
   ========================================================= */
 
-  function handleEditTask(
+  async function handleEditTask(
     taskId,
     updatedFields
   ) {
-    const task = tasks.find(
-      (task) =>
-        String(task.id) ===
-        String(taskId)
-    );
+    const task =
+      tasks.find(
+        (task) =>
+          String(task.id) ===
+          String(taskId)
+      );
 
     if (!task) {
       return;
     }
 
-    setTasks((prevTasks) =>
-      prevTasks.map(
-        (currentTask) =>
-          String(
-            currentTask.id
-          ) ===
-          String(taskId)
-            ? {
-                ...currentTask,
-                ...updatedFields,
-              }
-            : currentTask
-      )
-    );
+    /*
+      Un membre simple ne doit pas
+      modifier titre/description
+      d'une tâche principale.
+    */
 
-    const changedActions = [];
+    if (isSimpleMember) {
+      console.error(
+        "Modification interdite pour un membre."
+      );
 
-    if (
-      updatedFields.title !==
-        undefined &&
-      updatedFields.title !==
-        task.title
-    ) {
-      changedActions.push({
-        champ_modifie:
-          "titre",
-
-        ancienne_valeur:
-          task.title,
-
-        nouvelle_valeur:
-          updatedFields.title,
-      });
-    }
-
-    if (
-      updatedFields.description !==
-        undefined &&
-      updatedFields.description !==
-        task.description
-    ) {
-      changedActions.push({
-        champ_modifie:
-          "description",
-
-        ancienne_valeur:
-          task.description,
-
-        nouvelle_valeur:
-          updatedFields.description,
-      });
-    }
-
-    if (
-      changedActions.length ===
-      0
-    ) {
       return;
     }
 
-    const newActions =
-      changedActions.map(
-        (action) => ({
-          id: generateActionId(),
+    try {
+      const updatedTask =
+        await updateTask(
+          taskId,
+          updatedFields
+        );
 
-          id_tache:
-            taskId,
-
-          id_user:
-            currentUser?.email ??
-            "inconnu",
-
-          nom_user:
-            currentUser?.firstName ??
-            "Utilisateur",
-
-          type_action:
-            "MODIFICATION",
-
-          ...action,
-
-          date_action:
-            new Date().toISOString(),
-        })
+      setTasks(
+        (previousTasks) =>
+          previousTasks.map(
+            (
+              currentTask
+            ) =>
+              String(
+                currentTask.id
+              ) ===
+              String(taskId)
+                ? {
+                    ...currentTask,
+                    ...updatedTask,
+                  }
+                : currentTask
+          )
       );
 
-    setActions(
-      (prevActions) => [
-        ...prevActions,
-        ...newActions,
-      ]
-    );
+      const changedActions =
+        [];
 
-    newActions.forEach(
-      persistAction
-    );
+      if (
+        updatedFields.title !==
+          undefined &&
+        updatedFields.title !==
+          task.title
+      ) {
+        changedActions.push(
+          {
+            champ_modifie:
+              "titre",
+
+            ancienne_valeur:
+              task.title,
+
+            nouvelle_valeur:
+              updatedFields.title,
+          }
+        );
+      }
+
+      if (
+        updatedFields.description !==
+          undefined &&
+        updatedFields.description !==
+          task.description
+      ) {
+        changedActions.push(
+          {
+            champ_modifie:
+              "description",
+
+            ancienne_valeur:
+              task.description,
+
+            nouvelle_valeur:
+              updatedFields.description,
+          }
+        );
+      }
+
+      for (const change of changedActions) {
+        const actionToCreate =
+          {
+            id:
+              generateActionId(),
+
+            id_tache:
+              taskId,
+
+            id_user:
+              currentUser?.email ??
+              "inconnu",
+
+            nom_user:
+              currentUser?.firstName ??
+              "Utilisateur",
+
+            type_action:
+              "MODIFICATION",
+
+            ...change,
+
+            date_action:
+              new Date().toISOString(),
+          };
+
+        const savedAction =
+          await persistAction(
+            actionToCreate
+          );
+
+        setActions(
+          (previousActions) => [
+            ...previousActions,
+            savedAction,
+          ]
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Impossible de modifier la tâche :",
+        err
+      );
+
+      alert(
+        "Impossible de modifier la tâche."
+      );
+    }
   }
 
   /* =========================================================
      SUPPRESSION
+     Pour l'instant on conserve ton
+     fonctionnement existant.
   ========================================================= */
 
   function handleDeleteTask(
     taskId
   ) {
-    setTasks((prevTasks) => {
-      const idsToDelete =
-        new Set([taskId]);
+    setTasks(
+      (previousTasks) => {
+        const idsToDelete =
+          new Set([
+            String(taskId),
+          ]);
 
-      let changed = true;
+        let changed = true;
 
-      while (changed) {
-        changed = false;
+        while (changed) {
+          changed = false;
 
-        prevTasks.forEach(
-          (task) => {
-            if (
-              task.parentTaskId &&
-              idsToDelete.has(
+          previousTasks.forEach(
+            (task) => {
+              const parentId =
                 task.parentTaskId
-              ) &&
-              !idsToDelete.has(
-                task.id
-              )
-            ) {
-              idsToDelete.add(
-                task.id
-              );
+                  ? String(
+                      task.parentTaskId
+                    )
+                  : null;
 
-              changed = true;
+              if (
+                parentId &&
+                idsToDelete.has(
+                  parentId
+                ) &&
+                !idsToDelete.has(
+                  String(
+                    task.id
+                  )
+                )
+              ) {
+                idsToDelete.add(
+                  String(
+                    task.id
+                  )
+                );
+
+                changed = true;
+              }
             }
-          }
+          );
+        }
+
+        return previousTasks.filter(
+          (task) =>
+            !idsToDelete.has(
+              String(task.id)
+            )
         );
       }
-
-      return prevTasks.filter(
-        (task) =>
-          !idsToDelete.has(
-            task.id
-          )
-      );
-    });
+    );
   }
 
   /* =========================================================
@@ -727,7 +1115,7 @@ function App() {
   }
 
   /* =========================================================
-     ÉCRANS CHARGEMENT / ERREUR
+     CHARGEMENT
   ========================================================= */
 
   if (loading) {
@@ -754,20 +1142,26 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* ROUTES PUBLIQUES */}
+        {/* =================================================
+            ROUTES PUBLIQUES
+        ================================================= */}
 
         <Route
           path="/login"
           element={
             <LoginPage
-              onLogin={handleLogin}
+              onLogin={
+                handleLogin
+              }
             />
           }
         />
 
         <Route
           path="/signup"
-          element={<SignupPage />}
+          element={
+            <SignupPage />
+          }
         />
 
         <Route
@@ -795,7 +1189,9 @@ function App() {
           }
         />
 
-        {/* ROUTE RACINE */}
+        {/* =================================================
+            ROUTE RACINE
+        ================================================= */}
 
         <Route
           path="/"
@@ -824,7 +1220,9 @@ function App() {
                     tasks={
                       visibleTasks
                     }
-                    users={users}
+                    users={
+                      users
+                    }
                     projects={
                       projects
                     }
@@ -847,7 +1245,9 @@ function App() {
           }
         />
 
-        {/* PROJETS ADMIN / SCRUM */}
+        {/* =================================================
+            PROJETS ADMIN / SCRUM
+        ================================================= */}
 
         <Route
           path="/projects"
@@ -881,7 +1281,9 @@ function App() {
           }
         />
 
-        {/* DASHBOARD */}
+        {/* =================================================
+            DASHBOARD
+        ================================================= */}
 
         <Route
           path="/dashboard"
@@ -941,6 +1343,19 @@ function App() {
                   onLogout={
                     handleLogout
                   }
+
+                  /*
+                    IMPORTANT :
+                    permet au Header
+                    de calculer les
+                    notifications.
+                  */
+                  tasks={
+                    visibleTasks
+                  }
+                  actions={
+                    actions
+                  }
                 >
                   <MemberDashboardPage
                     tasks={
@@ -959,7 +1374,9 @@ function App() {
           }
         />
 
-        {/* MES TÂCHES - MEMBER */}
+        {/* =================================================
+            MES TÂCHES MEMBER
+        ================================================= */}
 
         <Route
           path="/member/tasks"
@@ -976,12 +1393,22 @@ function App() {
                 onLogout={
                   handleLogout
                 }
+
+                tasks={
+                  visibleTasks
+                }
+
+                actions={
+                  actions
+                }
               >
                 <MemberTasksPage
                   tasks={
                     visibleTasks
                   }
-                  users={users}
+                  users={
+                    users
+                  }
                   projects={
                     projects
                   }
@@ -1000,7 +1427,9 @@ function App() {
           }
         />
 
-        {/* PROJETS - MEMBER */}
+        {/* =================================================
+            PROJETS MEMBER
+        ================================================= */}
 
         <Route
           path="/member/projects"
@@ -1016,6 +1445,14 @@ function App() {
                 }
                 onLogout={
                   handleLogout
+                }
+
+                tasks={
+                  visibleTasks
+                }
+
+                actions={
+                  actions
                 }
               >
                 <MemberProjectsPage
@@ -1034,7 +1471,33 @@ function App() {
           }
         />
 
-        {/* FALLBACK */}
+        {/* =================================================
+          BILAN PERSONNEL MEMBER
+       ================================================= */}
+
+<Route
+  path="/member/personal-report"
+  element={
+    <ProtectedRoute
+      isLoggedIn={!!currentUser}
+    >
+      <MemberLayout
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        tasks={visibleTasks}
+        actions={actions}
+      >
+        <MemberPersonalReportPage
+          currentUser={currentUser}
+        />
+      </MemberLayout>
+    </ProtectedRoute>
+  }
+/>
+
+        {/* =================================================
+            FALLBACK
+        ================================================= */}
 
         <Route
           path="*"

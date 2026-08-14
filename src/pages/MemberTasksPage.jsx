@@ -607,6 +607,7 @@ function MemberTasksPage({
   currentUser,
   tasks = [],
   users = [],
+  projects = [],
   actions = [],
   onStatusChange,
   onCreateSubtask,
@@ -1747,28 +1748,31 @@ function MemberTasksPage({
 
       {selectedTask && (
         <TaskModal
-          task={
-            selectedTask
-          }
-          allTasks={
-            tasks
-          }
-          users={
-            users
-          }
-          currentUser={
-            currentUser
-          }
-          actions={
-            actions
-          }
-          onClose={
-            closeTaskDetails
-          }
-          onCreateSubtask={
-            onCreateSubtask
-          }
-        />
+  task={
+    selectedTask
+  }
+  allTasks={
+    tasks
+  }
+  users={
+    users
+  }
+  projects={
+    projects
+  }
+  currentUser={
+    currentUser
+  }
+  actions={
+    actions
+  }
+  onClose={
+    closeTaskDetails
+  }
+  onCreateSubtask={
+    onCreateSubtask
+  }
+/>
       )}
     </>
   );

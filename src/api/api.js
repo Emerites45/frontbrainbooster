@@ -382,3 +382,52 @@ export async function createAction(
 
   return response.json();
 }
+
+export async function createTask(taskData) {
+  const response = await fetch(
+    `${API_URL}/tasks`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify(taskData),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Erreur création tâche : ${response.status}`
+    );
+  }
+
+  return response.json();
+}
+
+export async function updateTask(
+  taskId,
+  updates
+) {
+  const response = await fetch(
+    `${API_URL}/tasks/${taskId}`,
+    {
+      method: "PUT",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify(updates),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Erreur modification tâche : ${response.status}`
+    );
+  }
+
+  return response.json();
+}

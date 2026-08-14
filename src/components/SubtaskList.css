@@ -1,0 +1,354 @@
+/* =========================================================
+   SUBTASK LIST
+========================================================= */
+
+.subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* =========================================================
+   EXISTING ITEMS
+========================================================= */
+
+.subtask-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  min-height: 48px;
+
+  padding: 10px 12px;
+
+  border: 1px solid #e4e9ed;
+  border-radius: 11px;
+
+  background: #fbfcfd;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.subtask-item:hover {
+  background: #f6f9fb;
+  border-color: #d9e2e9;
+
+  transform: translateY(-1px);
+}
+
+.subtask-item > div:first-child {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.subtask-item strong {
+  color: #38536a;
+
+  font-size: 10.5px;
+  font-weight: 660;
+
+  line-height: 1.35;
+}
+
+.subtask-item span {
+  color: #7f8d99;
+
+  font-size: 9px;
+}
+
+/* =========================================================
+   CREATE AREA
+========================================================= */
+
+.subtask-create-form {
+  display: grid;
+
+  grid-template-columns:
+    132px
+    minmax(0, 1fr)
+    180px;
+
+  grid-template-areas:
+    "heading title assignee"
+    "button button button"
+    "error error error";
+
+  column-gap: 12px;
+  row-gap: 12px;
+
+  align-items: start;
+
+  padding: 16px;
+
+  border: 1px solid #dfe7ed;
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #fafcfd 0%,
+      #f7fafc 100%
+    );
+}
+
+/* =========================================================
+   FORM TITLE
+========================================================= */
+
+.subtask-create-form h4 {
+  grid-area: heading;
+
+  margin: 24px 0 0;
+
+  color: #314b63;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  line-height: 1.3;
+}
+
+/* =========================================================
+   FIELD POSITIONING
+========================================================= */
+
+.subtask-create-form
+.subtask-form-group:nth-of-type(1) {
+  grid-area: title;
+}
+
+.subtask-create-form
+.subtask-form-group:nth-of-type(2) {
+  grid-area: assignee;
+}
+
+/* =========================================================
+   FIELD
+========================================================= */
+
+.subtask-form-group {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 6px;
+
+  align-self: start;
+}
+
+.subtask-form-group label {
+  height: 14px;
+
+  display: flex;
+  align-items: center;
+
+  margin: 0;
+
+  color: #728494;
+
+  font-size: 8px;
+  font-weight: 680;
+
+  line-height: 1;
+
+  letter-spacing: 0.5px;
+
+  text-transform: uppercase;
+}
+
+.subtask-form-group input,
+.subtask-form-group select {
+  width: 100%;
+  height: 38px;
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0 11px;
+
+  border: 1px solid #d5dfe7;
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #38536a;
+
+  font-family: inherit;
+  font-size: 10px;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.subtask-form-group input::placeholder {
+  color: #9aa7b3;
+}
+
+.subtask-form-group input:focus,
+.subtask-form-group select:focus {
+  outline: none;
+
+  border-color: #8caec9;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(11, 67, 140, 0.06);
+}
+
+/* =========================================================
+   SMALL MEMBER INFO
+========================================================= */
+
+.subtask-member-info {
+  margin: 2px 0 0;
+
+  color: #8a98a4;
+
+  font-size: 8px;
+
+  line-height: 1.4;
+}
+
+/* =========================================================
+   BUTTON
+========================================================= */
+
+.subtask-create-button {
+  grid-area: button;
+
+  justify-self: start;
+
+  height: 38px;
+
+  padding: 0 16px;
+
+  border: 1px solid #0b438c;
+  border-radius: 9px;
+
+  background: #0b438c;
+
+  color: #ffffff;
+
+  font-family: inherit;
+
+  font-size: 9.5px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.subtask-create-button:hover {
+  background: #093a79;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 6px 14px
+    rgba(11, 67, 140, 0.16);
+}
+
+.subtask-create-button:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.subtask-empty {
+  padding: 18px;
+
+  border: 1px dashed #d9e1e7;
+  border-radius: 10px;
+
+  background: #fbfcfd;
+
+  color: #8b98a3;
+
+  font-size: 9.5px;
+
+  text-align: center;
+}
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.subtask-error,
+.subtask-form-error {
+  grid-area: error;
+
+  margin: 0;
+
+  padding: 9px 11px;
+
+  border: 1px solid #efd5d7;
+  border-radius: 8px;
+
+  background: #fff4f5;
+
+  color: #b84b53;
+
+  font-size: 9px;
+
+  line-height: 1.4;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 780px) {
+  .subtask-create-form {
+    grid-template-columns: 1fr;
+
+    grid-template-areas:
+      "heading"
+      "title"
+      "assignee"
+      "error"
+      "button";
+  }
+
+  .subtask-create-form h4 {
+    margin: 0;
+  }
+
+  .subtask-create-button {
+    width: 100%;
+
+    justify-self: stretch;
+  }
+}
