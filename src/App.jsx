@@ -1,51 +1,40 @@
 import { useState, useEffect } from "react";
-
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-
-import LoginPage from "./pages/login/LoginPage";
-import SignupPage from "./pages/signup/SignupPage";
-import VerifyEmailPage from "./pages/VerifyEmailPage";
-import ForgotPasswordPage from "./pages/resetpassword/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/resetpassword/ResetPasswordPage";
-
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import ScrumMasterDashboardPage from "./pages/ScrumMasterDashboardPage";
-import MemberDashboardPage from "./pages/MemberDashboardPage";
-
-import BoardPage from "./pages/BoardPage";
-import ProjectsPage from "./pages/ProjectsPage";
-
-import MemberTasksPage from "./pages/MemberTasksPage";
-import MemberProjectsPage from "./pages/MemberProjectsPage";
-import MemberPersonalReportPage from "./pages/MemberPersonalReportPage";
-
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Navbar from "./components/Navbar";
-import MemberLayout from "./components/member/MemberLayout";
-
 import {
   fetchTasks,
   fetchProjects,
   fetchUsers,
   fetchActions,
   createProject,
+  updateProject,
+  deleteProject,
   createAction,
-  createTask,
-  updateTask,
 } from "./api/api";
-
-import {
-  normalizeAssignments,
-} from "./utils/dashboardHelpers";
-
-/* =========================================================
-   STATUTS
-========================================================= */
+import { normalizeAssignments } from "./utils/dashboardHelpers";
+import BoardPage from "./pages/BoardPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import ScrumMasterDashboardPage from "./pages/ScrumMasterDashboardPage";
+import MemberDashboardPage from "./pages/MemberDashboardPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import Navbar from "./components/Navbar";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
+import AdminLayout from "./pages/admin/AdminLayout";
+import ScrumMasterLayout from "./pages/scrum-master/ScrumMasterLayout";
+import ScrumMasterProjectsPage from "./pages/scrum-master/ScrumMasterProjectsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminProjectsPage from "./pages/admin/AdminProjectsPage";
+import AdminActivityPage from "./pages/admin/AdminActivityPage";
+import AdminTeamPage from "./pages/admin/AdminTeamPage";
+import AdminReportsPage from "./pages/admin/AdminReportsPage";
+import ScrumMasterTeamPage from "./pages/scrum-master/ScrumMasterTeamPage";
+import CalendarPage from "./pages/CalendarPage";
+import ScrumMasterCalendarPage from "./pages/scrum-master/ScrumMasterCalendarPage";
+import { isAdmin, isScrumMaster } from "./utils/permissions";
 
 const NEXT_STATUS = {
   A_FAIRE: "EN_COURS",
@@ -53,31 +42,12 @@ const NEXT_STATUS = {
   TERMINE: "A_FAIRE",
 };
 
-const ALLOWED_TASK_STATUSES = [
-  "A_FAIRE",
-  "EN_COURS",
-  "TERMINE",
-];
-
-/* =========================================================
-   HELPERS
-========================================================= */
-
+// Génère un id unique et robuste pour les entrées d'historique
 function generateActionId() {
-  return `${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/* =========================================================
-   LAYOUT ADMIN / SCRUM
-========================================================= */
-
-function AppLayout({
-  children,
-  currentUser,
-  onLogout,
-}) {
+function AppLayout({ children, currentUser, onLogout }) {
   return (
     <>
       <Navbar
@@ -90,46 +60,36 @@ function AppLayout({
   );
 }
 
-/* =========================================================
-   APP
-========================================================= */
+function UnderConstruction({ label }) {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center p-6">
+      <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+        <div className="mb-4 text-4xl">🚧</div>
+        <h1 className="text-2xl font-semibold text-gray-900">{label}</h1>
+        <p className="mt-2 text-gray-500">
+          Cette section est en cours de développement et sera disponible dans un
+          prochain sprint.
+        </p>
+        <span className="mt-5 inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+          TODO — Prochain sprint
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function App() {
-  const [tasks, setTasks] =
-    useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [actions, setActions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
 
-  const [projects, setProjects] =
-    useState([]);
-
-  const [users, setUsers] =
-    useState([]);
-
-  const [actions, setActions] =
-    useState([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState(null);
-
-  const [
-    selectedTask,
-    setSelectedTask,
-  ] = useState(null);
-
-  const [
-    currentUser,
-    setCurrentUser,
-  ] = useState(() => {
-    const saved =
-      localStorage.getItem(
-        "currentUser"
-      );
-
-    return saved
-      ? JSON.parse(saved)
-      : null;
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem("currentUser");
+    return saved ? JSON.parse(saved) : null;
   });
 
   /* =========================================================
@@ -137,16 +97,8 @@ function App() {
   ========================================================= */
 
   function handleLogin(data) {
-    const merged = {
-      ...data.user,
-      token: data.token,
-    };
-
-    localStorage.setItem(
-      "currentUser",
-      JSON.stringify(merged)
-    );
-
+    const merged = { ...data.user, token: data.token };
+    localStorage.setItem("currentUser", JSON.stringify(merged));
     setCurrentUser(merged);
   }
 
@@ -158,76 +110,36 @@ function App() {
     setCurrentUser(null);
   }
 
-  /* =========================================================
-     CHARGEMENT INITIAL
-  ========================================================= */
-
   useEffect(() => {
     setLoading(true);
-    setError(null);
-
-    Promise.all([
-      fetchTasks(),
-      fetchProjects(),
-      fetchUsers(),
-      fetchActions(),
-    ])
-      .then(
-        ([
-          tasksData,
-          projectsData,
-          usersData,
-          actionsData,
-        ]) => {
-          setTasks(
-            Array.isArray(tasksData)
-              ? tasksData
-              : []
-          );
-
-          setProjects(
-            Array.isArray(
-              projectsData
-            )
-              ? projectsData
-              : []
-          );
-
-          setUsers(
-            Array.isArray(usersData)
-              ? usersData
-              : []
-          );
-
-          setActions(
-            Array.isArray(
-              actionsData
-            )
-              ? actionsData
-              : []
-          );
-        }
-      )
-      .catch((err) => {
-        console.error(
-          "Erreur chargement données :",
-          err
-        );
-
-        setError(err.message);
+    Promise.all([fetchTasks(), fetchProjects(), fetchUsers(), fetchActions()])
+      .then(([tasksData, projectsData, usersData, actionsData]) => {
+        setTasks(tasksData);
+        setProjects(projectsData);
+        setUsers(usersData);
+        setActions(actionsData);
       })
       .finally(() => {
         setLoading(false);
       });
   }, []);
 
-  /* =========================================================
-     HISTORIQUE / ACTIONS
-  ========================================================= */
+  // Persiste une entrée d'historique côté mock-server, en plus de la mise à
+  // jour optimiste locale déjà faite par l'appelant. Échec silencieux (juste
+  // loggé) : on ne bloque jamais l'UI pour un souci d'historique — l'action
+  // métier elle-même (changement de statut, création...) a déjà réussi.
+  async function persistAction(action) {
+    try {
+      await createAction(action);
+    } catch (err) {
+      console.error(
+        "Impossible d'enregistrer l'action dans l'historique :",
+        err,
+      );
+    }
+  }
 
-  async function persistAction(
-    action
-  ) {
+  const handleCreateProject = async (projectData) => {
     try {
       const savedAction =
         await createAction(
@@ -252,1003 +164,273 @@ function App() {
      PROJETS
   ========================================================= */
 
-  const handleCreateProject =
-    async (projectData) => {
-      try {
-        const newProject =
-          await createProject(
-            projectData
-          );
-
-        setProjects(
-          (previous) => [
-            ...previous,
-            newProject,
-          ]
-        );
-
-        return newProject;
-      } catch (err) {
-        console.error(
-          "Erreur création projet :",
-          err
-        );
-
-        alert(
-          "Erreur lors de la création du projet"
-        );
-
-        return null;
-      }
-    };
-
-  const handleSelectProject = (
-    projectId
-  ) => {
-    console.log(
-      "Projet sélectionné :",
-      projectId
-    );
-  };
-
-  /* =========================================================
-     VISIBILITÉ DES TÂCHES
-  ========================================================= */
-
-  function getVisibleTasks() {
-    if (!currentUser) {
-      return [];
-    }
-
-    const userIsAdmin =
-      currentUser.globalRoles?.includes(
-        "ADMIN"
-      );
-
-    if (userIsAdmin) {
-      return tasks;
-    }
-
-    const myDeptRoles =
-      currentUser.departmentRoles ||
-      [];
-
-    const isScrumMasterOf = (
-      deptId
-    ) =>
-      myDeptRoles.some(
-        (departmentRole) =>
-          String(
-            departmentRole.departmentId
-          ) ===
-            String(deptId) &&
-          departmentRole.role ===
-            "SCRUM_MASTER"
-      );
-
-    const isAssignedToMe = (
-      task
-    ) =>
-      (
-        task.assignments || []
-      ).some(
-        (assignment) =>
-          String(
-            assignment.userId
-          ) ===
-            String(
-              currentUser.id
-            ) &&
-          !assignment.unassignedAt
-      );
-
-    const isDirectlyVisible = (
-      task
-    ) => {
-      const isScrumMaster =
-        myDeptRoles.some(
-          (departmentRole) =>
-            departmentRole.role ===
-            "SCRUM_MASTER"
-        );
-
-      if (isScrumMaster) {
-        const project =
-          projects.find(
-            (project) =>
-              String(
-                project.id
-              ) ===
-              String(
-                task.projectId
-              )
-          );
-
-        if (
-          project &&
-          isScrumMasterOf(
-            project.departmentId
-          )
-        ) {
-          return true;
-        }
-      }
-
-      return isAssignedToMe(
-        task
-      );
-    };
-
-    const visibleIds =
-      new Set(
-        tasks
-          .filter(
-            isDirectlyVisible
-          )
-          .map((task) =>
-            String(task.id)
-          )
-      );
-
-    let changed = true;
-
-    while (changed) {
-      changed = false;
-
-      tasks.forEach(
-        (task) => {
-          const taskId =
-            String(task.id);
-
-          const parentId =
-            task.parentTaskId
-              ? String(
-                  task.parentTaskId
-                )
-              : null;
-
-          if (
-            visibleIds.has(
-              taskId
-            ) &&
-            parentId &&
-            !visibleIds.has(
-              parentId
-            )
-          ) {
-            visibleIds.add(
-              parentId
-            );
-
-            changed = true;
-          }
-
-          if (
-            parentId &&
-            visibleIds.has(
-              parentId
-            ) &&
-            !visibleIds.has(
-              taskId
-            )
-          ) {
-            visibleIds.add(
-              taskId
-            );
-
-            changed = true;
-          }
-        }
-      );
-    }
-
-    return tasks.filter(
-      (task) =>
-        visibleIds.has(
-          String(task.id)
-        )
-    );
-  }
-
-  const visibleTasks =
-    getVisibleTasks();
-
-  const isAdmin =
-    currentUser?.globalRoles?.includes(
-      "ADMIN"
-    );
-
-  const isScrumMaster =
-    currentUser?.departmentRoles?.some(
-      (departmentRole) =>
-        departmentRole.role ===
-        "SCRUM_MASTER"
-    );
-
-  const isSimpleMember =
-    !!currentUser &&
-    !isAdmin &&
-    !isScrumMaster;
-
-  /* =========================================================
-     CHANGEMENT DE STATUT
-     IMPORTANT :
-     maintenant persisté dans le mock/backend
-  ========================================================= */
-
-  async function handleStatusChange(
-    taskId,
-    requestedStatus = null
-  ) {
-    const task =
-      tasks.find(
-        (task) =>
-          String(task.id) ===
-          String(taskId)
-      );
-
-    if (!task) {
-      console.error(
-        "Tâche introuvable :",
-        taskId
-      );
-
-      return;
-    }
-
-    /* -------------------------------------------------------
-       Sécurité côté interface pour MEMBER
-    ------------------------------------------------------- */
-
-    if (isSimpleMember) {
-      const assigned =
-        (
-          task.assignments || []
-        ).some(
-          (assignment) =>
-            String(
-              assignment.userId
-            ) ===
-              String(
-                currentUser.id
-              ) &&
-            !assignment.unassignedAt
-        );
-
-      if (!assigned) {
-        console.error(
-          "Le membre ne peut pas modifier le statut de cette tâche."
-        );
-
-        return;
-      }
-    }
-
-    const ancienStatut =
-      task.status;
-
-    let nouveauStatut;
-
-    if (
-      requestedStatus &&
-      ALLOWED_TASK_STATUSES.includes(
-        requestedStatus
-      )
-    ) {
-      nouveauStatut =
-        requestedStatus;
-    } else {
-      nouveauStatut =
-        NEXT_STATUS[
-          ancienStatut
-        ];
-    }
-
-    if (!nouveauStatut) {
-      console.error(
-        "Statut inconnu :",
-        ancienStatut
-      );
-
-      return;
-    }
-
-    if (
-      nouveauStatut ===
-      ancienStatut
-    ) {
-      return;
-    }
-
+  const handleUpdateProject = async (projectId, updates) => {
     try {
-      /*
-        Sauvegarde réelle dans
-        db.json / backend.
-      */
-
-      const updatedTask =
-        await updateTask(
-          taskId,
-          {
-            status:
-              nouveauStatut,
-          }
-        );
-
-      /*
-        Mise à jour de React avec
-        la réponse du serveur.
-      */
-
-      setTasks(
-        (previousTasks) =>
-          previousTasks.map(
-            (
-              currentTask
-            ) =>
-              String(
-                currentTask.id
-              ) ===
-              String(taskId)
-                ? {
-                    ...currentTask,
-                    ...updatedTask,
-                    status:
-                      nouveauStatut,
-                  }
-                : currentTask
-          )
-      );
-
-      /*
-        Historique / notification.
-      */
-
-      const actionToCreate =
-        {
-          id:
-            generateActionId(),
-
-          id_tache:
-            taskId,
-
-          id_user:
-            currentUser?.email ??
-            "inconnu",
-
-          nom_user:
-            currentUser?.firstName ??
-            "Utilisateur",
-
-          type_action:
-            "CHANGEMENT_STATUT",
-
-          champ_modifie:
-            "statut",
-
-          ancienne_valeur:
-            ancienStatut,
-
-          nouvelle_valeur:
-            nouveauStatut,
-
-          date_action:
-            new Date().toISOString(),
-        };
-
-      const savedAction =
-        await persistAction(
-          actionToCreate
-        );
-
-      setActions(
-        (previousActions) => [
-          ...previousActions,
-          savedAction,
-        ]
+      const updated = await updateProject(projectId, updates);
+      setProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, ...updated } : p)),
       );
     } catch (err) {
-      console.error(
-        "Impossible de modifier le statut :",
-        err
+      alert("Erreur lors de la modification du projet");
+      throw err;
+    }
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    try {
+      await deleteProject(projectId);
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    } catch (err) {
+      alert("Erreur lors de la suppression du projet");
+    }
+  };
+
+  const handleSelectProject = (projectId) => {
+    console.log("Projet sélectionné :", projectId);
+  };
+
+  function getVisibleTasks() {
+    if (!currentUser) return [];
+
+    const isAdmin = currentUser.globalRoles?.includes("ADMIN");
+    if (isAdmin) return tasks;
+
+    const myDeptRoles = currentUser.departmentRoles || [];
+    const isScrumMasterOf = (deptId) =>
+      myDeptRoles.some(
+        (dr) => dr.departmentId === deptId && dr.role === "SCRUM_MASTER",
       );
 
-      alert(
-        "Impossible de modifier le statut de la tâche."
+    // Format TASK_ASSIGNMENT : task.assignments = [{ userId, assignedBy, assignedAt, unassignedAt? }]
+    // ⚠️ Ce format colle à la table TASK_ASSIGNMENT du MCD validé par Franck, mais n'a
+    // pas fait l'objet d'une confirmation écrite explicite de Joel/Verdream (contrairement
+    // au format de /auth/login qui, lui, est bien acté dans contrat-api-auth.md).
+    const isAssignedToMe = (t) =>
+      (t.assignments || []).some(
+        (a) => a.userId === currentUser.id && !a.unassignedAt,
       );
+
+    const isDirectlyVisible = (t) => {
+      if (myDeptRoles.some((dr) => dr.role === "SCRUM_MASTER")) {
+        const project = projects.find((p) => p.id === t.projectId);
+        if (project && isScrumMasterOf(project.departmentId)) return true;
+      }
+      return isAssignedToMe(t);
+    };
+
+    const visibleIds = new Set(
+      tasks.filter(isDirectlyVisible).map((t) => t.id),
+    );
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      tasks.forEach((t) => {
+        if (
+          visibleIds.has(t.id) &&
+          t.parentTaskId &&
+          !visibleIds.has(t.parentTaskId)
+        ) {
+          visibleIds.add(t.parentTaskId);
+          changed = true;
+        }
+        if (
+          t.parentTaskId &&
+          visibleIds.has(t.parentTaskId) &&
+          !visibleIds.has(t.id)
+        ) {
+          visibleIds.add(t.id);
+          changed = true;
+        }
+      });
     }
+
+    return tasks.filter((t) => visibleIds.has(t.id));
   }
 
-  /* =========================================================
-     CRÉATION D'UNE TÂCHE
-     IMPORTANT :
-     maintenant persistée dans le mock/backend
-  ========================================================= */
+  const visibleTasks = getVisibleTasks();
+  const isAdminUser = currentUser?.globalRoles?.includes("ADMIN");
+  const isScrumMasterUser = currentUser?.departmentRoles?.some(
+    (dr) => dr.role === "SCRUM_MASTER",
+  );
 
-  async function handleCreateTask(
-    newTask
-  ) {
-    const normalized =
-      normalizeAssignments(
-        newTask.assignments,
-        currentUser
-      );
+  function handleStatusChange(taskId) {
+    const task = tasks.find((t) => t.id === taskId);
+    const ancienStatut = task.status;
+    const nouveauStatut = NEXT_STATUS[ancienStatut];
 
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t.id === taskId ? { ...t, status: nouveauStatut } : t,
+      ),
+    );
+
+    const newAction = {
+      id: generateActionId(),
+      id_tache: taskId,
+      id_user: currentUser?.email ?? "inconnu",
+      nom_user: currentUser?.firstName ?? "Utilisateur",
+      type_action: "CHANGEMENT_STATUT",
+      champ_modifie: "statut",
+      ancienne_valeur: ancienStatut,
+      nouvelle_valeur: nouveauStatut,
+      date_action: new Date().toISOString(),
+    };
+
+    setActions((prevActions) => [...prevActions, newAction]);
+    persistAction(newAction);
+  }
+
+  function handleCreateTask(newTask) {
+    // normalizeAssignments accepte aussi bien un tableau d'objets enrichis
+    // qu'un simple tableau d'IDs (cas de NewTaskModal / SubtaskList) — on ne
+    // suppose jamais que ce qui arrive ici respecte déjà le format attendu.
+    const normalized = normalizeAssignments(newTask.assignments, currentUser);
     const assignments =
       normalized.length > 0
         ? normalized
         : currentUser?.id
-        ? [
-            {
-              userId:
-                currentUser.id,
+          ? [
+              {
+                userId: currentUser.id,
+                assignedBy: currentUser.id,
+                assignedAt: new Date().toISOString(),
+              },
+            ]
+          : [];
 
-              assignedBy:
-                currentUser.id,
-
-              assignedAt:
-                new Date().toISOString(),
-            },
-          ]
-        : [];
-
-    const taskToCreate = {
+    const taskWithMeta = {
       ...newTask,
-
-      creatorId:
-        currentUser?.id ??
-        null,
-
+      creatorId: currentUser?.id ?? null,
       assignments,
     };
 
-    /*
-      Le serveur mock génère
-      l'identifiant de la tâche.
+    setTasks((prevTasks) => [...prevTasks, taskWithMeta]);
 
-      On retire donc l'id local
-      éventuellement envoyé.
-    */
+    const newAction = {
+      id: generateActionId(),
+      id_tache: taskWithMeta.id,
+      id_user: currentUser?.email ?? "inconnu",
+      nom_user: currentUser?.firstName ?? "Utilisateur",
+      type_action: "CREATION",
+      champ_modifie: null,
+      ancienne_valeur: null,
+      nouvelle_valeur: null,
+      date_action: new Date().toISOString(),
+    };
 
-    delete taskToCreate.id;
-
-    try {
-      const createdTask =
-        await createTask(
-          taskToCreate
-        );
-
-      if (!createdTask) {
-        throw new Error(
-          "La tâche créée n'a pas été retournée par l'API."
-        );
-      }
-
-      /*
-        Maintenant la tâche
-        existe réellement dans
-        db.json.
-      */
-
-      setTasks(
-        (previousTasks) => [
-          ...previousTasks,
-          createdTask,
-        ]
-      );
-
-      /*
-        Création de l'action.
-        Cette action alimentera
-        les notifications.
-      */
-
-      const actionToCreate =
-        {
-          id:
-            generateActionId(),
-
-          id_tache:
-            createdTask.id,
-
-          id_user:
-            currentUser?.email ??
-            "inconnu",
-
-          nom_user:
-            currentUser?.firstName ??
-            "Utilisateur",
-
-          type_action:
-            "CREATION",
-
-          champ_modifie:
-            null,
-
-          ancienne_valeur:
-            null,
-
-          nouvelle_valeur:
-            null,
-
-          date_action:
-            new Date().toISOString(),
-        };
-
-      const savedAction =
-        await persistAction(
-          actionToCreate
-        );
-
-      setActions(
-        (previousActions) => [
-          ...previousActions,
-          savedAction,
-        ]
-      );
-
-      return createdTask;
-    } catch (err) {
-      console.error(
-        "Impossible de créer la tâche :",
-        err
-      );
-
-      alert(
-        "Impossible de créer la tâche."
-      );
-
-      return null;
-    }
+    setActions((prevActions) => [...prevActions, newAction]);
+    persistAction(newAction);
   }
 
-  /* =========================================================
-     CRÉATION D'UNE SOUS-TÂCHE
-     Elle passe maintenant elle aussi
-     par createTask() et est persistée.
-  ========================================================= */
-
-  async function handleCreateSubtask(
-    parentTaskId,
-    title,
-    assignments
-  ) {
-    const parentTask =
-      tasks.find(
-        (task) =>
-          String(task.id) ===
-          String(
-            parentTaskId
-          )
-      );
-
-    if (!parentTask) {
-      console.error(
-        "Impossible de créer la sous-tâche : tâche parente introuvable."
-      );
-
-      return null;
-    }
-
-    const cleanTitle =
-      title?.trim();
-
-    if (!cleanTitle) {
-      console.error(
-        "Impossible de créer la sous-tâche : le titre est obligatoire."
-      );
-
-      return null;
-    }
-
-    /*
-      Protection MEMBER :
-      la tâche principale doit
-      lui être assignée.
-    */
-
-    if (isSimpleMember) {
-      const parentAssigned =
-        (
-          parentTask.assignments ||
-          []
-        ).some(
-          (assignment) =>
-            String(
-              assignment.userId
-            ) ===
-              String(
-                currentUser.id
-              ) &&
-            !assignment.unassignedAt
-        );
-
-      if (!parentAssigned) {
-        console.error(
-          "Vous ne pouvez pas créer une sous-tâche sur cette tâche."
-        );
-
-        return null;
-      }
-    }
-
-    return handleCreateTask({
-      title: cleanTitle,
-
+  function handleCreateSubtask(parentTaskId, title, assignments) {
+    handleCreateTask({
+      id: Date.now(),
+      title,
       description: "",
 
       status: "A_FAIRE",
-
-      parentTaskId:
-        parentTask.id,
-
-      projectId:
-        parentTask.projectId,
-
+      parentTaskId,
       assignments,
     });
   }
 
-  /* =========================================================
-     MODIFICATION D'UNE TÂCHE
-  ========================================================= */
+  function handleEditTask(taskId, updatedFields) {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
 
-  async function handleEditTask(
-    taskId,
-    updatedFields
-  ) {
-    const task =
-      tasks.find(
-        (task) =>
-          String(task.id) ===
-          String(taskId)
-      );
-
-    if (!task) {
-      return;
-    }
-
-    /*
-      Un membre simple ne doit pas
-      modifier titre/description
-      d'une tâche principale.
-    */
-
-    if (isSimpleMember) {
-      console.error(
-        "Modification interdite pour un membre."
-      );
-
-      return;
-    }
-
-    try {
-      const updatedTask =
-        await updateTask(
-          taskId,
-          updatedFields
-        );
-
-      setTasks(
-        (previousTasks) =>
-          previousTasks.map(
-            (
-              currentTask
-            ) =>
-              String(
-                currentTask.id
-              ) ===
-              String(taskId)
-                ? {
-                    ...currentTask,
-                    ...updatedTask,
-                  }
-                : currentTask
-          )
-      );
-
-      const changedActions =
-        [];
-
-      if (
-        updatedFields.title !==
-          undefined &&
-        updatedFields.title !==
-          task.title
-      ) {
-        changedActions.push(
-          {
-            champ_modifie:
-              "titre",
-
-            ancienne_valeur:
-              task.title,
-
-            nouvelle_valeur:
-              updatedFields.title,
-          }
-        );
-      }
-
-      if (
-        updatedFields.description !==
-          undefined &&
-        updatedFields.description !==
-          task.description
-      ) {
-        changedActions.push(
-          {
-            champ_modifie:
-              "description",
-
-            ancienne_valeur:
-              task.description,
-
-            nouvelle_valeur:
-              updatedFields.description,
-          }
-        );
-      }
-
-      for (const change of changedActions) {
-        const actionToCreate =
-          {
-            id:
-              generateActionId(),
-
-            id_tache:
-              taskId,
-
-            id_user:
-              currentUser?.email ??
-              "inconnu",
-
-            nom_user:
-              currentUser?.firstName ??
-              "Utilisateur",
-
-            type_action:
-              "MODIFICATION",
-
-            ...change,
-
-            date_action:
-              new Date().toISOString(),
-          };
-
-        const savedAction =
-          await persistAction(
-            actionToCreate
-          );
-
-        setActions(
-          (previousActions) => [
-            ...previousActions,
-            savedAction,
-          ]
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Impossible de modifier la tâche :",
-        err
-      );
-
-      alert(
-        "Impossible de modifier la tâche."
-      );
-    }
-  }
-
-  /* =========================================================
-     SUPPRESSION
-     Pour l'instant on conserve ton
-     fonctionnement existant.
-  ========================================================= */
-
-  function handleDeleteTask(
-    taskId
-  ) {
-    setTasks(
-      (previousTasks) => {
-        const idsToDelete =
-          new Set([
-            String(taskId),
-          ]);
-
-        let changed = true;
-
-        while (changed) {
-          changed = false;
-
-          previousTasks.forEach(
-            (task) => {
-              const parentId =
-                task.parentTaskId
-                  ? String(
-                      task.parentTaskId
-                    )
-                  : null;
-
-              if (
-                parentId &&
-                idsToDelete.has(
-                  parentId
-                ) &&
-                !idsToDelete.has(
-                  String(
-                    task.id
-                  )
-                )
-              ) {
-                idsToDelete.add(
-                  String(
-                    task.id
-                  )
-                );
-
-                changed = true;
-              }
-            }
-          );
-        }
-
-        return previousTasks.filter(
-          (task) =>
-            !idsToDelete.has(
-              String(task.id)
-            )
-        );
-      }
+    setTasks((prevTasks) =>
+      prevTasks.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t)),
     );
-  }
 
-  /* =========================================================
-     EMAIL
-  ========================================================= */
+    const changedActions = [];
+
+    if (
+      updatedFields.title !== undefined &&
+      updatedFields.title !== task.title
+    ) {
+      changedActions.push({
+        champ_modifie: "titre",
+        ancienne_valeur: task.title,
+        nouvelle_valeur: updatedFields.title,
+      });
+    }
+
+    if (
+      updatedFields.description !== undefined &&
+      updatedFields.description !== task.description
+    ) {
+      changedActions.push({
+        champ_modifie: "description",
+        ancienne_valeur: task.description,
+        nouvelle_valeur: updatedFields.description,
+      });
+    }
+
+    if (changedActions.length === 0) return;
+
+    const newActions = changedActions.map((a) => ({
+      id: generateActionId(),
+      id_tache: taskId,
+      id_user: currentUser?.email ?? "inconnu",
+      nom_user: currentUser?.firstName ?? "Utilisateur",
+      type_action: "MODIFICATION",
+      ...a,
+      date_action: new Date().toISOString(),
+    }));
+
+    setActions((prevActions) => [...prevActions, ...newActions]);
+    newActions.forEach(persistAction);
+  }
 
   function handleVerify(code) {
-    console.log(
-      "Code entered:",
-      code
-    );
+    console.log("Code entered:", code);
   }
 
-  /* =========================================================
-     CHARGEMENT
-  ========================================================= */
-
-  if (loading) {
-    return (
-      <div
-        style={{
-          padding: "30px",
-        }}
-      >
-        Chargement...
-      </div>
-    );
+  function handleDeleteTask(taskId) {
+    setTasks((prevTasks) => {
+      const idsToDelete = new Set([taskId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        prevTasks.forEach((t) => {
+          if (
+            t.parentTaskId &&
+            idsToDelete.has(t.parentTaskId) &&
+            !idsToDelete.has(t.id)
+          ) {
+            idsToDelete.add(t.id);
+            changed = true;
+          }
+        });
+      }
+      return prevTasks.filter((t) => !idsToDelete.has(t.id));
+    });
   }
-
-  if (error) {
-    console.error(error);
-  }
-
-  /* =========================================================
-     ROUTES
-  ========================================================= */
 
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* =================================================
-            ROUTES PUBLIQUES
-        ================================================= */}
-
-        <Route
-          path="/login"
-          element={
-            <LoginPage
-              onLogin={
-                handleLogin
-              }
-            />
-          }
-        />
-
-        <Route
-          path="/signup"
-          element={
-            <SignupPage />
-          }
-        />
-
-        <Route
-          path="/reset-password"
-          element={
-            <ResetPasswordPage />
-          }
-        />
-
-        <Route
-          path="/forgot-password"
-          element={
-            <ForgotPasswordPage />
-          }
-        />
-
-        <Route
-          path="/verify-email"
-          element={
-            <VerifyEmailPage
-              onVerify={
-                handleVerify
-              }
-            />
-          }
-        />
-
-        {/* =================================================
-            ROUTE RACINE
-        ================================================= */}
-
+        <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route
           path="/"
           element={
-            <ProtectedRoute
-              isLoggedIn={
-                !!currentUser
-              }
-            >
-              {!isAdmin &&
-              !isScrumMaster ? (
-                <Navigate
-                  to="/dashboard"
-                  replace
-                />
-              ) : (
-                <AppLayout
-                  currentUser={
-                    currentUser
-                  }
-                  onLogout={
-                    handleLogout
-                  }
-                >
-                  <BoardPage
-                    tasks={
-                      visibleTasks
-                    }
-                    users={
-                      users
-                    }
-                    projects={
-                      projects
-                    }
-                    currentUser={
-                      currentUser
-                    }
-                    onStatusChange={
-                      handleStatusChange
-                    }
-                    onTaskClick={
-                      setSelectedTask
-                    }
-                    onCreateTask={
-                      handleCreateTask
-                    }
-                  />
-                </AppLayout>
-              )}
+            <ProtectedRoute isLoggedIn={!!currentUser}>
+              <Navigate
+                to={
+                  isAdminUser
+                    ? "/admin/tasks"
+                    : isScrumMasterUser
+                      ? "/scrum-master/tasks"
+                      : "/dashboard"
+                }
+                replace
+              />
             </ProtectedRoute>
           }
         />
-
-        {/* =================================================
-            PROJETS ADMIN / SCRUM
-        ================================================= */}
-
         <Route
           path="/projects"
           element={
@@ -1280,196 +462,226 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* =================================================
-            DASHBOARD
-        ================================================= */}
-
+        {/* Route unique /dashboard : chaque rôle voit sa propre vue. */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute
-              isLoggedIn={
-                !!currentUser
-              }
-            >
-              {isAdmin ? (
-                <AppLayout
-                  currentUser={
-                    currentUser
-                  }
-                  onLogout={
-                    handleLogout
-                  }
-                >
+            <ProtectedRoute isLoggedIn={!!currentUser}>
+              <AppLayout currentUser={currentUser} onLogout={handleLogout}>
+                {isAdminUser ? (
                   <AdminDashboardPage
-                    tasks={
-                      visibleTasks
-                    }
-                    projects={
-                      projects
-                    }
-                    actions={
-                      actions
-                    }
+                    tasks={visibleTasks}
+                    projects={projects}
+                    actions={actions}
                   />
-                </AppLayout>
-              ) : isScrumMaster ? (
-                <AppLayout
-                  currentUser={
-                    currentUser
-                  }
-                  onLogout={
-                    handleLogout
-                  }
-                >
+                ) : isScrumMasterUser ? (
                   <ScrumMasterDashboardPage
-                    tasks={
-                      visibleTasks
-                    }
-                    projects={
-                      projects
-                    }
-                    currentUser={
-                      currentUser
-                    }
+                    tasks={visibleTasks}
+                    projects={projects}
+                    currentUser={currentUser}
                   />
-                </AppLayout>
-              ) : (
-                <MemberLayout
-                  currentUser={
-                    currentUser
-                  }
-                  onLogout={
-                    handleLogout
-                  }
-
-                  /*
-                    IMPORTANT :
-                    permet au Header
-                    de calculer les
-                    notifications.
-                  */
-                  tasks={
-                    visibleTasks
-                  }
-                  actions={
-                    actions
-                  }
-                >
+                ) : (
                   <MemberDashboardPage
-                    tasks={
-                      visibleTasks
-                    }
-                    projects={
-                      projects
-                    }
-                    currentUser={
-                      currentUser
-                    }
+                    tasks={visibleTasks}
+                    projects={projects}
+                    currentUser={currentUser}
                   />
-                </MemberLayout>
-              )}
+                )}
+              </AppLayout>
             </ProtectedRoute>
           }
         />
-
-        {/* =================================================
-            MES TÂCHES MEMBER
-        ================================================= */}
-
         <Route
-          path="/member/tasks"
-          element={
-            <ProtectedRoute
-              isLoggedIn={
-                !!currentUser
-              }
-            >
-              <MemberLayout
-                currentUser={
-                  currentUser
-                }
-                onLogout={
-                  handleLogout
-                }
-
-                tasks={
-                  visibleTasks
-                }
-
-                actions={
-                  actions
-                }
-              >
-                <MemberTasksPage
-                  tasks={
-                    visibleTasks
-                  }
-                  users={
-                    users
-                  }
-                  projects={
-                    projects
-                  }
-                  currentUser={
-                    currentUser
-                  }
-                  onStatusChange={
-                    handleStatusChange
-                  }
-                  onCreateSubtask={
-                    handleCreateSubtask
-                  }
-                />
-              </MemberLayout>
-            </ProtectedRoute>
-          }
+          path="/verify-email"
+          element={<VerifyEmailPage onVerify={handleVerify} />}
         />
 
-        {/* =================================================
-            PROJETS MEMBER
-        ================================================= */}
-
+        {/* Groupe de routes /admin/* — protégé par rôle ADMIN uniquement.
+            AdminLayout fournit Sidebar + Topbar communes à toutes les pages
+            enfants via <Outlet />. */}
         <Route
-          path="/member/projects"
+          path="/admin"
           element={
-            <ProtectedRoute
-              isLoggedIn={
-                !!currentUser
-              }
+            <RoleProtectedRoute
+              isLoggedIn={!!currentUser}
+              user={currentUser}
+              allowedCheck={isAdmin}
             >
-              <MemberLayout
-                currentUser={
-                  currentUser
-                }
-                onLogout={
-                  handleLogout
-                }
-
-                tasks={
-                  visibleTasks
-                }
-
-                actions={
-                  actions
-                }
-              >
-                <MemberProjectsPage
-                  currentUser={
-                    currentUser
-                  }
-                  projects={
-                    projects
-                  }
-                  tasks={
-                    visibleTasks
-                  }
-                />
-              </MemberLayout>
-            </ProtectedRoute>
+              <AdminLayout currentUser={currentUser} onLogout={handleLogout} />
+            </RoleProtectedRoute>
           }
-        />
+        >
+          <Route
+            path="dashboard"
+            element={
+              <AdminDashboardPage
+                tasks={visibleTasks}
+                projects={projects}
+                actions={actions}
+              />
+            }
+          />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route
+            path="calendar"
+            element={<CalendarPage tasks={visibleTasks} projects={projects} />}
+          />
+          <Route
+            path="projects"
+            element={
+              <AdminProjectsPage
+                projects={projects}
+                tasks={visibleTasks}
+                actions={actions}
+                currentUser={currentUser}
+                onCreateProject={handleCreateProject}
+                onUpdateProject={handleUpdateProject}
+                onDeleteProject={handleDeleteProject}
+                onCreateSubtask={handleCreateSubtask}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
+                onStatusChange={handleStatusChange}
+              />
+            }
+          />
+          <Route
+            path="teams"
+            element={<AdminTeamPage tasks={visibleTasks} />}
+          />
+          <Route
+            path="tasks"
+            element={
+              <BoardPage
+                tasks={visibleTasks}
+                users={users}
+                projects={projects}
+                currentUser={currentUser}
+                loading={loading}
+                error={error}
+                selectedTask={selectedTask}
+                setSelectedTask={setSelectedTask}
+                actions={actions}
+                onStatusChange={handleStatusChange}
+                onCreateTask={handleCreateTask}
+                onCreateSubtask={handleCreateSubtask}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
+              />
+            }
+          />
+          <Route
+            path="activity"
+            element={
+              <AdminActivityPage
+                actions={actions}
+                tasks={visibleTasks}
+                projects={projects}
+              />
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <AdminReportsPage projects={projects} tasks={visibleTasks} />
+            }
+          />
+          <Route
+            path="settings"
+            element={<UnderConstruction label="Paramètres" />}
+          />
+        </Route>
+
+        {/* Groupe de routes /scrum-master/* — protégé par rôle SCRUM_MASTER uniquement.
+            ScrumMasterLayout fournit Sidebar + Topbar communes à toutes les pages
+            enfants via <Outlet />. */}
+        <Route
+          path="/scrum-master"
+          element={
+            <RoleProtectedRoute
+              isLoggedIn={!!currentUser}
+              user={currentUser}
+              allowedCheck={isScrumMaster}
+            >
+              <ScrumMasterLayout
+                currentUser={currentUser}
+                onLogout={handleLogout}
+              />
+            </RoleProtectedRoute>
+          }
+        >
+          <Route
+            path="dashboard"
+            element={
+              <ScrumMasterDashboardPage
+                tasks={visibleTasks}
+                projects={projects}
+                currentUser={currentUser}
+              />
+            }
+          />
+          <Route
+            path="calendar"
+            element={
+              <ScrumMasterCalendarPage
+                currentUser={currentUser}
+                projects={projects}
+                tasks={visibleTasks}
+              />
+            }
+          />
+          <Route
+            path="projects"
+            element={
+              <ScrumMasterProjectsPage
+                currentUser={currentUser}
+                projects={projects}
+                tasks={visibleTasks}
+                actions={actions}
+                onCreateProject={handleCreateProject}
+                onUpdateProject={handleUpdateProject}
+                onDeleteProject={handleDeleteProject}
+                onCreateSubtask={handleCreateSubtask}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
+                onStatusChange={handleStatusChange}
+              />
+            }
+          />
+          <Route
+            path="tasks"
+            element={
+              <BoardPage
+                tasks={visibleTasks}
+                users={users}
+                projects={projects}
+                currentUser={currentUser}
+                loading={loading}
+                error={error}
+                selectedTask={selectedTask}
+                setSelectedTask={setSelectedTask}
+                actions={actions}
+                onStatusChange={handleStatusChange}
+                onCreateTask={handleCreateTask}
+                onCreateSubtask={handleCreateSubtask}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
+              />
+            }
+          />
+          <Route
+            path="team"
+            element={
+              <ScrumMasterTeamPage
+                currentUser={currentUser}
+                tasks={visibleTasks}
+              />
+            }
+          />
+          <Route
+            path="activity"
+            element={<UnderConstruction label="Journal d'activité" />}
+          />
+        </Route>
 
         {/* =================================================
           BILAN PERSONNEL MEMBER

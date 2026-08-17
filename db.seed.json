@@ -4,6 +4,7 @@
     { "id": 2, "name": "Design" },
     { "id": 3, "name": "Data/IA" },
     { "id": 4, "name": "Droit" }
+<<<<<<< HEAD
   ],
   "users": [
     { "id": 1, "firstName": "Arnold Dinel", "lastName": "Ekanga", "email": "marcus.chen@aaprovidir.com", "globalRoles": ["ADMIN"], "departmentRoles": [], "mustChangePassword": false },
@@ -18,6 +19,46 @@
   "projects": [
     { "id": 1, "name": "Approvisionnement Cacao Q3", "description": "Sourcing et audits fournisseurs cacao bio.", "departmentId": 1, "creatorId": 2, "status": "EN_COURS", "startDate": "2026-07-01", "endDate": "2026-09-30" },
     { "id": 2, "name": "Expansion Sésame Nord", "description": "Développement de nouveaux partenariats sésame.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2026-08-15", "endDate": "2026-11-30" }
+=======
+  ],"users": [
+  { "id": 1, "firstName": "Arnold Dinel", "lastName": "Ekanga", "email": "ekanga.dinel@aaprovidir.com", "globalRoles": ["ADMIN"], "departmentRoles": [], "mustChangePassword": false },
+  { "id": 2, "firstName": "Franck", "lastName": "Emerites", "email": "franck.emerites@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 1, "departmentName": "Dev", "role": "SCRUM_MASTER" }], "mustChangePassword": false },
+  { "id": 3, "firstName": "Dipita", "lastName": "Ebongue", "email": "dipita.ebongue@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 1, "departmentName": "Dev", "role": "MEMBER" }], "mustChangePassword": false },
+  { "id": 4, "firstName": "Momo", "lastName": "Naiva", "email": "momo.naiva@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 2, "departmentName": "Design", "role": "SCRUM_MASTER" }], "mustChangePassword": false },
+  { "id": 5, "firstName": "Magam", "lastName": "Marina", "email": "magam.marina@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 2, "departmentName": "Design", "role": "MEMBER" }], "mustChangePassword": false },
+  { "id": 6, "firstName": "Paul", "lastName": "Alain", "email": "paul.alain@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 3, "departmentName": "Data/IA", "role": "MEMBER" }], "mustChangePassword": false },
+  { "id": 7, "firstName": "Cousin", "lastName": "Francis", "email": "cousin.francis@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 4, "departmentName": "Droit", "role": "SCRUM_MASTER" }], "mustChangePassword": false },
+  { "id": 8, "firstName": "Joel", "lastName": "Dountio", "email": "joel.dountio@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 1, "departmentName": "Dev", "role": "MEMBER" }], "mustChangePassword": true },
+  { "id": 9, "firstName": "Yoan", "lastName": "Tioma", "email": "yoan.tioma@aaprovidir.com", "globalRoles": ["ADMIN"], "departmentRoles": [], "mustChangePassword": false },
+  { "id": 10, "firstName": "Dinel", "lastName": "Tsayo", "email": "dinel.tsayo@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 3, "departmentName": "Data/IA", "role": "SCRUM_MASTER" }], "mustChangePassword": false },
+  { "id": 11, "firstName": "Flore", "lastName": "Tchekounang", "email": "flore.tchekounang@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 1, "departmentName": "Dev", "role": "MEMBER" }], "mustChangePassword": false },
+  { "id": 12, "firstName": "Verdrime", "lastName": "Verdream", "email": "verdrime.verdream@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 1, "departmentName": "Dev", "role": "MEMBER" }], "mustChangePassword": false },
+  { "id": 13, "firstName": "Dilane", "lastName": "Awafo", "email": "dilane.awafo@aaprovidir.com", "globalRoles": [], "departmentRoles": [
+    { "departmentId": 1, "departmentName": "Dev", "role": "MEMBER" },
+    { "departmentId": 3, "departmentName": "Data/IA", "role": "MEMBER" }
+  ], "mustChangePassword": false },
+  { "id": 14, "firstName": "Franck", "lastName": "TODO_SURNAME", "email": "franck.data@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 3, "departmentName": "Data/IA", "role": "MEMBER" }], "mustChangePassword": false },
+  { "id": 15, "firstName": "Daniela", "lastName": "TODO_SURNAME", "email": "daniela.data@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 3, "departmentName": "Data/IA", "role": "MEMBER" }], "mustChangePassword": false },
+  { "id": 16, "firstName": "Djomou", "lastName": "Vera", "email": "djomou.vera@aaprovidir.com", "globalRoles": [], "departmentRoles": [{ "departmentId": 2, "departmentName": "Design", "role": "MEMBER" }], "mustChangePassword": false }
+],
+  "projects": [
+    { "id": 1, "name": "Approvisionnement Cacao Q3", "description": "Sourcing et audits fournisseurs cacao bio.", "departmentId": 1, "creatorId": 2, "status": "EN_COURS", "startDate": "2026-07-01", "endDate": "2026-09-30" },
+    { "id": 2, "name": "Expansion Sésame Nord", "description": "Développement de nouveaux partenariats sésame.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2026-08-15", "endDate": "2026-11-30" },
+    { "id": 3, "name": "Traçabilité Café Q3", "description": "Rapport de traçabilité pour le café bio.", "departmentId": 1, "creatorId": 1, "status": "TERMINE", "startDate": "2026-07-01", "endDate": "2026-07-20" },
+    { "id": 4, "name": "Contrat Exportateur Mangue", "description": "Rédaction du contrat pour l'exportation de mangues.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2026-08-01", "endDate": "2026-08-25" },
+    { "id": 5, "name": "Liste Contacts Fournisseurs", "description": "Compilation des contacts fournisseurs pour le projet cacao.", "departmentId": 1, "creatorId": 2, "status": "TERMINE", "startDate": "2026-07-05", "endDate": "2026-07-12" },
+    { "id": 6, "name": "Questionnaire Auto-évaluation", "description": "Envoi du questionnaire d'auto-évaluation aux fournisseurs.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2026-08-01", "endDate": "2026-08-18" },
+    { "id": 7, "name": "Réservation Salle de Réunion", "description": "Réserver la salle pour le debriefing des audits.", "departmentId": 1, "creatorId": 2, "status": "TERMINE", "startDate": "2026-07-15", "endDate": "2026-07-15" },
+    { "id": 8, "name": "Projet Test", "description": "Projet de test pour la plateforme.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2026-09-01", "endDate": "2026-09-30" },
+    { "id": 9, "name": "Projet Test 2", "description": "Deuxième projet de test pour la plateforme.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2026-10-01", "endDate": "2026-10-31" },
+    { "id": 10, "name": "Projet Test 3", "description": "Troisième projet de test pour la plateforme.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2026-11-01", "endDate": "2026-11-30" },
+    { "id": 11, "name": "Projet Test 4", "description": "Quatrième projet de test pour la plateforme.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2026-12-01", "endDate": "2026-12-31" },
+    { "id": 12, "name": "Projet Test 5", "description": "Cinquième projet de test pour la plateforme.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2027-01-01", "endDate": "2027-01-31" },
+    { "id": 13, "name": "Projet Test 6", "description": "Sixième projet de test pour la plateforme.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2027-02-01", "endDate": "2027-02-28" },
+    { "id": 14, "name": "Projet Test 7", "description": "Septième projet de test pour la plateforme.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2027-03-01", "endDate": "2027-03-31" },
+    { "id": 15, "name": "Projet Test 8", "description": "Huitième projet de test pour la plateforme.", "departmentId": 1, "creatorId": 2, "status": "A_FAIRE", "startDate": "2027-04-01", "endDate": "2027-04-30" }
+    
+>>>>>>> ee2216be9d0d146b7932e6d76f2bc644894eab22
   ],
   "tasks": [
     { "id": 1, "title": "Auditer fournisseur cacao", "status": "EN_COURS", "description": "Vérifier les certifications bio du fournisseur.", "projectId": 1, "creatorId": 2, "assignments": [{ "userId": 3, "assignedBy": 2, "assignedAt": "2026-07-05T09:00:00Z" }, { "userId": 6, "assignedBy": 2, "assignedAt": "2026-07-05T09:00:00Z" }], "startDate": "2026-07-05", "endDate": "2026-08-20", "dueDate": "2026-08-20" },

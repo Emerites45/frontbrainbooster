@@ -111,6 +111,26 @@ app.post('/projects', (req, res) => {
   res.status(201).json(newProject);
 });
 
+<<<<<<< HEAD
+=======
+app.patch('/projects/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.projects = db.projects.map((p) => (p.id === id ? { ...p, ...req.body } : p));
+  writeDb(db);
+  res.json(db.projects.find((p) => p.id === id));
+});
+
+app.delete('/projects/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.projects = db.projects.filter((p) => p.id !== id);
+  writeDb(db);
+  res.status(204).end();
+});
+
+
+>>>>>>> ee2216be9d0d146b7932e6d76f2bc644894eab22
 app.get('/tasks', (req, res) => {
   res.json(readDb().tasks);
 });
@@ -145,6 +165,7 @@ app.delete('/tasks/:id', (req, res) => {
 // respecte s'il est fourni plutôt que d'en recréer un).
 app.get('/actions', (req, res) => {
   res.json(readDb().actions || []);
+<<<<<<< HEAD
 });
 
 app.post('/actions', (req, res) => {
@@ -154,6 +175,81 @@ app.post('/actions', (req, res) => {
   db.actions.push(newAction);
   writeDb(db);
   res.status(201).json(newAction);
+=======
+});
+
+app.post('/actions', (req, res) => {
+  const db = readDb();
+  const newAction = { id: req.body.id ?? Date.now(), ...req.body };
+  db.actions = db.actions || [];
+  db.actions.push(newAction);
+  writeDb(db);
+  res.status(201).json(newAction);
+});
+
+app.patch('/users/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.users = db.users.map((u) => (u.id === id ? { ...u, ...req.body } : u));
+  writeDb(db);
+  res.json(db.users.find((u) => u.id === id));
+});
+
+app.get('/attachments', (req, res) => {
+  const db = readDb();
+  const { taskId, projectId } = req.query;
+  let attachments = db.attachments || [];
+  if (taskId) {
+    attachments = attachments.filter((a) => a.taskId === Number(taskId));
+  } else if (projectId) {
+    const taskIds = (db.tasks || []).filter((t) => t.projectId === Number(projectId)).map((t) => t.id);
+    attachments = attachments.filter((a) => taskIds.includes(a.taskId));
+  }
+  res.json(attachments);
+});
+
+app.post('/attachments', (req, res) => {
+  const db = readDb();
+  const newAttachment = { id: Date.now(), ...req.body, createdAt: new Date().toISOString() };
+  db.attachments = db.attachments || [];
+  db.attachments.push(newAttachment);
+  writeDb(db);
+  res.status(201).json(newAttachment);
+});
+
+app.delete('/attachments/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.attachments = (db.attachments || []).filter((a) => a.id !== id);
+  writeDb(db);
+  res.status(204).end();
+});
+
+
+app.get('/comments', (req, res) => {
+  const db = readDb();
+  const { taskId } = req.query;
+  let comments = db.comments || [];
+  if (taskId) comments = comments.filter((c) => c.taskId === Number(taskId));
+  res.json(comments);
+});
+
+app.post('/comments', (req, res) => {
+  const db = readDb();
+  const newComment = { id: Date.now(), ...req.body, createdAt: new Date().toISOString() };
+  db.comments = db.comments || [];
+  db.comments.push(newComment);
+  writeDb(db);
+  res.status(201).json(newComment);
+});
+
+app.delete('/comments/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.comments = (db.comments || []).filter((c) => c.id !== id);
+  writeDb(db);
+  res.status(204).end();
+>>>>>>> ee2216be9d0d146b7932e6d76f2bc644894eab22
 });
 
 const PORT = 3001;

@@ -380,54 +380,186 @@ export async function createAction(
     );
   }
 
+  return res.json();
+}
+
+export async function fetchUsers() {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/users`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
-export async function createTask(taskData) {
-  const response = await fetch(
-    `${API_URL}/tasks`,
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify(taskData),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Erreur création tâche : ${response.status}`
-    );
-  }
-
+export async function fetchDepartments() {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/departments`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
-export async function updateTask(
-  taskId,
-  updates
-) {
-  const response = await fetch(
-    `${API_URL}/tasks/${taskId}`,
-    {
-      method: "PUT",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify(updates),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Erreur modification tâche : ${response.status}`
-    );
-  }
-
+export async function createAdminUser(userData) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/admin/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentUser?.token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
+}
+
+export async function updateUser(userId, updates) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/users/${userId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentUser?.token}`,
+    },
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+// Active/désactive un compte. Séparé de updateUser pour rester explicite dans
+// les logs et permettre plus tard une route backend dédiée avec ses propres
+// règles (ex: notification email, révocation de session).
+export async function toggleUserActive(userId, active) {
+  return updateUser(userId, { active });
+}
+
+// --- Journal d'actions (ACTION_HISTORY) — F5 ---
+export async function fetchActions() {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/actions`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function createAction(actionData) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/actions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentUser?.token}`,
+    },
+    body: JSON.stringify(actionData),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function updateProject(projectId, updates) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentUser?.token}`,
+    },
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function deleteProject(projectId) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.ok;
+}
+
+
+export async function fetchAttachments({ taskId, projectId }) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const params = taskId ? `taskId=${taskId}` : `projectId=${projectId}`;
+  const response = await fetch(`${API_URL}/attachments?${params}`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function uploadAttachment(taskId, file) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const fileData = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  const response = await fetch(`${API_URL}/attachments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    body: JSON.stringify({
+      taskId,
+      fileName: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
+      fileData,
+      uploadedBy: currentUser?.id,
+    }),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function deleteAttachment(attachmentId) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/attachments/${attachmentId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.ok;
+}
+
+export async function fetchComments(taskId) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/comments?taskId=${taskId}`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function createComment(taskId, content) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    body: JSON.stringify({
+      taskId,
+      content,
+      createdBy: currentUser?.id,
+      authorName: `${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`.trim(),
+    }),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function deleteComment(commentId) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/comments/${commentId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.ok;
 }
