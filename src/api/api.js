@@ -88,7 +88,7 @@ export async function loginUser(
   password
 ) {
   const response = await fetch(
-    `${API_URL}/auth/login`,
+    `${API_URL}/api/v1/auth/login`,
     {
       method: "POST",
 
