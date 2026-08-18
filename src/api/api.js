@@ -279,3 +279,70 @@ export async function deleteComment(commentId) {
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.ok;
 }
+
+export async function fetchTimesheetEntries({ userId, weekStart }) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const params = new URLSearchParams();
+  if (userId) params.set("userId", userId);
+  if (weekStart) params.set("weekStart", weekStart);
+  const response = await fetch(`${API_URL}/timesheet-entries?${params}`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function saveTimesheetEntry(entry) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/timesheet-entries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    body: JSON.stringify(entry),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function fetchWeeklyReport({ userId, weekStart }) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/weekly-reports?userId=${userId}&weekStart=${weekStart}`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function saveWeeklyReport(report) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/weekly-reports`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    body: JSON.stringify(report),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function fetchPerformanceComments({ userId, weekStart }) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/performance-comments?userId=${userId}&weekStart=${weekStart}`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function createPerformanceComment({ targetUserId, weekStart, content }) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/performance-comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    body: JSON.stringify({
+      targetUserId, weekStart, content,
+      authorId: currentUser?.id,
+      authorName: `${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`.trim(),
+    }),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}

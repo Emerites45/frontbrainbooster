@@ -3,6 +3,7 @@ import {
   initials,
   projectProgress,
   projectTeam,
+  projectDepartmentIds,
 } from "../../utils/dashboardHelpers";
 import Pagination from "./Pagination";
 
@@ -117,8 +118,20 @@ function ProjectsTable({
 
                   {/* Department */}
                   {showDepartment && (
-                    <td className="px-5 py-3.5 text-[13px] text-slate-600">
-                      {deptName(project.departmentId)}
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-wrap gap-1">
+                        {projectDepartmentIds(project).map((id) => (
+                          <span
+                            key={id}
+                            className="text-[10.5px] bg-slate-100 text-slate-600 rounded-full px-2 py-0.5"
+                          >
+                            {deptName(id)}
+                          </span>
+                        ))}
+                        {projectDepartmentIds(project).length === 0 && (
+                          <span className="text-[13px] text-slate-400">—</span>
+                        )}
+                      </div>
                     </td>
                   )}
 

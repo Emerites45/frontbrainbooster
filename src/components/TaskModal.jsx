@@ -28,6 +28,7 @@ function TaskModal({
   onCreateSubtask,
   onEditTask,
   onDeleteTask,
+  onStatusChange,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title ?? "");
@@ -225,6 +226,7 @@ function TaskModal({
             }
             onEditSubtask={onEditTask}
             onDeleteSubtask={onDeleteTask}
+            onToggleStatus={onStatusChange}
           />
         </div>
 

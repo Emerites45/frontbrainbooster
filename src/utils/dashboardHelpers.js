@@ -87,3 +87,36 @@ export function projectTeam(project, tasks, users) {
   const ids = [...new Set(pTasks.flatMap((t) => getAssigneeIds(t)))];
   return ids.map((id) => users.find((u) => u.id === id)).filter(Boolean);
 }
+export const REGULAR_HOURS_TARGET = 4;
+
+export function getWeekStart(date = new Date()) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function getWeekDays(weekStart) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+}
+
+export function toISODate(date) {
+  return date.toISOString().slice(0, 10);
+}
+export function getDefaultRegularHours(date) {
+  const day = new Date(date).getDay(); // 0=dimanche, 6=samedi
+  if (day === 0) return 0;
+  if (day === 6) return 2;
+  return 4;
+}
+export function projectDepartmentIds(project) {
+  if (Array.isArray(project.departmentIds) && project.departmentIds.length) return project.departmentIds;
+  if (project.departmentId) return [project.departmentId];
+  return [];
+}

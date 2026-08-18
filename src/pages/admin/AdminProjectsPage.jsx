@@ -31,6 +31,7 @@ function AdminProjectsPage({
   onEditTask,
   onDeleteTask,
   onStatusChange,
+  lockedDepartmentId,
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -53,13 +54,17 @@ function AdminProjectsPage({
   useEffect(() => {
     Promise.all([fetchDepartments(), fetchUsers()])
       .then(([deptData, usersData]) => {
-        setDepartments(deptData);
+        setDepartments(
+          lockedDepartmentId
+            ? deptData.filter((d) => d.id === lockedDepartmentId)
+            : deptData
+        );
         setUsers(usersData);
       })
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [lockedDepartmentId]);
 
   // ============================================
   // OPEN CREATE MODAL FROM ?create=true

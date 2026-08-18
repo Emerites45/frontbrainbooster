@@ -338,6 +338,7 @@ function ProjectDetailModal({
           onCreateSubtask={onCreateSubtask}
           onEditTask={onEditTask}
           onDeleteTask={onDeleteTask}
+          onStatusChange={onStatusChange}
         />
       )}
 

@@ -17,14 +17,14 @@ const ROLE_BADGE = {
   Membre: "bg-slate-100 text-slate-600",
 };
 
-function MemberCard({ user, tasks }) {
+function MemberCard({ user, tasks, onSelectMember }) {
   const userTasks = tasks.filter((t) => (t.assignments || []).some((a) => a.userId === user.id && !a.unassignedAt));
   const active = userTasks.filter((t) => t.status !== "TERMINE").length;
   const done = userTasks.filter((t) => t.status === "TERMINE").length;
   const role = roleLabel(user);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
+    <div onClick={() => onSelectMember?.(user)} className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3 cursor-pointer hover:border-slate-200 hover:shadow-sm transition-all">
       <span className="flex items-center justify-center rounded-full bg-blue-600 text-white text-[13px] font-semibold w-11 h-11 shrink-0">
         {initials(user.firstName, user.lastName)}
       </span>
@@ -47,11 +47,11 @@ function MemberCard({ user, tasks }) {
   );
 }
 
-function TeamRoster({ users, tasks, departments, groupByDepartment = false }) {
+function TeamRoster({ users, tasks, departments, groupByDepartment = false, onSelectMember }) {
   if (!groupByDepartment) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {users.map((u) => <MemberCard key={u.id} user={u} tasks={tasks} />)}
+        {users.map((u) => <MemberCard key={u.id} user={u} tasks={tasks} onSelectMember={onSelectMember} />)}
         {users.length === 0 && <p className="text-[13px] text-slate-400 col-span-2 text-center py-10">Aucun membre dans ce département.</p>}
       </div>
     );
@@ -66,7 +66,7 @@ function TeamRoster({ users, tasks, departments, groupByDepartment = false }) {
           <div key={dept.id}>
             <h2 className="text-[13.5px] font-semibold text-slate-700 mb-3">{dept.name} · {deptUsers.length}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {deptUsers.map((u) => <MemberCard key={u.id} user={u} tasks={tasks} />)}
+              {deptUsers.map((u) => <MemberCard key={u.id} user={u} tasks={tasks} onSelectMember={onSelectMember} />)}
             </div>
           </div>
         );
@@ -75,7 +75,7 @@ function TeamRoster({ users, tasks, departments, groupByDepartment = false }) {
         <div>
           <h2 className="text-[13.5px] font-semibold text-slate-700 mb-3">Administration</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {users.filter((u) => u.globalRoles?.includes("ADMIN")).map((u) => <MemberCard key={u.id} user={u} tasks={tasks} />)}
+            {users.filter((u) => u.globalRoles?.includes("ADMIN")).map((u) => <MemberCard key={u.id} user={u} tasks={tasks} onSelectMember={onSelectMember} />)}
           </div>
         </div>
       )}

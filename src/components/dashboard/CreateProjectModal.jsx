@@ -5,23 +5,33 @@ function CreateProjectModal({ departments, project, onClose, onCreate, onEdit })
   const isEditMode = Boolean(project);
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
-  const [departmentId, setDepartmentId] = useState(
-    project?.departmentId ? String(project.departmentId) : ""
+  const [departmentIds, setDepartmentIds] = useState(
+    project?.departmentIds?.length
+      ? project.departmentIds.map(String)
+      : project?.departmentId
+      ? [String(project.departmentId)]
+      : []
   );
   const [status, setStatus] = useState(project?.status ?? "A_FAIRE");
   const [startDate, setStartDate] = useState(project?.startDate ?? "");
   const [endDate, setEndDate] = useState(project?.endDate ?? "");
   const [submitting, setSubmitting] = useState(false);
 
+  function toggleDept(id) {
+    setDepartmentIds((prev) =>
+      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]
+    );
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
-    const dept = departments.find((d) => d.id === Number(departmentId));
+    const selectedDepts = departments.filter((d) => departmentIds.includes(String(d.id)));
     const payload = {
       name,
       description,
-      departmentId: dept?.id ?? null,
-      departmentName: dept?.name ?? null,
+      departmentIds: selectedDepts.map((d) => d.id),
+      departmentId: selectedDepts[0]?.id ?? null, // conservé pour compatibilité avec l'ancien code
       startDate: startDate || null,
       endDate: endDate || null,
     };
@@ -72,17 +82,33 @@ function CreateProjectModal({ departments, project, onClose, onCreate, onEdit })
             rows={3}
             className="w-full rounded-lg border border-slate-200 text-[13.5px] px-3.5 py-2.5 outline-none focus:border-blue-400 resize-none"
           />
-          <select
-            value={departmentId}
-            onChange={(e) => setDepartmentId(e.target.value)}
-            required
-            className="w-full rounded-lg border border-slate-200 text-[13.5px] px-3.5 py-2.5 outline-none focus:border-blue-400"
-          >
-            <option value="">Sélectionner un département</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+
+          <fieldset>
+            <legend className="text-[12px] font-medium text-slate-500 mb-2">Départements concernés</legend>
+            <div className="flex flex-wrap gap-2">
+              {departments.map((d) => {
+                const checked = departmentIds.includes(String(d.id));
+                return (
+                  <label
+                    key={d.id}
+                    className={`flex items-center gap-1.5 text-[12px] rounded-full px-2.5 py-1.5 border cursor-pointer transition-colors ${
+                      checked
+                        ? "bg-blue-50 border-blue-200 text-blue-700"
+                        : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleDept(String(d.id))}
+                      className="hidden"
+                    />
+                    {d.name}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
 
           {isEditMode && (
             <select

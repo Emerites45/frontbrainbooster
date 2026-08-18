@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Download, FolderKanban, CheckCircle2, TrendingUp } from "lucide-react";
-import { projectProgress } from "../../utils/dashboardHelpers";
+import { projectProgress, projectDepartmentIds } from "../../utils/dashboardHelpers";
 import StatsGrid from "../../components/dashboard/StatsGrid";
 import ExportModal from "../../components/dashboard/ExportModal";
 
@@ -14,7 +14,7 @@ function AdminReportsPage({ projects = [], tasks = [], departments = [] }) {
     totalProjects === 0 ? 0 : Math.round(projects.reduce((sum, p) => sum + projectProgress(p, tasks), 0) / totalProjects);
 
   const deptRows = departments.map((dept) => {
-    const deptProjects = projects.filter((p) => p.departmentId === dept.id);
+    const deptProjects = projects.filter((p) => projectDepartmentIds(p).includes(dept.id));
     const deptProjectIds = deptProjects.map((p) => p.id);
     const deptTasks = tasks.filter((t) => deptProjectIds.includes(t.projectId));
     const deptDone = deptTasks.filter((t) => t.status === "TERMINE").length;

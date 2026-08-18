@@ -3,7 +3,7 @@ import { fetchUsers } from "../api/api";
 import StatsGrid from "../components/dashboard/StatsGrid";
 import WorkloadList from "../components/dashboard/WorkloadList";
 import ProjectsTable from "../components/dashboard/ProjectsTable";
-import { computeTaskStats, getAssigneeIds } from "../utils/dashboardHelpers";
+import { computeTaskStats, getAssigneeIds, projectDepartmentIds } from "../utils/dashboardHelpers";
 
 function ScrumMasterDashboardPage({ currentUser, tasks = [], projects = [] }) {
   const [users, setUsers] = useState([]);
@@ -35,7 +35,7 @@ function ScrumMasterDashboardPage({ currentUser, tasks = [], projects = [] }) {
 
   const deptId = myDeptRole.departmentId;
   const deptName = myDeptRole.departmentName;
-  const deptProjects = projects.filter((p) => p.departmentId === deptId);
+  const deptProjects = projects.filter((p) => projectDepartmentIds(p).includes(deptId));
   const deptProjectIds = deptProjects.map((p) => p.id);
   const deptTasks = tasks.filter((t) => deptProjectIds.includes(t.projectId));
   const teamMembers = users.filter(

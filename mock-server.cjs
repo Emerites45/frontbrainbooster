@@ -237,5 +237,78 @@ app.delete('/comments/:id', (req, res) => {
   res.status(204).end();
 });
 
+app.get('/timesheet-entries', (req, res) => {
+  const db = readDb();
+  const { userId, weekStart } = req.query;
+  let entries = db.timesheetEntries || [];
+  if (userId) entries = entries.filter((e) => e.userId === Number(userId));
+  if (weekStart) {
+    const start = new Date(weekStart);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    entries = entries.filter((e) => { const d = new Date(e.date); return d >= start && d < end; });
+  }
+  res.json(entries);
+});
+
+// POST fait un upsert : une entrée par (userId, date), pas de doublon possible.
+app.post('/timesheet-entries', (req, res) => {
+  const db = readDb();
+  db.timesheetEntries = db.timesheetEntries || [];
+  const { userId, date } = req.body;
+  const idx = db.timesheetEntries.findIndex((e) => e.userId === userId && e.date === date);
+  if (idx >= 0) {
+    db.timesheetEntries[idx] = { ...db.timesheetEntries[idx], ...req.body };
+    writeDb(db);
+    return res.json(db.timesheetEntries[idx]);
+  }
+  const newEntry = { id: Date.now(), ...req.body };
+  db.timesheetEntries.push(newEntry);
+  writeDb(db);
+  res.status(201).json(newEntry);
+});
+
+app.get('/weekly-reports', (req, res) => {
+  const db = readDb();
+  const { userId, weekStart } = req.query;
+  const report = (db.weeklyReports || []).find((r) => r.userId === Number(userId) && r.weekStart === weekStart);
+  res.json(report || null);
+});
+
+// Même logique d'upsert : un seul rapport par (userId, weekStart).
+app.post('/weekly-reports', (req, res) => {
+  const db = readDb();
+  db.weeklyReports = db.weeklyReports || [];
+  const { userId, weekStart } = req.body;
+  const idx = db.weeklyReports.findIndex((r) => r.userId === userId && r.weekStart === weekStart);
+  if (idx >= 0) {
+    db.weeklyReports[idx] = { ...db.weeklyReports[idx], ...req.body };
+    writeDb(db);
+    return res.json(db.weeklyReports[idx]);
+  }
+  const newReport = { id: Date.now(), ...req.body };
+  db.weeklyReports.push(newReport);
+  writeDb(db);
+  res.status(201).json(newReport);
+});
+
+app.get('/performance-comments', (req, res) => {
+  const db = readDb();
+  const { userId, weekStart } = req.query;
+  let comments = db.performanceComments || [];
+  if (userId) comments = comments.filter((c) => c.targetUserId === Number(userId));
+  if (weekStart) comments = comments.filter((c) => c.weekStart === weekStart);
+  res.json(comments);
+});
+
+app.post('/performance-comments', (req, res) => {
+  const db = readDb();
+  const newComment = { id: Date.now(), ...req.body, createdAt: new Date().toISOString() };
+  db.performanceComments = db.performanceComments || [];
+  db.performanceComments.push(newComment);
+  writeDb(db);
+  res.status(201).json(newComment);
+});
+
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Mock server sur http://localhost:${PORT}`));

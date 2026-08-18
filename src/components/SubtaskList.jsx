@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, Pencil, Trash2 } from "lucide-react";
 
-function SubtaskList({ subtasks, users = [], onAddSubtask, onEditSubtask, onDeleteSubtask }) {
+function SubtaskList({ subtasks, users = [], onAddSubtask, onEditSubtask, onDeleteSubtask, onToggleStatus }) {
   const [title, setTitle] = useState("");
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [editingId, setEditingId] = useState(null);
@@ -68,15 +68,15 @@ function SubtaskList({ subtasks, users = [], onAddSubtask, onEditSubtask, onDele
                 </>
               ) : (
                 <>
-                  <span
-                    className={`flex items-center justify-center w-4 h-4 rounded-full border shrink-0 ${
-                      subtask.status === "TERMINE"
-                        ? "bg-green-500 border-green-500"
-                        : "border-slate-300"
+                  <button
+                    onClick={() => onToggleStatus(subtask.id)}
+                    className={`flex items-center justify-center w-4 h-4 rounded-full border shrink-0 transition-colors ${
+                      subtask.status === "TERMINE" ? "bg-green-500 border-green-500" : "border-slate-300 hover:border-blue-400"
                     }`}
+                    aria-label={subtask.status === "TERMINE" ? "Marquer comme non terminée" : "Marquer comme terminée"}
                   >
                     {subtask.status === "TERMINE" && <Check size={10} className="text-white" strokeWidth={3} />}
-                  </span>
+                  </button>
                   <span className="text-[13px] text-slate-700 flex-1 truncate">
                     {subtask.title}
                     {assigneeNames(subtask) && (

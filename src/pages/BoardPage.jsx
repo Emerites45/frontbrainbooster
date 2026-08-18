@@ -329,6 +329,7 @@ function BoardPage({
           onCreateSubtask={onCreateSubtask}
           onEditTask={onEditTask}
           onDeleteTask={onDeleteTask}
+          onStatusChange={onStatusChange}
         />
       )}
 

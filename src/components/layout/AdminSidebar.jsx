@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   Calendar as CalendarIcon,
+  Clock,
 } from "lucide-react";
 
 const ADMIN_NAV_SECTIONS = [
@@ -24,6 +25,11 @@ const ADMIN_NAV_SECTIONS = [
         label: "Calendrier",
         icon: CalendarIcon,
         path: "/admin/calendar",
+      },
+      {
+        label: "Mon suivi",
+        icon: Clock,
+        path: "/timesheet",
       },
     ],
   },
@@ -47,6 +53,11 @@ const ADMIN_NAV_SECTIONS = [
         path: "/admin/teams",
       },
       {
+        label: "Évaluation équipe",
+        icon: BarChart3,
+        path: "/admin/team-evaluation",
+      },
+      {
         label: "Tâches",
         icon: CheckSquare,
         path: "/admin/tasks",
@@ -66,6 +77,11 @@ const ADMIN_NAV_SECTIONS = [
         label: "Rapports",
         icon: BarChart3,
         path: "/admin/reports",
+      },
+      {
+        label: "Analytics",
+        icon: BarChart3,
+        path: "/analytics/user-performance",
       },
     ],
   },
