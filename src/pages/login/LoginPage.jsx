@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";import AuthLayout from "../components/AuthLayout";
-import aaprovidirLogo from "../assets/aaprovidir-logo.png";
-import marinaImg from "../assets/marina.png";
-import { loginUser } from "../api/api";
+import { Link, useNavigate } from "react-router-dom";import AuthLayout from "../../components/AuthLayout";
+import aaprovidirLogo from "../../assets/aaprovidir-logo.png";
+import marinaImg from "../../assets/marina.png";
+import { loginUser } from "../../api/api";
 import "./LoginPage.css";
 
 function LoginPage({ onLogin }) {

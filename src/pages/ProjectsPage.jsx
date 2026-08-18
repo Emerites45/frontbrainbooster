@@ -4,7 +4,7 @@ import AuthLayout from "../components/AuthLayout";
 import wallyLogo from "../assets/wally-logo.png";
 import marinaImg from "../assets/marina.png";
 import { loginUser } from "../api/api";
-import "./LoginPage.css";
+import "./login/LoginPage.css";
 
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");

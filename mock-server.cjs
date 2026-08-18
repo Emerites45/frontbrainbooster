@@ -24,14 +24,14 @@ ensureDbExists();
 function readDb() { return JSON.parse(fs.readFileSync(dbPath, 'utf-8')); }
 function writeDb(data) { fs.writeFileSync(dbPath, JSON.stringify(data, null, 2)); }
 
-app.post('/auth/signup', (req, res) => {
-  res.status(403).json({
-    message: "Inscription publique désactivée. Contactez un administrateur pour obtenir un accès.",
-  });
+// --- AUTH (prefixed to match the frontend's /api/v1/auth/* calls) ---
+
+app.post('/api/v1/auth/signup', (req, res) => {
+  res.status(403).send("Inscription publique désactivée. Contactez un administrateur pour obtenir un accès.");
 });
 
-app.post('/auth/login', (req, res) => {
-  const { email } = req.body;
+app.post('/api/v1/auth/login', (req, res) => {
+  const { email, password } = req.body;
   const db = readDb();
 
   const user = (db.users || []).find(
@@ -41,6 +41,15 @@ app.post('/auth/login', (req, res) => {
   if (!user) {
     return res.status(401).json({ message: 'Identifiants invalides' });
   }
+
+  // NOTE: this mock has no real password check yet — db.seed.json doesn't
+  // store a password field. Any password will currently succeed for a known
+  // email. If you want the mock to actually validate a password, add a
+  // "password" field per user in db.seed.json and uncomment the check below.
+  //
+  // if (password !== user.password) {
+  //   return res.status(401).json({ message: 'Identifiants invalides' });
+  // }
 
   res.json({
     token: 'fake-mock-token-' + Date.now() + '-' + user.id,
@@ -56,7 +65,40 @@ app.post('/auth/login', (req, res) => {
   });
 });
 
-app.post('/auth/change-password', (req, res) => {
+app.post('/api/v1/auth/forgot-password', (req, res) => {
+  const { email } = req.query;
+  const db = readDb();
+  const user = (db.users || []).find(
+    (u) => u.email.toLowerCase() === String(email || '').toLowerCase()
+  );
+
+  if (!user) {
+    return res.status(404).send("Aucun compte associé à cet email.");
+  }
+
+  // Mock: doesn't send a real email, just simulates success.
+  console.log(`[mock] Code de vérification envoyé (simulé) à ${email}`);
+  res.send("Un code de vérification a été envoyé à votre adresse email.");
+});
+
+app.post('/api/v1/auth/reset-password', (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  const db = readDb();
+  const user = (db.users || []).find(
+    (u) => u.email.toLowerCase() === String(email || '').toLowerCase()
+  );
+
+  if (!user) {
+    return res.status(404).send("Aucun compte associé à cet email.");
+  }
+
+  // Mock: doesn't validate the OTP for real, just simulates success.
+  user.mustChangePassword = false;
+  writeDb(db);
+  res.send("Mot de passe réinitialisé avec succès.");
+});
+
+app.post('/api/v1/auth/change-password', (req, res) => {
   const { userId } = req.body;
   const db = readDb();
   const user = db.users.find((u) => u.id === Number(userId));

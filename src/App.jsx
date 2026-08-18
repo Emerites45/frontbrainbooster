@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import TaskColumn from "./components/TaskColumn";
+import TaskModal from "./components/TaskModal";
 import TeamEvaluationPage from "./pages/admin/TeamEvaluationPage";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-
-import LoginPage from "./pages/LoginPage";
-
+import LoginPage from "./pages/login/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import {
@@ -25,23 +20,15 @@ import {
 
 import { normalizeAssignments } from "./utils/dashboardHelpers";
 
-import BoardPage from "./pages/BoardPage";
-
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-
+import BoardPage from "./pages/BoardPage";import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ScrumMasterDashboardPage from "./pages/ScrumMasterDashboardPage";
-
 import MemberDashboardPage from "./pages/MemberDashboardPage";
-
+import DashboardPage from "./pages/DashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
-
 import Navbar from "./components/Navbar";
 
-import VerifyEmailPage from "./pages/VerifyEmailPage";
-
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-
-import ResetPasswordPage from "./pages/ResetPasswordPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";import ForgotPasswordPage from "./pages/resetpassword/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/resetpassword/ResetPasswordPage";
 
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 

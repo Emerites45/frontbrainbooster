@@ -1,28 +1,31 @@
 const API_URL = import.meta.env.VITE_API_URL;
-export async function fetchTasks() {
+
+// --- UTILS ---
+function getAuthHeader() {
   const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-  const response = await fetch(`${API_URL}/tasks`, {
-    headers: {
-      Authorization: `Bearer ${currentUser?.token}`,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`Erreur API: ${response.status}`);
-  }
-  return response.json();
+  return currentUser?.token ? { Authorization: `Bearer ${currentUser.token}` } : {};
 }
-export async function registerUser(nom, email, password) {
-  const response = await fetch(`${API_URL}/auth/signup`, {
+
+function getCurrentUser() {
+  return JSON.parse(localStorage.getItem("currentUser"));
+}
+
+// --- AUTHENTICATION ---
+export async function registerUser(userData) {
+  const response = await fetch(`${API_URL}/api/v1/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: nom, email, password }),
+    body: JSON.stringify(userData),
   });
-  if (!response.ok) throw new Error("Inscription échouée");
-  return response.json();
+  if (!response.ok) {
+    const errorMessage = await response.text();
+    throw new Error(errorMessage || "Inscription échouée");
+  }
+  return response.text();
 }
 
 export async function loginUser(email, password) {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -30,22 +33,61 @@ export async function loginUser(email, password) {
   if (!response.ok) throw new Error("Identifiants invalides");
   return response.json();
 }
+
+export async function requestPasswordReset(email) {
+  const res = await fetch(
+    `${API_URL}/api/v1/auth/forgot-password?email=${encodeURIComponent(email)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+  if (!res.ok) {
+    const errorMsg = await res.text();
+    throw new Error(errorMsg || "Impossible d'envoyer le code de vérification.");
+  }
+  const message = await res.text();
+  return { success: true, message };
+}
+
+export async function resetPassword({ email, otp, newPassword }) {
+  const res = await fetch(`${API_URL}/api/v1/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, otp, newPassword }),
+  });
+  if (!res.ok) {
+    const errorMsg = await res.text();
+    throw new Error(errorMsg || "Impossible de réinitialiser le mot de passe.");
+  }
+  const message = await res.text();
+  return { success: true, message };
+}
+
+// --- TASKS ---
+export async function fetchTasks() {
+  const response = await fetch(`${API_URL}/tasks`, {
+    headers: getAuthHeader(),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+// --- PROJECTS ---
 export async function fetchProjects() {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/projects`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function createProject(project) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/projects`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${currentUser?.token}`,
+      ...getAuthHeader(),
     },
     body: JSON.stringify(project),
   });
@@ -53,77 +95,51 @@ export async function createProject(project) {
   return response.json();
 }
 
-export async function requestPasswordReset(email) {
-  // MOCK — actif automatiquement en dev (npm run dev)
-  if (import.meta.env.DEV) {
-    console.log("Mock: envoi du code à", email);
-    await new Promise((r) => setTimeout(r, 800));
-
-    if (!email.includes("@")) {
-      throw new Error("Email invalide");
-    }
-
-    return { success: true, message: "Code envoyé (mock)" };
-  }
-
-  // API réelle — utilisée automatiquement en build de prod (npm run build)
-  const res = await fetch(`${API_URL}/auth/forgot-password`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+export async function updateProject(projectId, updates) {
+  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(updates),
   });
-
-  if (!res.ok) {
-    throw new Error("Impossible d'envoyer le code de vérification.");
-  }
-
-  return res.json();
-}
-export async function resetPassword({ email, otp, newPassword }) {
-  if (import.meta.env.DEV) {
-    console.log("Mock: reset password pour", email, "otp:", otp);
-    await new Promise((r) => setTimeout(r, 800));
-    return { success: true, message: "Mot de passe réinitialisé (mock)" };
-  }
-
-  const res = await fetch(`${API_URL}/auth/reset-password`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, otp, newPassword }),
-  });
-
-  if (!res.ok) {
-    throw new Error("Impossible de réinitialiser le mot de passe.");
-  }
-
-  return res.json();
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
 }
 
+export async function deleteProject(projectId) {
+  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+    method: "DELETE",
+    headers: getAuthHeader(),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.ok;
+}
+
+// --- USERS & DEPARTMENTS ---
 export async function fetchUsers() {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/users`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function fetchDepartments() {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/departments`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function createAdminUser(userData) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/admin/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${currentUser?.token}`,
+      ...getAuthHeader(),
     },
     body: JSON.stringify(userData),
   });
@@ -132,12 +148,11 @@ export async function createAdminUser(userData) {
 }
 
 export async function updateUser(userId, updates) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/users/${userId}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${currentUser?.token}`,
+      ...getAuthHeader(),
     },
     body: JSON.stringify(updates),
   });
@@ -152,23 +167,21 @@ export async function toggleUserActive(userId, active) {
   return updateUser(userId, { active });
 }
 
-// --- Journal d'actions (ACTION_HISTORY) — F5 ---
+// --- ACTIONS HISTORY ---
 export async function fetchActions() {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/actions`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function createAction(actionData) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/actions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${currentUser?.token}`,
+      ...getAuthHeader(),
     },
     body: JSON.stringify(actionData),
   });
@@ -176,43 +189,18 @@ export async function createAction(actionData) {
   return response.json();
 }
 
-export async function updateProject(projectId, updates) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${currentUser?.token}`,
-    },
-    body: JSON.stringify(updates),
-  });
-  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-  return response.json();
-}
-
-export async function deleteProject(projectId) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
-  });
-  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-  return response.ok;
-}
-
-
+// --- ATTACHMENTS ---
 export async function fetchAttachments({ taskId, projectId }) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const params = taskId ? `taskId=${taskId}` : `projectId=${projectId}`;
   const response = await fetch(`${API_URL}/attachments?${params}`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function uploadAttachment(taskId, file) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const currentUser = getCurrentUser();
   const fileData = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
@@ -221,7 +209,10 @@ export async function uploadAttachment(taskId, file) {
   });
   const response = await fetch(`${API_URL}/attachments`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
     body: JSON.stringify({
       taskId,
       fileName: file.name,
@@ -236,29 +227,31 @@ export async function uploadAttachment(taskId, file) {
 }
 
 export async function deleteAttachment(attachmentId) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/attachments/${attachmentId}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.ok;
 }
 
+// --- COMMENTS (tasks) ---
 export async function fetchComments(taskId) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/comments?taskId=${taskId}`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function createComment(taskId, content) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const currentUser = getCurrentUser();
   const response = await fetch(`${API_URL}/comments`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
     body: JSON.stringify({
       taskId,
       content,
@@ -271,74 +264,82 @@ export async function createComment(taskId, content) {
 }
 
 export async function deleteComment(commentId) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/comments/${commentId}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.ok;
 }
 
+// --- TIMESHEETS ---
 export async function fetchTimesheetEntries({ userId, weekStart }) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const params = new URLSearchParams();
   if (userId) params.set("userId", userId);
   if (weekStart) params.set("weekStart", weekStart);
   const response = await fetch(`${API_URL}/timesheet-entries?${params}`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function saveTimesheetEntry(entry) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/timesheet-entries`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
     body: JSON.stringify(entry),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
+// --- WEEKLY REPORTS ---
 export async function fetchWeeklyReport({ userId, weekStart }) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/weekly-reports?userId=${userId}&weekStart=${weekStart}`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function saveWeeklyReport(report) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/weekly-reports`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
     body: JSON.stringify(report),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
+// --- PERFORMANCE COMMENTS ---
 export async function fetchPerformanceComments({ userId, weekStart }) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const response = await fetch(`${API_URL}/performance-comments?userId=${userId}&weekStart=${weekStart}`, {
-    headers: { Authorization: `Bearer ${currentUser?.token}` },
+    headers: getAuthHeader(),
   });
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
 
 export async function createPerformanceComment({ targetUserId, weekStart, content }) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const currentUser = getCurrentUser();
   const response = await fetch(`${API_URL}/performance-comments`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
     body: JSON.stringify({
-      targetUserId, weekStart, content,
+      targetUserId,
+      weekStart,
+      content,
       authorId: currentUser?.id,
       authorName: `${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`.trim(),
     }),
