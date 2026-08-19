@@ -3,14 +3,30 @@ import {
 } from "react";
 
 import {
-  useNavigate,
-  useSearchParams,
-} from "react-router-dom";
+  getAssigneeIds,
+  projectProgress,
+} from "../utils/dashboardHelpers";
 
 import "./MemberProjectsPage.css";
 
 /* =========================================================
-   DATES
+   LABELS
+========================================================= */
+
+const PROJECT_STATUS_LABELS = {
+  A_FAIRE: "À faire",
+  EN_COURS: "En cours",
+  TERMINE: "Terminé",
+};
+
+const TASK_STATUS_LABELS = {
+  A_FAIRE: "À faire",
+  EN_COURS: "En cours",
+  TERMINE: "Terminée",
+};
+
+/* =========================================================
+   HELPERS
 ========================================================= */
 
 function formatDate(value) {
@@ -26,7 +42,7 @@ function formatDate(value) {
       date.getTime()
     )
   ) {
-    return value;
+    return String(value);
   }
 
   return new Intl.DateTimeFormat(
@@ -41,124 +57,122 @@ function formatDate(value) {
     .replace(".", "");
 }
 
-/* =========================================================
-   STATUTS
-========================================================= */
+function getProjectStatusLabel(
+  status
+) {
+  return (
+    PROJECT_STATUS_LABELS[
+      status
+    ] ??
+    status ??
+    "Non défini"
+  );
+}
 
 function getTaskStatusLabel(
   status
 ) {
-  if (
-    status === "A_FAIRE"
-  ) {
-    return "À faire";
-  }
-
-  if (
-    status === "EN_COURS"
-  ) {
-    return "En cours";
-  }
-
-  if (
-    status === "TERMINE"
-  ) {
-    return "Terminé";
-  }
-
-  if (
-    status === "A_REVOIR"
-  ) {
-    return "À revoir";
-  }
-
-  return status ?? "—";
-}
-
-function getProjectStatusLabel(
-  status
-) {
-  if (!status) {
-    return "Actif";
-  }
-
-  const normalized =
-    String(status).toUpperCase();
-
-  if (
-    normalized === "EN_COURS" ||
-    normalized === "IN_PROGRESS"
-  ) {
-    return "En cours";
-  }
-
-  if (
-    normalized === "TERMINE" ||
-    normalized === "COMPLETED" ||
-    normalized === "DONE"
-  ) {
-    return "Terminé";
-  }
-
-  if (
-    normalized === "A_FAIRE" ||
-    normalized === "TODO"
-  ) {
-    return "À démarrer";
-  }
-
-  if (
-    normalized === "SUSPENDU" ||
-    normalized === "PAUSED"
-  ) {
-    return "Suspendu";
-  }
-
-  return status;
+  return (
+    TASK_STATUS_LABELS[
+      status
+    ] ??
+    status ??
+    "Non défini"
+  );
 }
 
 function getProjectStatusClass(
   status
 ) {
-  const normalized =
-    String(
-      status ?? "ACTIF"
-    ).toUpperCase();
-
   if (
-    normalized === "TERMINE" ||
-    normalized === "COMPLETED" ||
-    normalized === "DONE"
+    status ===
+    "EN_COURS"
   ) {
-    return "done";
+    return "member-project-status-active";
   }
 
   if (
-    normalized === "SUSPENDU" ||
-    normalized === "PAUSED"
+    status ===
+    "TERMINE"
   ) {
-    return "paused";
+    return "member-project-status-done";
   }
+
+  return "member-project-status-todo";
+}
+
+function isTaskOverdue(
+  task
+) {
+  if (
+    !task?.dueDate ||
+    task.status ===
+      "TERMINE"
+  ) {
+    return false;
+  }
+
+  const dueDate =
+    new Date(
+      task.dueDate
+    );
 
   if (
-    normalized === "A_FAIRE" ||
-    normalized === "TODO"
+    Number.isNaN(
+      dueDate.getTime()
+    )
   ) {
-    return "todo";
+    return false;
   }
 
-  return "active";
+  const today =
+    new Date();
+
+  today.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  dueDate.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  return (
+    dueDate <
+    today
+  );
 }
 
 /* =========================================================
-   ICÔNES
+   ICONS
 ========================================================= */
 
-function ProjectIcon() {
+function FolderIcon() {
   return (
     <svg viewBox="0 0 24 24">
       <path d="M3 7h7l2 2h9v10H3z" />
       <path d="M3 7V5h7l2 2" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 24 24">
+      <rect
+        x="3"
+        y="5"
+        width="18"
+        height="16"
+        rx="2"
+      />
+
+      <path d="M8 3v4M16 3v4M3 10h18" />
     </svg>
   );
 }
@@ -181,20 +195,16 @@ function TaskIcon() {
   );
 }
 
-function CalendarIcon() {
+function CheckIcon() {
   return (
     <svg viewBox="0 0 24 24">
-      <rect
-        x="3"
-        y="5"
-        width="18"
-        height="16"
-        rx="2"
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
       />
 
-      <path d="M8 3v4" />
-      <path d="M16 3v4" />
-      <path d="M3 10h18" />
+      <path d="m8 12 3 3 5-6" />
     </svg>
   );
 }
@@ -202,22 +212,13 @@ function CalendarIcon() {
 function ProgressIcon() {
   return (
     <svg viewBox="0 0 24 24">
-      <path d="m4 16 5-5 4 3 7-8" />
-      <path d="M15 6h5v5" />
-    </svg>
-  );
-}
-
-function SearchEmptyIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
       <circle
-        cx="11"
-        cy="11"
-        r="7"
+        cx="12"
+        cy="12"
+        r="9"
       />
 
-      <path d="m16 16 4 4" />
+      <path d="M12 7v5l3 2" />
     </svg>
   );
 }
@@ -225,14 +226,13 @@ function SearchEmptyIcon() {
 function ArrowIcon() {
   return (
     <svg viewBox="0 0 24 24">
-      <path d="M5 12h14" />
-      <path d="m14 7 5 5-5 5" />
+      <path d="m9 18 6-6-6-6" />
     </svg>
   );
 }
 
 /* =========================================================
-   PAGE
+   MEMBER PROJECTS PAGE
 ========================================================= */
 
 function MemberProjectsPage({
@@ -240,67 +240,50 @@ function MemberProjectsPage({
   projects = [],
   tasks = [],
 }) {
-  const navigate =
-    useNavigate();
-
-  const [searchParams] =
-    useSearchParams();
-
   /* =======================================================
-     RECHERCHE
-  ======================================================= */
-
-  const search =
-    searchParams
-      .get("q")
-      ?.trim()
-      .toLowerCase() ?? "";
-
-  /* =======================================================
-     TÂCHES ASSIGNÉES AU MEMBER
+     TÂCHES DU MEMBER
   ======================================================= */
 
   const myTasks =
-    useMemo(() => {
-      if (
-        currentUser?.id ===
-          undefined ||
-        currentUser?.id ===
-          null
-      ) {
-        return [];
-      }
+    useMemo(
+      () => {
+        if (
+          currentUser?.id ===
+            undefined ||
+          currentUser?.id ===
+            null
+        ) {
+          return [];
+        }
 
-      return tasks.filter(
-        (task) =>
-          (
-            task.assignments ||
-            []
-          ).some(
-            (
-              assignment
-            ) =>
-              String(
-                assignment.userId
-              ) ===
+        return tasks.filter(
+          (task) =>
+            getAssigneeIds(
+              task
+            ).some(
+              (userId) =>
+                String(
+                  userId
+                ) ===
                 String(
                   currentUser.id
-                ) &&
-              !assignment.unassignedAt
-          )
-      );
-    }, [
-      tasks,
-      currentUser,
-    ]);
+                )
+            )
+        );
+      },
+      [
+        tasks,
+        currentUser,
+      ]
+    );
 
   /* =======================================================
-     PROJETS DU MEMBER
+     IDS PROJETS
   ======================================================= */
 
-  const allMemberProjects =
-    useMemo(() => {
-      const projectIds =
+  const myProjectIds =
+    useMemo(
+      () =>
         new Set(
           myTasks
             .map(
@@ -310,68 +293,109 @@ function MemberProjectsPage({
             .filter(
               (projectId) =>
                 projectId !==
-                  null &&
+                  undefined &&
                 projectId !==
-                  undefined
+                  null
             )
-            .map(String)
-        );
-
-      return projects.filter(
-        (project) =>
-          projectIds.has(
-            String(
-              project.id
+            .map(
+              String
             )
-          )
-      );
-    }, [
-      projects,
-      myTasks,
-    ]);
+        ),
+      [
+        myTasks,
+      ]
+    );
 
   /* =======================================================
-     PROJETS FILTRÉS PAR RECHERCHE
+     PROJETS DU MEMBER
   ======================================================= */
 
-  const memberProjects =
-    useMemo(() => {
-      if (!search) {
-        return allMemberProjects;
-      }
-
-      return allMemberProjects.filter(
-        (project) => {
-          const name =
-            project.name
-              ?.toLowerCase() ??
-            "";
-
-          const description =
-            project.description
-              ?.toLowerCase() ??
-            "";
-
-          return (
-            name.includes(
-              search
-            ) ||
-            description.includes(
-              search
+  const myProjects =
+    useMemo(
+      () =>
+        projects.filter(
+          (project) =>
+            myProjectIds.has(
+              String(
+                project.id
+              )
             )
-          );
-        }
-      );
-    }, [
-      allMemberProjects,
-      search,
-    ]);
+        ),
+      [
+        projects,
+        myProjectIds,
+      ]
+    );
 
   /* =======================================================
-     TÂCHES PRINCIPALES D'UN PROJET
+     STATS PROJETS
   ======================================================= */
 
-  function getMyProjectTasks(
+  const projectStats =
+    useMemo(
+      () => {
+        const total =
+          myProjects.length;
+
+        const todo =
+          myProjects.filter(
+            (project) =>
+              project.status ===
+              "A_FAIRE"
+          ).length;
+
+        const inProgress =
+          myProjects.filter(
+            (project) =>
+              project.status ===
+              "EN_COURS"
+          ).length;
+
+        const done =
+          myProjects.filter(
+            (project) =>
+              project.status ===
+              "TERMINE"
+          ).length;
+
+        const averageProgress =
+          total > 0
+            ? Math.round(
+                myProjects.reduce(
+                  (
+                    sum,
+                    project
+                  ) =>
+                    sum +
+                    projectProgress(
+                      project,
+                      tasks
+                    ),
+                  0
+                ) /
+                  total
+              )
+            : 0;
+
+        return {
+          total,
+          todo,
+          inProgress,
+          done,
+          averageProgress,
+        };
+      },
+      [
+        myProjects,
+        tasks,
+      ]
+    );
+
+  /* =======================================================
+     TÂCHES PAR PROJET
+  ======================================================= */
+
+  function getProjectTasks(
     projectId
   ) {
     return myTasks.filter(
@@ -379,102 +403,9 @@ function MemberProjectsPage({
         String(
           task.projectId
         ) ===
-          String(
-            projectId
-          ) &&
-        !task.parentTaskId
-    );
-  }
-
-  /* =======================================================
-     PROGRESSION
-  ======================================================= */
-
-  function getProjectProgress(
-    projectId
-  ) {
-    const projectTasks =
-      getMyProjectTasks(
-        projectId
-      );
-
-    if (
-      projectTasks.length ===
-      0
-    ) {
-      return 0;
-    }
-
-    const completedTasks =
-      projectTasks.filter(
-        (task) =>
-          task.status ===
-          "TERMINE"
-      ).length;
-
-    return Math.round(
-      (
-        completedTasks /
-        projectTasks.length
-      ) * 100
-    );
-  }
-
-  /* =======================================================
-     STATS GLOBALES
-  ======================================================= */
-
-  const projectStats =
-    useMemo(() => {
-      const totalProjects =
-        allMemberProjects.length;
-
-      const totalTasks =
-        myTasks.filter(
-          (task) =>
-            !task.parentTaskId
-        ).length;
-
-      const completedTasks =
-        myTasks.filter(
-          (task) =>
-            !task.parentTaskId &&
-            task.status ===
-              "TERMINE"
-        ).length;
-
-      const averageProgress =
-        totalTasks === 0
-          ? 0
-          : Math.round(
-              (
-                completedTasks /
-                totalTasks
-              ) * 100
-            );
-
-      return {
-        totalProjects,
-        totalTasks,
-        completedTasks,
-        averageProgress,
-      };
-    }, [
-      allMemberProjects,
-      myTasks,
-    ]);
-
-  /* =======================================================
-     NAVIGATION VERS UNE TÂCHE
-  ======================================================= */
-
-  function openTask(
-    task
-  ) {
-    navigate(
-      `/member/tasks?q=${encodeURIComponent(
-        task.title ?? ""
-      )}`
+        String(
+          projectId
+        )
     );
   }
 
@@ -484,63 +415,72 @@ function MemberProjectsPage({
 
   return (
     <section className="member-projects-page">
+
       {/* =================================================
           HEADER
       ================================================= */}
 
       <div className="member-projects-heading">
+
         <div>
           <span className="member-projects-eyebrow">
-            Vue d'ensemble
+            Mon activité
           </span>
 
           <h1>
-            Projets
+            Mes projets
           </h1>
 
           <p>
-            Consultez les projets
-            associés à vos tâches et
-            suivez votre progression.
+            Retrouvez les projets auxquels
+            vous participez et suivez
+            l'avancement des tâches qui
+            vous sont assignées.
           </p>
         </div>
 
         <div className="member-projects-heading-summary">
+
           <div className="member-projects-heading-icon">
-            <ProjectIcon />
+            <FolderIcon />
           </div>
 
           <div>
             <strong>
               {
-                projectStats.totalProjects
+                projectStats.total
               }
             </strong>
 
             <span>
               projet
-              {projectStats.totalProjects !==
+              {projectStats.total !==
               1
-                ? "s"
-                : ""}{" "}
-              associé
-              {projectStats.totalProjects !==
-              1
-                ? "s"
-                : ""}
+                ? "s actifs"
+                : " actif"}
             </span>
           </div>
+
         </div>
       </div>
 
       {/* =================================================
-          STATS
+          OVERVIEW
       ================================================= */}
 
       <div className="member-project-overview">
+
+        {/* TOTAL */}
+
         <article className="member-project-overview-item">
-          <div className="member-project-overview-icon member-project-overview-icon-blue">
-            <ProjectIcon />
+
+          <div
+            className="
+              member-project-overview-icon
+              member-project-overview-icon-blue
+            "
+          >
+            <FolderIcon />
           </div>
 
           <div>
@@ -550,56 +490,83 @@ function MemberProjectsPage({
 
             <strong>
               {
-                projectStats.totalProjects
+                projectStats.total
               }
             </strong>
           </div>
+
         </article>
 
-        <article className="member-project-overview-item">
-          <div className="member-project-overview-icon member-project-overview-icon-purple">
-            <TaskIcon />
-          </div>
-
-          <div>
-            <span>
-              Mes tâches
-            </span>
-
-            <strong>
-              {
-                projectStats.totalTasks
-              }
-            </strong>
-          </div>
-        </article>
+        {/* EN COURS */}
 
         <article className="member-project-overview-item">
-          <div className="member-project-overview-icon member-project-overview-icon-green">
+
+          <div
+            className="
+              member-project-overview-icon
+              member-project-overview-icon-purple
+            "
+          >
             <ProgressIcon />
           </div>
 
           <div>
             <span>
-              Terminées
+              En cours
             </span>
 
             <strong>
               {
-                projectStats.completedTasks
+                projectStats.inProgress
               }
             </strong>
           </div>
+
         </article>
 
+        {/* TERMINES */}
+
         <article className="member-project-overview-item">
-          <div className="member-project-overview-icon member-project-overview-icon-progress">
+
+          <div
+            className="
+              member-project-overview-icon
+              member-project-overview-icon-green
+            "
+          >
+            <CheckIcon />
+          </div>
+
+          <div>
+            <span>
+              Terminés
+            </span>
+
+            <strong>
+              {
+                projectStats.done
+              }
+            </strong>
+          </div>
+
+        </article>
+
+        {/* PROGRESSION */}
+
+        <article className="member-project-overview-item">
+
+          <div
+            className="
+              member-project-overview-icon
+              member-project-overview-icon-progress
+            "
+          >
             <ProgressIcon />
           </div>
 
           <div>
             <span>
-              Progression globale
+              Progression moyenne
             </span>
 
             <strong>
@@ -609,115 +576,111 @@ function MemberProjectsPage({
               %
             </strong>
           </div>
+
         </article>
+
       </div>
 
       {/* =================================================
-          BARRE RÉSULTATS
+          RESULT BAR
       ================================================= */}
 
       <div className="member-projects-results-bar">
+
         <div>
           <strong>
-            Mes projets
+            Projets associés à mes tâches
           </strong>
 
           <span>
             {
-              memberProjects.length
+              projectStats.total
             }{" "}
-            résultat
-            {memberProjects.length !==
+            projet
+            {projectStats.total !==
+            1
+              ? "s"
+              : ""}{" "}
+            trouvé
+            {projectStats.total !==
             1
               ? "s"
               : ""}
           </span>
         </div>
 
-        {search && (
-          <div className="member-project-search-value">
-            Recherche :{" "}
-            <strong>
-              {
-                searchParams.get(
-                  "q"
-                )
-              }
-            </strong>
-          </div>
-        )}
+        <div className="member-project-search-value">
+          <strong>
+            {
+              myTasks.length
+            }
+          </strong>{" "}
+          tâche
+          {myTasks.length !==
+          1
+            ? "s"
+            : ""}{" "}
+          assignée
+          {myTasks.length !==
+          1
+            ? "s"
+            : ""}
+        </div>
+
       </div>
 
       {/* =================================================
-          RECHERCHE VIDE
+          LISTE DES PROJETS
       ================================================= */}
 
-      {search &&
-        memberProjects.length ===
-          0 && (
-          <div className="member-projects-search-empty">
-            <div className="member-project-empty-icon">
-              <SearchEmptyIcon />
-            </div>
+      <div className="member-projects-list">
 
-            <strong>
-              Aucun projet trouvé
-            </strong>
-
-            <span>
-              Aucun projet associé à
-              votre compte ne correspond
-              à «{" "}
-              {searchParams.get(
-                "q"
-              )}{" "}
-              ».
-            </span>
-          </div>
-        )}
-
-      {/* =================================================
-          AUCUN PROJET
-      ================================================= */}
-
-      {!search &&
-        memberProjects.length ===
-          0 && (
+        {myProjects.length ===
+        0 ? (
           <div className="member-projects-empty">
+
             <div className="member-project-empty-icon">
-              <ProjectIcon />
+              <FolderIcon />
             </div>
 
             <strong>
-              Aucun projet disponible
+              Aucun projet pour le moment
             </strong>
 
             <span>
-              Aucun projet n'est
-              actuellement associé à
-              vos tâches.
+              Les projets contenant des tâches
+              qui vous sont assignées
+              apparaîtront automatiquement ici.
             </span>
+
           </div>
-        )}
-
-      {/* =================================================
-          LISTE PROJETS
-      ================================================= */}
-
-      {memberProjects.length >
-        0 && (
-        <div className="member-projects-list">
-          {memberProjects.map(
+        ) : (
+          myProjects.map(
             (project) => {
               const projectTasks =
-                getMyProjectTasks(
+                getProjectTasks(
                   project.id
                 );
 
               const progress =
-                getProjectProgress(
-                  project.id
+                projectProgress(
+                  project,
+                  tasks
                 );
+
+              const todoTasks =
+                projectTasks.filter(
+                  (task) =>
+                    task.status ===
+                    "A_FAIRE"
+                ).length;
+
+              const inProgressTasks =
+                projectTasks.filter(
+                  (task) =>
+                    task.status ===
+                    "EN_COURS"
+                ).length;
 
               const completedTasks =
                 projectTasks.filter(
@@ -726,10 +689,10 @@ function MemberProjectsPage({
                     "TERMINE"
                 ).length;
 
-              const projectStatusClass =
-                getProjectStatusClass(
-                  project.status
-                );
+              const overdueTasks =
+                projectTasks.filter(
+                  isTaskOverdue
+                ).length;
 
               return (
                 <article
@@ -738,15 +701,23 @@ function MemberProjectsPage({
                   }
                   className="member-project-card"
                 >
+
                   {/* =====================================
                       PARTIE GAUCHE
                   ===================================== */}
 
                   <div className="member-project-main">
+
+                    {/* ===================================
+                        HEADER
+                    =================================== */}
+
                     <div className="member-project-card-header">
+
                       <div className="member-project-title-area">
+
                         <div className="member-project-card-icon">
-                          <ProjectIcon />
+                          <FolderIcon />
                         </div>
 
                         <div>
@@ -760,10 +731,13 @@ function MemberProjectsPage({
                             }
                           </h2>
                         </div>
+
                       </div>
 
                       <span
-                        className={`member-project-status member-project-status-${projectStatusClass}`}
+                        className={`member-project-status ${getProjectStatusClass(
+                          project.status
+                        )}`}
                       >
                         <span />
 
@@ -771,19 +745,72 @@ function MemberProjectsPage({
                           project.status
                         )}
                       </span>
+
                     </div>
+
+                    {/* ===================================
+                        DESCRIPTION
+                    =================================== */}
 
                     <p className="member-project-description">
                       {project.description ||
-                        "Aucune description disponible pour ce projet."}
+                        "Aucune description n'est disponible pour ce projet."}
                     </p>
 
                     {/* ===================================
-                        MÉTADONNÉES
+                        METADATA
                     =================================== */}
 
                     <div className="member-project-metadata">
+
+                      {/* DATE DEBUT */}
+
                       <div className="member-project-meta-item">
+
+                        <div className="member-project-meta-icon">
+                          <CalendarIcon />
+                        </div>
+
+                        <div>
+                          <span>
+                            Date de début
+                          </span>
+
+                          <strong>
+                            {formatDate(
+                              project.startDate
+                            )}
+                          </strong>
+                        </div>
+
+                      </div>
+
+                      {/* DATE FIN */}
+
+                      <div className="member-project-meta-item">
+
+                        <div className="member-project-meta-icon">
+                          <CalendarIcon />
+                        </div>
+
+                        <div>
+                          <span>
+                            Date de fin
+                          </span>
+
+                          <strong>
+                            {formatDate(
+                              project.endDate
+                            )}
+                          </strong>
+                        </div>
+
+                      </div>
+
+                      {/* MES TACHES */}
+
+                      <div className="member-project-meta-item">
+
                         <div className="member-project-meta-icon">
                           <TaskIcon />
                         </div>
@@ -796,51 +823,17 @@ function MemberProjectsPage({
                           <strong>
                             {
                               projectTasks.length
-                            }
+                            }{" "}
+                            tâche
+                            {projectTasks.length !==
+                            1
+                              ? "s"
+                              : ""}
                           </strong>
                         </div>
+
                       </div>
 
-                      <div className="member-project-meta-item">
-                        <div className="member-project-meta-icon">
-                          <CalendarIcon />
-                        </div>
-
-                        <div>
-                          <span>
-                            Échéance
-                          </span>
-
-                          <strong>
-                            {formatDate(
-                              project.dueDate ??
-                                project.endDate
-                            )}
-                          </strong>
-                        </div>
-                      </div>
-
-                      <div className="member-project-meta-item">
-                        <div className="member-project-meta-icon">
-                          <ProgressIcon />
-                        </div>
-
-                        <div>
-                          <span>
-                            Terminées
-                          </span>
-
-                          <strong>
-                            {
-                              completedTasks
-                            }
-                            /
-                            {
-                              projectTasks.length
-                            }
-                          </strong>
-                        </div>
-                      </div>
                     </div>
 
                     {/* ===================================
@@ -848,32 +841,43 @@ function MemberProjectsPage({
                     =================================== */}
 
                     <div className="member-project-progress">
+
                       <div className="member-project-progress-header">
+
                         <div>
                           <span>
-                            Ma progression
+                            Progression du projet
                           </span>
 
                           <small>
                             {
                               completedTasks
                             }{" "}
-                            tâche
-                            {completedTasks !==
-                            1
-                              ? "s"
-                              : ""}{" "}
                             terminée
                             {completedTasks !==
                             1
                               ? "s"
                               : ""}
+                            {" · "}
+                            {
+                              inProgressTasks
+                            }{" "}
+                            en cours
+                            {" · "}
+                            {
+                              todoTasks
+                            }{" "}
+                            à faire
                           </small>
                         </div>
 
                         <strong>
-                          {progress}%
+                          {
+                            progress
+                          }
+                          %
                         </strong>
+
                       </div>
 
                       <div className="member-project-progress-bar">
@@ -884,22 +888,59 @@ function MemberProjectsPage({
                           }}
                         />
                       </div>
+
                     </div>
+
+                    {/* ===================================
+                        RETARD
+                    =================================== */}
+
+                    {overdueTasks >
+                      0 && (
+                      <div
+                        style={{
+                          marginTop:
+                            "12px",
+
+                          color:
+                            "#b54708",
+
+                          fontSize:
+                            "9px",
+
+                          fontWeight:
+                            600,
+                        }}
+                      >
+                        {
+                          overdueTasks
+                        }{" "}
+                        tâche
+                        {overdueTasks >
+                        1
+                          ? "s"
+                          : ""}{" "}
+                        en retard
+                      </div>
+                    )}
+
                   </div>
 
                   {/* =====================================
-                      LISTE TÂCHES
+                      PANEL DROIT : TACHES
                   ===================================== */}
 
-                  <div className="member-project-task-panel">
+                  <aside className="member-project-task-panel">
+
                     <div className="member-project-task-panel-header">
+
                       <div>
                         <strong>
                           Mes tâches
                         </strong>
 
                         <span>
-                          Activité dans ce projet
+                          Tâches qui me sont assignées
                         </span>
                       </div>
 
@@ -908,35 +949,34 @@ function MemberProjectsPage({
                           projectTasks.length
                         }
                       </span>
+
                     </div>
 
-                    <div className="member-project-task-list">
-                      {projectTasks.length ===
-                      0 ? (
-                        <div className="member-project-no-tasks">
-                          <TaskIcon />
+                    {projectTasks.length ===
+                    0 ? (
+                      <div className="member-project-no-tasks">
 
-                          <span>
-                            Aucune tâche dans
-                            ce projet.
-                          </span>
-                        </div>
-                      ) : (
-                        projectTasks.map(
+                        <TaskIcon />
+
+                        <span>
+                          Aucune tâche assignée.
+                        </span>
+
+                      </div>
+                    ) : (
+                      <div className="member-project-task-list">
+
+                        {projectTasks.map(
                           (task) => (
-                            <button
-                              type="button"
+                            <div
                               key={
                                 task.id
                               }
                               className="member-project-task-row"
-                              onClick={() =>
-                                openTask(
-                                  task
-                                )
-                              }
                             >
+
                               <div className="member-project-task-name">
+
                                 <span className="member-project-task-icon">
                                   <TaskIcon />
                                 </span>
@@ -946,11 +986,16 @@ function MemberProjectsPage({
                                     task.title
                                   }
                                 </span>
+
                               </div>
 
                               <div className="member-project-task-right">
+
                                 <span
-                                  className={`member-project-task-status member-project-task-status-${task.status?.toLowerCase()}`}
+                                  className={`member-project-task-status member-project-task-status-${String(
+                                    task.status ??
+                                      ""
+                                  ).toLowerCase()}`}
                                 >
                                   <span />
 
@@ -960,19 +1005,26 @@ function MemberProjectsPage({
                                 </span>
 
                                 <ArrowIcon />
+
                               </div>
-                            </button>
+
+                            </div>
                           )
-                        )
-                      )}
-                    </div>
-                  </div>
+                        )}
+
+                      </div>
+                    )}
+
+                  </aside>
+
                 </article>
               );
             }
-          )}
-        </div>
-      )}
+          )
+        )}
+
+      </div>
+
     </section>
   );
 }

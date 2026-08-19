@@ -5,137 +5,49 @@ import {
   useState,
 } from "react";
 
-import {
-  useNavigate,
-} from "react-router-dom";
-
 import "./MemberNotifications.css";
 
 /* =========================================================
-   ICONS
+   LABELS
 ========================================================= */
 
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-      <path d="M10 21h4" />
-    </svg>
-  );
-}
+const ACTION_LABELS = {
+  CREATE: "Création",
+  UPDATE: "Modification",
+  DELETE: "Suppression",
+  STATUS_CHANGE: "Changement de statut",
+};
 
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M6 6l12 12" />
-      <path d="M18 6 6 18" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="m5 12 4 4L19 6" />
-    </svg>
-  );
-}
+const STATUS_LABELS = {
+  A_FAIRE: "À faire",
+  EN_COURS: "En cours",
+  TERMINE: "Terminée",
+};
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-function isAssignedToUser(
-  task,
-  userId
-) {
-  return (
-    task?.assignments || []
-  ).some(
-    (assignment) =>
-      String(
-        assignment.userId
-      ) ===
-        String(userId) &&
-      !assignment.unassignedAt
-  );
-}
-
-function getStatusLabel(
-  status
-) {
-  const labels = {
-    A_FAIRE: "À faire",
-    EN_COURS: "En cours",
-    TERMINE: "Terminé",
-    A_REVOIR: "À revoir",
-  };
-
-  return (
-    labels[status] ??
-    status ??
-    ""
-  );
-}
-
-function formatRelativeDate(
+function formatDateTime(
   value
 ) {
   if (!value) {
-    return "";
+    return "Date inconnue";
   }
 
   const date =
-    new Date(value);
+    new Date(
+      value
+    );
 
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
-    return "";
-  }
-
-  const difference =
-    Date.now() -
-    date.getTime();
-
-  const minutes =
-    Math.floor(
-      difference /
-        60000
+    return String(
+      value
     );
-
-  const hours =
-    Math.floor(
-      difference /
-        3600000
-    );
-
-  const days =
-    Math.floor(
-      difference /
-        86400000
-    );
-
-  if (minutes < 1) {
-    return "À l'instant";
-  }
-
-  if (minutes < 60) {
-    return `Il y a ${minutes} min`;
-  }
-
-  if (hours < 24) {
-    return `Il y a ${hours} h`;
-  }
-
-  if (days === 1) {
-    return "Hier";
-  }
-
-  if (days < 7) {
-    return `Il y a ${days} jours`;
   }
 
   return new Intl.DateTimeFormat(
@@ -143,70 +55,128 @@ function formatRelativeDate(
     {
       day: "2-digit",
       month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
     }
-  ).format(date);
+  ).format(
+    date
+  );
 }
 
-function createNotificationContent(
-  action,
-  task
+function formatStatus(
+  status
 ) {
-  if (
-    action.type_action ===
-    "CHANGEMENT_STATUT"
-  ) {
-    return {
-      title:
-        "Statut modifié",
+  return (
+    STATUS_LABELS[
+      status
+    ] ??
+    status ??
+    "—"
+  );
+}
 
-      message:
-        `${getStatusLabel(
-          action.ancienne_valeur
-        )} → ${getStatusLabel(
-          action.nouvelle_valeur
-        )}`,
-    };
+function getNotificationTitle(
+  entry
+) {
+  const action =
+    entry?.action;
+
+  return (
+    ACTION_LABELS[
+      action
+    ] ??
+    action ??
+    "Activité"
+  );
+}
+
+function getNotificationMessage(
+  entry
+) {
+  const action =
+    entry?.action;
+
+  const details =
+    entry?.details;
+
+  if (
+    action ===
+    "CREATE"
+  ) {
+    return "Une tâche a été créée.";
   }
 
   if (
-    action.type_action ===
-    "MODIFICATION"
+    action ===
+    "DELETE"
   ) {
-    return {
-      title:
-        "Tâche modifiée",
-
-      message:
-        action.champ_modifie
-          ? `${action.champ_modifie} a été modifié`
-          : "Les informations de la tâche ont été modifiées.",
-    };
+    return "Une tâche a été supprimée.";
   }
 
   if (
-    action.type_action ===
-    "CREATION"
+    action ===
+    "STATUS_CHANGE"
   ) {
-    return {
-      title:
-        task?.parentTaskId
-          ? "Nouvelle sous-tâche"
-          : "Nouvelle tâche",
+    const oldStatus =
+      details?.oldStatus ??
+      details?.previousStatus ??
+      details?.from ??
+      details?.oldValue ??
+      null;
 
-      message:
-        task?.parentTaskId
-          ? "Une nouvelle sous-tâche est disponible."
-          : "Une nouvelle tâche vous concerne.",
-    };
+    const newStatus =
+      details?.newStatus ??
+      details?.currentStatus ??
+      details?.to ??
+      details?.newValue ??
+      null;
+
+    if (
+      oldStatus &&
+      newStatus
+    ) {
+      return `Le statut est passé de « ${formatStatus(
+        oldStatus
+      )} » à « ${formatStatus(
+        newStatus
+      )} ».`;
+    }
+
+    if (
+      newStatus
+    ) {
+      return `Le statut est maintenant « ${formatStatus(
+        newStatus
+      )} ».`;
+    }
+
+    return "Le statut d'une tâche a été modifié.";
   }
 
-  return {
-    title:
-      "Nouvelle activité",
+  if (
+    action ===
+    "UPDATE"
+  ) {
+    const field =
+      details?.field ??
+      details?.fieldName ??
+      details?.property ??
+      null;
 
-    message:
-      "Une nouvelle activité concerne cette tâche.",
-  };
+    if (
+      field
+    ) {
+      return `Le champ « ${field} » a été modifié.`;
+    }
+
+    return "Les informations d'une tâche ont été modifiées.";
+  }
+
+  return (
+    details?.message ??
+    details?.description ??
+    "Une activité a été enregistrée."
+  );
 }
 
 /* =========================================================
@@ -214,592 +184,513 @@ function createNotificationContent(
 ========================================================= */
 
 function MemberNotificationsPanel({
-  currentUser,
-  tasks = [],
+  open,
+  onClose,
   actions = [],
+  tasks = [],
+  currentUser,
 }) {
-  const navigate =
-    useNavigate();
-
-  const wrapperRef =
-    useRef(null);
-
-  const [
-    open,
-    setOpen,
-  ] = useState(false);
-
-  const storageKey =
-    `member-notifications-${
-      currentUser?.id ??
-      currentUser?.email ??
-      "anonymous"
-    }`;
+  const panelRef =
+    useRef(
+      null
+    );
 
   const [
-    state,
-    setState,
-  ] = useState({
-    readIds: [],
-    deletedIds: [],
-  });
+    readIds,
+    setReadIds,
+  ] =
+    useState(
+      new Set()
+    );
+
+  const [
+    deletedIds,
+    setDeletedIds,
+  ] =
+    useState(
+      new Set()
+    );
 
   /* =======================================================
-     LOAD LOCAL STORAGE
+     FERMETURE EXTÉRIEURE + ESC
   ======================================================= */
 
-  useEffect(() => {
-    try {
-      const saved =
-        localStorage.getItem(
-          storageKey
-        );
-
-      if (!saved) {
-        setState({
-          readIds: [],
-          deletedIds: [],
-        });
-
+  useEffect(
+    () => {
+      if (
+        !open
+      ) {
         return;
       }
 
-      const parsed =
-        JSON.parse(saved);
-
-      setState({
-        readIds:
-          Array.isArray(
-            parsed.readIds
+      function handleOutsideClick(
+        event
+      ) {
+        if (
+          panelRef.current &&
+          !panelRef.current.contains(
+            event.target
           )
-            ? parsed.readIds
-            : [],
-
-        deletedIds:
-          Array.isArray(
-            parsed.deletedIds
-          )
-            ? parsed.deletedIds
-            : [],
-      });
-    } catch {
-      setState({
-        readIds: [],
-        deletedIds: [],
-      });
-    }
-  }, [storageKey]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify(
-        state
-      )
-    );
-  }, [
-    storageKey,
-    state,
-  ]);
-
-  /* =======================================================
-     RELEVANT TASKS
-  ======================================================= */
-
-  const relevantTaskIds =
-    useMemo(() => {
-      const ids =
-        new Set();
-
-      tasks.forEach(
-        (task) => {
-          if (
-            isAssignedToUser(
-              task,
-              currentUser?.id
-            )
-          ) {
-            ids.add(
-              String(
-                task.id
-              )
-            );
-
-            if (
-              task.parentTaskId
-            ) {
-              ids.add(
-                String(
-                  task.parentTaskId
-                )
-              );
-            }
-          }
+        ) {
+          onClose?.();
         }
+      }
+
+      function handleEscape(
+        event
+      ) {
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          onClose?.();
+        }
+      }
+
+      document.addEventListener(
+        "mousedown",
+        handleOutsideClick
       );
 
-      return ids;
-    }, [
-      tasks,
-      currentUser,
-    ]);
+      document.addEventListener(
+        "keydown",
+        handleEscape
+      );
+
+      return () => {
+        document.removeEventListener(
+          "mousedown",
+          handleOutsideClick
+        );
+
+        document.removeEventListener(
+          "keydown",
+          handleEscape
+        );
+      };
+    },
+    [
+      open,
+      onClose,
+    ]
+  );
 
   /* =======================================================
-     NOTIFICATIONS
+     NOTIFICATIONS DU MEMBER
   ======================================================= */
 
   const notifications =
-    useMemo(() => {
-      const read =
-        new Set(
-          state.readIds.map(
-            String
-          )
-        );
+    useMemo(
+      () => {
+        if (
+          !currentUser?.id
+        ) {
+          return [];
+        }
 
-      const deleted =
-        new Set(
-          state.deletedIds.map(
-            String
-          )
-        );
-
-      return actions
-        .filter(
-          (action) =>
-            relevantTaskIds.has(
-              String(
-                action.id_tache
-              )
-            )
-        )
-        .map(
-          (
-            action,
-            index
-          ) => {
-            const task =
-              tasks.find(
-                (task) =>
-                  String(
-                    task.id
-                  ) ===
-                  String(
-                    action.id_tache
-                  )
-              );
-
-            const id =
-              String(
-                action.id ??
-                  `${action.id_tache}-${action.date_action}-${index}`
-              );
-
-            const content =
-              createNotificationContent(
-                action,
+        /*
+         * Une notification n'est gardée
+         * que si elle correspond à une
+         * tâche visible/assignée au membre.
+         */
+        const allowedTaskIds =
+          new Set(
+            tasks.map(
+              (
                 task
-              );
-
-            return {
-              id,
-
-              taskId:
-                action.id_tache,
-
-              taskTitle:
-                task?.title ??
-                "Tâche",
-
-              title:
-                content.title,
-
-              message:
-                content.message,
-
-              date:
-                action.date_action,
-
-              isRead:
-                read.has(id),
-            };
-          }
-        )
-        .filter(
-          (notification) =>
-            !deleted.has(
-              notification.id
+              ) =>
+                String(
+                  task.id
+                )
             )
-        )
-        .sort(
-          (a, b) =>
-            new Date(
-              b.date ?? 0
-            ) -
-            new Date(
-              a.date ?? 0
-            )
-        );
-    }, [
-      actions,
-      tasks,
-      relevantTaskIds,
-      state,
-    ]);
+          );
+
+        return actions
+          .filter(
+            (
+              entry
+            ) => {
+              if (
+                !entry
+              ) {
+                return false;
+              }
+
+              if (
+                entry.entityType &&
+                entry.entityType !==
+                "TASK"
+              ) {
+                return false;
+              }
+
+              if (
+                !allowedTaskIds.has(
+                  String(
+                    entry.entityId
+                  )
+                )
+              ) {
+                return false;
+              }
+
+              if (
+                deletedIds.has(
+                  String(
+                    entry.id
+                  )
+                )
+              ) {
+                return false;
+              }
+
+              return true;
+            }
+          )
+          .sort(
+            (
+              a,
+              b
+            ) =>
+              new Date(
+                b.createdAt ??
+                  0
+              ) -
+              new Date(
+                a.createdAt ??
+                  0
+              )
+          );
+      },
+      [
+        actions,
+        tasks,
+        currentUser,
+        deletedIds,
+      ]
+    );
+
+  /* =======================================================
+     NON LUES
+  ======================================================= */
 
   const unreadCount =
     notifications.filter(
-      (notification) =>
-        !notification.isRead
+      (
+        entry
+      ) =>
+        !readIds.has(
+          String(
+            entry.id
+          )
+        )
     ).length;
 
   /* =======================================================
-     ACTIONS
+     ACTIONS LOCALES
   ======================================================= */
 
-  function markRead(id) {
-    setState(
-      (current) => ({
-        ...current,
+  function markAsRead(
+    id
+  ) {
+    setReadIds(
+      (
+        previous
+      ) => {
+        const next =
+          new Set(
+            previous
+          );
 
-        readIds: [
-          ...new Set([
-            ...current.readIds,
-            String(id),
-          ]),
-        ],
-      })
+        next.add(
+          String(
+            id
+          )
+        );
+
+        return next;
+      }
     );
   }
 
-  function markAllRead() {
-    setState(
-      (current) => ({
-        ...current,
+  function markAllAsRead() {
+    setReadIds(
+      (
+        previous
+      ) => {
+        const next =
+          new Set(
+            previous
+          );
 
-        readIds: [
-          ...new Set([
-            ...current.readIds,
+        notifications.forEach(
+          (
+            entry
+          ) =>
+            next.add(
+              String(
+                entry.id
+              )
+            )
+        );
 
-            ...notifications.map(
-              (notification) =>
-                String(
-                  notification.id
-                )
-            ),
-          ]),
-        ],
-      })
+        return next;
+      }
     );
   }
 
   function removeNotification(
     id
   ) {
-    setState(
-      (current) => ({
-        ...current,
+    setDeletedIds(
+      (
+        previous
+      ) => {
+        const next =
+          new Set(
+            previous
+          );
 
-        deletedIds: [
-          ...new Set([
-            ...current.deletedIds,
-            String(id),
-          ]),
-        ],
-      })
-    );
-  }
+        next.add(
+          String(
+            id
+          )
+        );
 
-  function removeAll() {
-    setState(
-      (current) => ({
-        ...current,
-
-        deletedIds: [
-          ...new Set([
-            ...current.deletedIds,
-
-            ...notifications.map(
-              (notification) =>
-                String(
-                  notification.id
-                )
-            ),
-          ]),
-        ],
-      })
-    );
-  }
-
-  function openNotification(
-    notification
-  ) {
-    markRead(
-      notification.id
-    );
-
-    setOpen(false);
-
-    navigate(
-      `/member/tasks?q=${encodeURIComponent(
-        notification.taskTitle
-      )}`
-    );
-  }
-
-  /* =======================================================
-     OUTSIDE
-  ======================================================= */
-
-  useEffect(() => {
-    function outside(
-      event
-    ) {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(
-          event.target
-        )
-      ) {
-        setOpen(false);
+        return next;
       }
-    }
-
-    function escape(
-      event
-    ) {
-      if (
-        event.key ===
-        "Escape"
-      ) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener(
-      "mousedown",
-      outside
     );
-
-    document.addEventListener(
-      "keydown",
-      escape
-    );
-
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        outside
-      );
-
-      document.removeEventListener(
-        "keydown",
-        escape
-      );
-    };
-  }, []);
+  }
 
   /* =======================================================
      RENDER
   ======================================================= */
 
+  if (
+    !open
+  ) {
+    return null;
+  }
+
   return (
-    <div
+    <aside
       ref={
-        wrapperRef
+        panelRef
       }
-      className="member-notification-wrapper"
+      className="member-notifications-panel"
+      aria-label="Notifications"
     >
-      <button
-        type="button"
-        className={`member-notification-button ${
-          open
-            ? "member-notification-button-open"
-            : ""
-        }`}
-        onClick={() =>
-          setOpen(
-            (current) =>
-              !current
-          )
-        }
-        aria-label="Notifications"
-      >
-        <BellIcon />
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
-        {unreadCount > 0 && (
-          <span className="member-notification-badge">
-            {unreadCount > 99
-              ? "99+"
-              : unreadCount}
+      <div className="member-notifications-header">
+        <div>
+          <span>
+            Activité
           </span>
-        )}
-      </button>
 
-      {open && (
-        <div className="member-notifications-panel">
-          <div className="member-notifications-header">
-            <div>
-              <h3>
-                Notifications
-              </h3>
+          <h3>
+            Notifications
+          </h3>
 
-              <span>
-                {unreadCount ===
-                0
-                  ? "Aucune notification non lue"
-                  : `${unreadCount} non lue${
-                      unreadCount >
-                      1
-                        ? "s"
-                        : ""
-                    }`}
-              </span>
-            </div>
+          <small>
+            {unreadCount ===
+            0
+              ? "Aucune notification non lue"
+              : `${unreadCount} notification${
+                  unreadCount >
+                  1
+                    ? "s"
+                    : ""
+                } non lue${
+                  unreadCount >
+                  1
+                    ? "s"
+                    : ""
+                }`}
+          </small>
+        </div>
 
-            {unreadCount >
-              0 && (
-              <button
-                type="button"
-                className="member-notifications-read-all"
-                onClick={
-                  markAllRead
-                }
-              >
-                <CheckIcon />
+        <button
+          type="button"
+          className="member-notifications-close"
+          onClick={
+            onClose
+          }
+          aria-label="Fermer les notifications"
+        >
+          ×
+        </button>
+      </div>
 
-                Tout lire
-              </button>
-            )}
-          </div>
+      {/* =================================================
+          ACTION GLOBALE
+      ================================================= */}
 
-          <div className="member-notifications-list">
-            {notifications.length ===
-            0 ? (
-              <div className="member-notifications-empty">
-                <div className="member-notifications-empty-icon">
-                  <BellIcon />
-                </div>
-
-                <strong>
-                  Aucune notification
-                </strong>
-
-                <span>
-                  Les nouvelles activités
-                  liées à votre compte
-                  apparaîtront ici.
-                </span>
-              </div>
-            ) : (
-              notifications.map(
-                (
-                  notification
-                ) => (
-                  <div
-                    key={
-                      notification.id
-                    }
-                    className={`member-notification-item ${
-                      notification.isRead
-                        ? "member-notification-item-read"
-                        : "member-notification-item-unread"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      className="member-notification-content"
-                      onClick={() =>
-                        openNotification(
-                          notification
-                        )
-                      }
-                    >
-                      {!notification.isRead && (
-                        <span className="member-notification-unread-dot" />
-                      )}
-
-                      <div className="member-notification-text">
-                        <div className="member-notification-title-row">
-                          <strong>
-                            {
-                              notification.title
-                            }
-                          </strong>
-
-                          <time>
-                            {formatRelativeDate(
-                              notification.date
-                            )}
-                          </time>
-                        </div>
-
-                        <span className="member-notification-task-title">
-                          {
-                            notification.taskTitle
-                          }
-                        </span>
-
-                        <p>
-                          {
-                            notification.message
-                          }
-                        </p>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="member-notification-delete"
-                      aria-label="Supprimer"
-                      title="Supprimer"
-                      onClick={(
-                        event
-                      ) => {
-                        event.stopPropagation();
-
-                        removeNotification(
-                          notification.id
-                        );
-                      }}
-                    >
-                      <CloseIcon />
-                    </button>
-                  </div>
-                )
-              )
-            )}
-          </div>
-
-          {notifications.length >
-            0 && (
-            <div className="member-notifications-footer">
-              <button
-                type="button"
-                disabled={
-                  unreadCount === 0
-                }
-                onClick={
-                  markAllRead
-                }
-              >
-                Tout marquer comme lu
-              </button>
-
-              <button
-                type="button"
-                className="member-notifications-delete-all"
-                onClick={
-                  removeAll
-                }
-              >
-                Tout supprimer
-              </button>
-            </div>
-          )}
+      {notifications.length >
+        0 && (
+        <div className="member-notifications-toolbar">
+          <button
+            type="button"
+            onClick={
+              markAllAsRead
+            }
+            disabled={
+              unreadCount ===
+              0
+            }
+          >
+            Tout marquer comme lu
+          </button>
         </div>
       )}
-    </div>
+
+      {/* =================================================
+          LISTE
+      ================================================= */}
+
+      <div className="member-notifications-list">
+
+        {notifications.length ===
+        0 ? (
+          <div className="member-notifications-empty">
+            <strong>
+              Aucune notification
+            </strong>
+
+            <span>
+              Les activités liées à vos tâches apparaîtront ici lorsqu'elles seront disponibles.
+            </span>
+          </div>
+        ) : (
+          notifications.map(
+            (
+              entry
+            ) => {
+              const id =
+                String(
+                  entry.id
+                );
+
+              const isRead =
+                readIds.has(
+                  id
+                );
+
+              const relatedTask =
+                tasks.find(
+                  (
+                    task
+                  ) =>
+                    String(
+                      task.id
+                    ) ===
+                    String(
+                      entry.entityId
+                    )
+                );
+
+              return (
+                <article
+                  key={
+                    id
+                  }
+                  className={`member-notification-item ${
+                    isRead
+                      ? "member-notification-item-read"
+                      : "member-notification-item-unread"
+                  }`}
+                >
+                  {/* =====================================
+                      INDICATEUR
+                  ===================================== */}
+
+                  <div className="member-notification-indicator">
+                    <span />
+                  </div>
+
+                  {/* =====================================
+                      CONTENT
+                  ===================================== */}
+
+                  <div className="member-notification-content">
+
+                    <div className="member-notification-top">
+                      <strong>
+                        {getNotificationTitle(
+                          entry
+                        )}
+                      </strong>
+
+                      <time>
+                        {formatDateTime(
+                          entry.createdAt
+                        )}
+                      </time>
+                    </div>
+
+                    {relatedTask && (
+                      <span className="member-notification-task">
+                        {
+                          relatedTask.title
+                        }
+                      </span>
+                    )}
+
+                    <p>
+                      {getNotificationMessage(
+                        entry
+                      )}
+                    </p>
+
+                    {entry?.userId !==
+                      undefined &&
+                      entry?.userId !==
+                        null && (
+                      <small>
+                        Utilisateur #{entry.userId}
+                      </small>
+                    )}
+
+                    {/* =================================
+                        ACTIONS
+                    ================================= */}
+
+                    <div className="member-notification-actions">
+
+                      {!isRead && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            markAsRead(
+                              id
+                            )
+                          }
+                        >
+                          Marquer comme lu
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeNotification(
+                            id
+                          )
+                        }
+                      >
+                        Masquer
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            }
+          )
+        )}
+      </div>
+    </aside>
   );
 }
 

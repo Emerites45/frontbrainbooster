@@ -1,0 +1,133 @@
+.history-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.history-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 18px;
+}
+
+.history-item:last-child {
+  padding-bottom: 0;
+}
+
+.history-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.history-marker span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px rgba(11, 67, 140, 0.16);
+  background: #0b438c;
+  z-index: 2;
+  margin-top: 5px;
+}
+
+.history-marker i {
+  position: absolute;
+  top: 20px;
+  bottom: -5px;
+  width: 2px;
+  background: #e5e7eb;
+}
+
+.history-content {
+  min-width: 0;
+  padding: 0 0 2px;
+}
+
+.history-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.history-top-row strong {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.history-top-row time {
+  color: #6b7280;
+  font-size: 12px;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.history-content p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.history-extra-details {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.history-user {
+  display: inline-block;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.history-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+  padding: 18px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  color: #6b7280;
+  background: #fafafa;
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .history-item {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .history-marker span {
+    width: 10px;
+    height: 10px;
+  }
+
+  .history-top-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .history-top-row time {
+    white-space: normal;
+  }
+}

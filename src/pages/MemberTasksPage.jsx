@@ -26,7 +26,6 @@ const PAGE_SIZE = 7;
 const STATUS_LABELS = {
   A_FAIRE: "À faire",
   EN_COURS: "En cours",
-  A_REVOIR: "À revoir",
   TERMINE: "Terminée",
 };
 
@@ -132,7 +131,7 @@ function CheckIcon() {
 }
 
 /* =========================================================
-   PRIORITE
+   PRIORITÉ
 ========================================================= */
 
 function normalizePriority(task) {
@@ -196,6 +195,12 @@ function isTaskOverdue(task) {
   );
 }
 
+/**
+ * EN_RETARD n'est pas un statut backend.
+ *
+ * Il sert uniquement à l'affichage
+ * et au filtrage dans l'interface.
+ */
 function getDisplayedStatus(
   task
 ) {
@@ -288,23 +293,18 @@ function getAssignedByNames(
   const assignedByIds = [
     ...new Set(
       assignments
-        .filter(
-          (
-            assignment
-          ) =>
-            !assignment.unassignedAt
-        )
         .map(
           (
             assignment
           ) =>
-            assignment.assignedBy
+            assignment?.assignedBy
         )
         .filter(
           (id) =>
             id !==
               undefined &&
-            id !== null
+            id !==
+              null
         )
     ),
   ];
@@ -321,7 +321,9 @@ function getAssignedByNames(
       .map(
         (id) =>
           users.find(
-            (user) =>
+            (
+              user
+            ) =>
               String(
                 user.id
               ) ===
@@ -375,6 +377,7 @@ function TaskStatusDropdown({
     {
       value:
         "A_FAIRE",
+
       label:
         "À faire",
     },
@@ -382,6 +385,7 @@ function TaskStatusDropdown({
     {
       value:
         "EN_COURS",
+
       label:
         "En cours",
     },
@@ -389,13 +393,14 @@ function TaskStatusDropdown({
     {
       value:
         "TERMINE",
+
       label:
         "Terminée",
     },
   ];
 
   /* =======================================================
-     FERMETURE EXTERIEURE
+     FERMETURE EXTÉRIEURE
   ======================================================= */
 
   useEffect(
@@ -669,7 +674,7 @@ function MemberTasksPage({
     "";
 
   /* =======================================================
-     TACHES DU MEMBER
+     TÂCHES DU MEMBER
   ======================================================= */
 
   const myTasks =
@@ -685,11 +690,15 @@ function MemberTasksPage({
         }
 
         return tasks.filter(
-          (task) =>
+          (
+            task
+          ) =>
             getAssigneeIds(
               task
             ).some(
-              (id) =>
+              (
+                id
+              ) =>
                 String(
                   id
                 ) ===
@@ -717,21 +726,27 @@ function MemberTasksPage({
 
         const todo =
           myTasks.filter(
-            (task) =>
+            (
+              task
+            ) =>
               task.status ===
               "A_FAIRE"
           ).length;
 
         const inProgress =
           myTasks.filter(
-            (task) =>
+            (
+              task
+            ) =>
               task.status ===
               "EN_COURS"
           ).length;
 
         const done =
           myTasks.filter(
-            (task) =>
+            (
+              task
+            ) =>
               task.status ===
               "TERMINE"
           ).length;
@@ -1027,7 +1042,9 @@ function MemberTasksPage({
       getAssigneeIds(
         task
       ).some(
-        (id) =>
+        (
+          id
+        ) =>
           String(
             id
           ) ===
@@ -1046,11 +1063,41 @@ function MemberTasksPage({
       return;
     }
 
+    /*
+     * Seuls les statuts définis par
+     * le contrat backend peuvent être
+     * envoyés.
+     */
+    if (
+      ![
+        "A_FAIRE",
+        "EN_COURS",
+        "TERMINE",
+      ].includes(
+        newStatus
+      )
+    ) {
+      console.error(
+        "Statut non autorisé :",
+        newStatus
+      );
+
+      return;
+    }
+
     onStatusChange(
       task.id,
       newStatus
     );
 
+    /*
+     * Mise à jour immédiate de la
+     * tâche actuellement ouverte.
+     *
+     * App.jsx fera ensuite la
+     * synchronisation réelle avec
+     * la réponse du backend.
+     */
     setSelectedTask(
       (
         currentTask
@@ -1071,6 +1118,7 @@ function MemberTasksPage({
 
         return {
           ...currentTask,
+
           status:
             newStatus,
         };
@@ -1103,6 +1151,7 @@ function MemberTasksPage({
   return (
     <>
       <section className="member-tasks-page">
+
         {/* =================================================
             HEADER
         ================================================= */}
@@ -1160,6 +1209,7 @@ function MemberTasksPage({
         ================================================= */}
 
         <div className="member-task-overview">
+
           <div className="member-task-overview-item">
             <span className="member-task-overview-dot member-task-overview-dot-todo" />
 
@@ -1230,6 +1280,7 @@ function MemberTasksPage({
         ================================================= */}
 
         <div className="member-task-filters">
+
           <div className="member-task-filter-intro">
             <div className="member-filter-icon">
               <FilterIcon />
@@ -1248,6 +1299,9 @@ function MemberTasksPage({
           </div>
 
           <div className="member-task-filter-fields">
+
+            {/* STATUT */}
+
             <div className="member-filter-group">
               <label htmlFor="member-status-filter">
                 Statut
@@ -1279,10 +1333,6 @@ function MemberTasksPage({
                   En cours
                 </option>
 
-                <option value="A_REVOIR">
-                  À revoir
-                </option>
-
                 <option value="EN_RETARD">
                   En retard
                 </option>
@@ -1292,6 +1342,8 @@ function MemberTasksPage({
                 </option>
               </select>
             </div>
+
+            {/* PRIORITÉ */}
 
             <div className="member-filter-group">
               <label htmlFor="member-priority-filter">
@@ -1333,6 +1385,8 @@ function MemberTasksPage({
                 </option>
               </select>
             </div>
+
+            {/* ÉCHÉANCE */}
 
             <div className="member-filter-group">
               <label htmlFor="member-deadline-filter">
@@ -1397,6 +1451,7 @@ function MemberTasksPage({
         ================================================= */}
 
         <div className="member-tasks-table-card">
+
           <div className="member-tasks-table-top">
             <div>
               <strong>
@@ -1418,6 +1473,7 @@ function MemberTasksPage({
             {search && (
               <div className="member-task-search-indicator">
                 Recherche :{" "}
+
                 <strong>
                   {
                     searchParams.get(
@@ -1430,7 +1486,9 @@ function MemberTasksPage({
           </div>
 
           <div className="member-tasks-table-scroll">
+
             <table className="member-tasks-table">
+
               <thead>
                 <tr>
                   <th>
@@ -1460,6 +1518,7 @@ function MemberTasksPage({
               </thead>
 
               <tbody>
+
                 {visibleTasks.length ===
                 0 ? (
                   <tr>
@@ -1473,8 +1532,7 @@ function MemberTasksPage({
                         </div>
 
                         <strong>
-                          Aucune tâche
-                          trouvée
+                          Aucune tâche trouvée
                         </strong>
 
                         <span>
@@ -1514,18 +1572,22 @@ function MemberTasksPage({
                             task.id
                           }
                         >
-                          {/* TACHE */}
+
+                          {/* TÂCHE */}
 
                           <td>
                             <div className="member-task-title-cell">
+
                               <div className="member-task-row-icon">
                                 <TaskIcon />
                               </div>
 
                               <div>
                                 <strong>
-                                  {task.title ??
-                                    "Sans titre"}
+                                  {
+                                    task.title ??
+                                    "Sans titre"
+                                  }
                                 </strong>
 
                                 <span>
@@ -1554,7 +1616,7 @@ function MemberTasksPage({
                             />
                           </td>
 
-                          {/* PRIORITE */}
+                          {/* PRIORITÉ */}
 
                           <td>
                             {priority ? (
@@ -1575,10 +1637,11 @@ function MemberTasksPage({
                             )}
                           </td>
 
-                          {/* ASSIGNE PAR */}
+                          {/* ASSIGNÉ PAR */}
 
                           <td>
                             <div className="member-assigned-by">
+
                               <span className="member-assigned-avatar">
                                 {assignedBy ===
                                 "—"
@@ -1598,7 +1661,7 @@ function MemberTasksPage({
                             </div>
                           </td>
 
-                          {/* ECHEANCE */}
+                          {/* ÉCHÉANCE */}
 
                           <td>
                             <div
@@ -1646,6 +1709,7 @@ function MemberTasksPage({
                     }
                   )
                 )}
+
               </tbody>
             </table>
           </div>
@@ -1655,6 +1719,7 @@ function MemberTasksPage({
           ================================================= */}
 
           <div className="member-tasks-pagination">
+
             <span>
               Affichage de{" "}
               <strong>
@@ -1677,6 +1742,7 @@ function MemberTasksPage({
             </span>
 
             <div className="member-pagination-buttons">
+
               <button
                 type="button"
                 aria-label="Page précédente"
@@ -1702,12 +1768,15 @@ function MemberTasksPage({
 
               <span>
                 Page{" "}
+
                 <strong>
                   {
                     safePage
                   }
                 </strong>{" "}
+
                 sur{" "}
+
                 <strong>
                   {
                     totalPages
@@ -1748,31 +1817,31 @@ function MemberTasksPage({
 
       {selectedTask && (
         <TaskModal
-  task={
-    selectedTask
-  }
-  allTasks={
-    tasks
-  }
-  users={
-    users
-  }
-  projects={
-    projects
-  }
-  currentUser={
-    currentUser
-  }
-  actions={
-    actions
-  }
-  onClose={
-    closeTaskDetails
-  }
-  onCreateSubtask={
-    onCreateSubtask
-  }
-/>
+          task={
+            selectedTask
+          }
+          allTasks={
+            tasks
+          }
+          users={
+            users
+          }
+          projects={
+            projects
+          }
+          currentUser={
+            currentUser
+          }
+          actions={
+            actions
+          }
+          onClose={
+            closeTaskDetails
+          }
+          onCreateSubtask={
+            onCreateSubtask
+          }
+        />
       )}
     </>
   );

@@ -1,8 +1,18 @@
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  createPortal,
+} from "react-dom";
 
 import SubtaskList from "./SubtaskList";
 import HistoryTimeline from "./HistoryTimeline";
+
+import {
+  fetchTaskHistory,
+} from "../api/api";
 
 import {
   getAssigneeIds,
@@ -29,7 +39,14 @@ function CloseIcon() {
 function TaskIcon() {
   return (
     <svg viewBox="0 0 24 24">
-      <rect x="5" y="3" width="14" height="18" rx="3" />
+      <rect
+        x="5"
+        y="3"
+        width="14"
+        height="18"
+        rx="3"
+      />
+
       <path d="M9 3.5h6v4H9z" />
       <path d="m9 12 1.5 1.5L14 10" />
       <path d="M9 17h6" />
@@ -40,7 +57,12 @@ function TaskIcon() {
 function UserIcon() {
   return (
     <svg viewBox="0 0 24 24">
-      <circle cx="12" cy="8" r="4" />
+      <circle
+        cx="12"
+        cy="8"
+        r="4"
+      />
+
       <path d="M4 21a8 8 0 0 1 16 0" />
     </svg>
   );
@@ -49,7 +71,14 @@ function UserIcon() {
 function CalendarIcon() {
   return (
     <svg viewBox="0 0 24 24">
-      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <rect
+        x="3"
+        y="5"
+        width="18"
+        height="16"
+        rx="2"
+      />
+
       <path d="M8 3v4M16 3v4M3 10h18" />
     </svg>
   );
@@ -77,33 +106,67 @@ function FlagIcon() {
    HELPERS
 ========================================================= */
 
-function formatDate(value) {
-  if (!value) {
+function formatDate(
+  value
+) {
+  if (
+    !value
+  ) {
     return "Non définie";
   }
 
-  const date = new Date(value);
+  const date =
+    new Date(
+      value
+    );
 
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return String(
+      value
+    );
   }
 
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
+  return new Intl.DateTimeFormat(
+    "fr-FR",
+    {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }
+  ).format(
+    date
+  );
 }
 
-function getPriorityLabel(priority) {
+function getPriorityLabel(
+  priority
+) {
   const values = {
     LOW: "Faible",
+    BASSE: "Faible",
+
     MEDIUM: "Moyenne",
+    MOYENNE: "Moyenne",
+
     HIGH: "Élevée",
+    HAUTE: "Élevée",
+
     URGENT: "Urgente",
+    CRITICAL: "Critique",
+    CRITIQUE: "Critique",
   };
 
-  return values[priority] ?? priority ?? "Non définie";
+  return (
+    values[
+      priority
+    ] ??
+    priority ??
+    "Non définie"
+  );
 }
 
 /* =========================================================
@@ -116,87 +179,284 @@ function TaskModal({
   users = [],
   projects = [],
   currentUser,
-  actions = [],
   onClose,
   onCreateSubtask,
   onEditTask,
   onDeleteTask,
 }) {
-  const [isEditing, setIsEditing] =
-    useState(false);
+  /* =======================================================
+     ÉDITION
+  ======================================================= */
 
-  const [title, setTitle] =
-    useState(task?.title ?? "");
+  const [
+    isEditing,
+    setIsEditing,
+  ] =
+    useState(
+      false
+    );
 
-  const [description, setDescription] =
-    useState(task?.description ?? "");
+  const [
+    title,
+    setTitle,
+  ] =
+    useState(
+      task?.title ??
+        ""
+    );
+
+  const [
+    description,
+    setDescription,
+  ] =
+    useState(
+      task?.description ??
+        ""
+    );
+
+  /* =======================================================
+     HISTORIQUE
+  ======================================================= */
+
+  const [
+    taskHistory,
+    setTaskHistory,
+  ] =
+    useState(
+      []
+    );
+
+  const [
+    historyLoading,
+    setHistoryLoading,
+  ] =
+    useState(
+      false
+    );
+
+  const [
+    historyError,
+    setHistoryError,
+  ] =
+    useState(
+      ""
+    );
+
+  /* =======================================================
+     SYNCHRONISATION TÂCHE
+  ======================================================= */
+
+  useEffect(
+    () => {
+      if (
+        !task
+      ) {
+        return;
+      }
+
+      setTitle(
+        task.title ??
+          ""
+      );
+
+      setDescription(
+        task.description ??
+          ""
+      );
+
+      setIsEditing(
+        false
+      );
+    },
+    [
+      task?.id,
+      task?.title,
+      task?.description,
+    ]
+  );
+
+  /* =======================================================
+     CHARGEMENT HISTORIQUE
+  ======================================================= */
+
+  useEffect(
+    () => {
+      let cancelled =
+        false;
+
+      if (
+        !task?.id
+      ) {
+        setTaskHistory(
+          []
+        );
+
+        return;
+      }
+
+      async function loadTaskHistory() {
+        setHistoryLoading(
+          true
+        );
+
+        setHistoryError(
+          ""
+        );
+
+        try {
+          const data =
+            await fetchTaskHistory(
+              task.id
+            );
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          setTaskHistory(
+            Array.isArray(
+              data
+            )
+              ? data
+              : []
+          );
+        } catch (err) {
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          console.error(
+            "Erreur chargement historique tâche :",
+            err
+          );
+
+          setTaskHistory(
+            []
+          );
+
+          setHistoryError(
+            err?.message ??
+              "Impossible de charger l'historique."
+          );
+        } finally {
+          if (
+            !cancelled
+          ) {
+            setHistoryLoading(
+              false
+            );
+          }
+        }
+      }
+
+      loadTaskHistory();
+
+      return () => {
+        cancelled =
+          true;
+      };
+    },
+    [
+      task?.id,
+    ]
+  );
 
   /* =======================================================
      ESC + BODY LOCK
   ======================================================= */
 
-  useEffect(() => {
-    if (!task) {
-      return;
-    }
-
-    const oldOverflow =
-      document.body.style.overflow;
-
-    document.body.style.overflow =
-      "hidden";
-
-    function handleEscape(event) {
-      if (event.key === "Escape") {
-        onClose?.();
+  useEffect(
+    () => {
+      if (
+        !task
+      ) {
+        return;
       }
-    }
 
-    document.addEventListener(
-      "keydown",
-      handleEscape
-    );
+      const oldOverflow =
+        document.body
+          .style
+          .overflow;
 
-    return () => {
       document.body.style.overflow =
-        oldOverflow;
+        "hidden";
 
-      document.removeEventListener(
+      function handleEscape(
+        event
+      ) {
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          onClose?.();
+        }
+      }
+
+      document.addEventListener(
         "keydown",
         handleEscape
       );
-    };
-  }, [task, onClose]);
 
-  if (!task) {
+      return () => {
+        document.body.style.overflow =
+          oldOverflow;
+
+        document.removeEventListener(
+          "keydown",
+          handleEscape
+        );
+      };
+    },
+    [
+      task,
+      onClose,
+    ]
+  );
+
+  if (
+    !task
+  ) {
     return null;
   }
 
   /* =======================================================
-     ROLES
+     RÔLES
   ======================================================= */
 
-  const isAdmin =
-    currentUser?.globalRoles?.includes(
-      "ADMIN"
-    );
+  const currentUserIsAdmin =
+    currentUser
+      ?.globalRoles
+      ?.includes(
+        "ADMIN"
+      );
 
-  const isScrumMaster =
-    currentUser?.departmentRoles?.some(
-      (role) =>
-        role?.role ===
-        "SCRUM_MASTER"
-    );
+  const currentUserIsScrumMaster =
+    currentUser
+      ?.departmentRoles
+      ?.some(
+        (
+          role
+        ) =>
+          role?.role ===
+          "SCRUM_MASTER"
+      );
 
-  const isSimpleMember =
-    !isAdmin && !isScrumMaster;
+  const currentUserIsSimpleMember =
+    !currentUserIsAdmin &&
+    !currentUserIsScrumMaster;
 
   /* =======================================================
-     ASSIGNMENT
+     ASSIGNATIONS
   ======================================================= */
 
   const assigneeIds =
-    getAssigneeIds(task);
+    getAssigneeIds(
+      task
+    );
 
   const assignedNames =
     getAssigneeNames(
@@ -206,53 +466,112 @@ function TaskModal({
 
   const isAssignedToCurrentUser =
     assigneeIds.some(
-      (userId) =>
-        String(userId) ===
-        String(currentUser?.id)
+      (
+        userId
+      ) =>
+        String(
+          userId
+        ) ===
+        String(
+          currentUser?.id
+        )
     );
 
+  /* =======================================================
+     DROITS
+  ======================================================= */
+
   const canEditMainTask =
-    isAdmin || isScrumMaster;
+    currentUserIsAdmin ||
+    currentUserIsScrumMaster;
 
   const canDeleteMainTask =
-    isAdmin || isScrumMaster;
+    currentUserIsAdmin ||
+    currentUserIsScrumMaster;
 
   const canCreateSubtask =
-    isAdmin ||
-    isScrumMaster ||
-    (isSimpleMember &&
-      isAssignedToCurrentUser);
+    currentUserIsAdmin ||
+    currentUserIsScrumMaster ||
+    (
+      currentUserIsSimpleMember &&
+      isAssignedToCurrentUser
+    );
 
   /* =======================================================
-     DATA
+     SOUS-TÂCHES
   ======================================================= */
 
   const subtasks =
     allTasks.filter(
-      (item) =>
-        String(item.parentTaskId) ===
-        String(task.id)
-    );
-
-  const taskActions =
-    actions.filter(
-      (action) =>
-        String(action.id_tache) ===
-        String(task.id)
-    );
-
-  const project =
-    projects.find(
-      (item) =>
-        String(item.id) ===
-        String(task.projectId)
+      (
+        item
+      ) =>
+        String(
+          item.parentTaskId
+        ) ===
+        String(
+          task.id
+        )
     );
 
   /* =======================================================
-     ACTIONS
+     PROJET
   ======================================================= */
 
-  function handleSave() {
+  const project =
+    projects.find(
+      (
+        item
+      ) =>
+        String(
+          item.id
+        ) ===
+        String(
+          task.projectId
+        )
+    );
+
+  /* =======================================================
+     RAFRAÎCHIR HISTORIQUE
+  ======================================================= */
+
+  async function refreshHistory() {
+    if (
+      !task?.id
+    ) {
+      return;
+    }
+
+    try {
+      const data =
+        await fetchTaskHistory(
+          task.id
+        );
+
+      setTaskHistory(
+        Array.isArray(
+          data
+        )
+          ? data
+          : []
+      );
+
+      setHistoryError(
+        ""
+      );
+    } catch (err) {
+      console.error(
+        "Impossible de rafraîchir l'historique :",
+        err
+      );
+    }
+  }
+
+  /* =======================================================
+     SAUVEGARDE
+  ======================================================= */
+
+  async function handleSave() {
     if (
       !canEditMainTask ||
       !onEditTask
@@ -260,15 +579,58 @@ function TaskModal({
       return;
     }
 
-    onEditTask(task.id, {
-      title,
-      description,
-    });
+    const cleanTitle =
+      title.trim();
 
-    setIsEditing(false);
+    const cleanDescription =
+      description.trim();
+
+    if (
+      !cleanTitle
+    ) {
+      alert(
+        "Le titre de la tâche est obligatoire."
+      );
+
+      return;
+    }
+
+    const result =
+      await onEditTask(
+        task.id,
+        {
+          title:
+            cleanTitle,
+
+          description:
+            cleanDescription,
+        }
+      );
+
+    if (
+      result ===
+      null
+    ) {
+      return;
+    }
+
+    setIsEditing(
+      false
+    );
+
+    /*
+     * Si le backend enregistre
+     * automatiquement l'historique,
+     * on recharge maintenant la timeline.
+     */
+    await refreshHistory();
   }
 
-  function handleDelete() {
+  /* =======================================================
+     SUPPRESSION
+  ======================================================= */
+
+  async function handleDelete() {
     if (
       !canDeleteMainTask ||
       !onDeleteTask
@@ -281,15 +643,32 @@ function TaskModal({
         "Supprimer cette tâche et ses sous-tâches ?"
       );
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return;
     }
 
-    onDeleteTask(task.id);
+    const deleted =
+      await onDeleteTask(
+        task.id
+      );
+
+    if (
+      deleted ===
+      false
+    ) {
+      return;
+    }
+
     onClose?.();
   }
 
-  function handleCreateSubtaskFromModal(
+  /* =======================================================
+     CRÉATION SOUS-TÂCHE
+  ======================================================= */
+
+  async function handleCreateSubtaskFromModal(
     subtaskData
   ) {
     if (
@@ -299,11 +678,18 @@ function TaskModal({
       return;
     }
 
-    onCreateSubtask(
-      task.id,
-      subtaskData.title,
-      subtaskData.assignments
-    );
+    const result =
+      await onCreateSubtask(
+        task.id,
+        subtaskData.title,
+        subtaskData.assignments
+      );
+
+    if (
+      result
+    ) {
+      await refreshHistory();
+    }
   }
 
   /* =======================================================
@@ -313,7 +699,9 @@ function TaskModal({
   const modal = (
     <div
       className="task-details-overlay"
-      onMouseDown={(event) => {
+      onMouseDown={(
+        event
+      ) => {
         if (
           event.target ===
           event.currentTarget
@@ -326,13 +714,17 @@ function TaskModal({
         className="task-details-modal"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="task-details-title"
       >
+
         {/* ===============================================
             HEADER
         =============================================== */}
 
         <header className="task-details-header">
+
           <div className="task-details-heading">
+
             <span className="task-details-main-icon">
               <TaskIcon />
             </span>
@@ -343,14 +735,21 @@ function TaskModal({
               </span>
 
               {!isEditing ? (
-                <h2>
-                  {task.title}
+                <h2 id="task-details-title">
+                  {
+                    task.title
+                  }
                 </h2>
               ) : (
                 <input
+                  id="task-details-title"
                   className="task-details-title-input"
-                  value={title}
-                  onChange={(event) =>
+                  value={
+                    title
+                  }
+                  onChange={(
+                    event
+                  ) =>
                     setTitle(
                       event.target.value
                     )
@@ -361,22 +760,28 @@ function TaskModal({
           </div>
 
           <div className="task-details-header-right">
+
             <span
               className={`task-details-status status-${String(
-                task.status ?? ""
+                task.status ??
+                  ""
               ).toLowerCase()}`}
             >
               <i />
 
               {STATUS_LABEL[
                 task.status
-              ] ?? task.status}
+              ] ??
+                task.status}
             </span>
 
             <button
               type="button"
               className="task-details-close"
-              onClick={onClose}
+              onClick={
+                onClose
+              }
+              aria-label="Fermer"
             >
               <CloseIcon />
             </button>
@@ -388,13 +793,21 @@ function TaskModal({
         =============================================== */}
 
         <div className="task-details-scroll">
+
           <div className="task-details-grid">
+
             {/* =============================================
                 MAIN COLUMN
             ============================================= */}
 
             <div className="task-details-main">
+
+              {/* ===========================================
+                  DESCRIPTION
+              =========================================== */}
+
               <section className="task-details-card">
+
                 <div className="task-details-card-title">
                   <span>
                     Description
@@ -414,8 +827,12 @@ function TaskModal({
                   <>
                     <textarea
                       className="task-details-description-input"
-                      value={description}
-                      onChange={(event) =>
+                      value={
+                        description
+                      }
+                      onChange={(
+                        event
+                      ) =>
                         setDescription(
                           event.target.value
                         )
@@ -423,6 +840,7 @@ function TaskModal({
                     />
 
                     <div className="task-details-edit-buttons">
+
                       <button
                         type="button"
                         className="task-details-primary-button"
@@ -436,11 +854,21 @@ function TaskModal({
                       <button
                         type="button"
                         className="task-details-secondary-button"
-                        onClick={() =>
+                        onClick={() => {
+                          setTitle(
+                            task.title ??
+                              ""
+                          );
+
+                          setDescription(
+                            task.description ??
+                              ""
+                          );
+
                           setIsEditing(
                             false
-                          )
-                        }
+                          );
+                        }}
                       >
                         Annuler
                       </button>
@@ -450,11 +878,13 @@ function TaskModal({
               </section>
 
               {/* ===========================================
-                  SUBTASKS
+                  SOUS-TÂCHES
               =========================================== */}
 
               <section className="task-details-card">
+
                 <div className="task-details-card-head">
+
                   <div className="task-details-card-title">
                     <span>
                       Organisation
@@ -466,14 +896,20 @@ function TaskModal({
                   </div>
 
                   <span className="task-details-counter">
-                    {subtasks.length}
+                    {
+                      subtasks.length
+                    }
                   </span>
                 </div>
 
                 {canCreateSubtask ? (
                   <SubtaskList
-                    subtasks={subtasks}
-                    users={users}
+                    subtasks={
+                      subtasks
+                    }
+                    users={
+                      users
+                    }
                     currentUser={
                       currentUser
                     }
@@ -484,8 +920,11 @@ function TaskModal({
                 ) : subtasks.length >
                   0 ? (
                   <div className="task-details-readonly-list">
+
                     {subtasks.map(
-                      (subtask) => (
+                      (
+                        subtask
+                      ) => (
                         <div
                           className="task-details-readonly-item"
                           key={
@@ -518,37 +957,48 @@ function TaskModal({
               </section>
 
               {/* ===========================================
-                  HISTORY
+                  HISTORIQUE
               =========================================== */}
 
-              {taskActions.length >
-                0 && (
-                <section className="task-details-card">
-                  <div className="task-details-card-head">
-                    <div className="task-details-card-title">
-                      <span>
-                        Activité
-                      </span>
+              <section className="task-details-card">
 
-                      <h3>
-                        Historique
-                      </h3>
-                    </div>
+                <div className="task-details-card-head">
 
-                    <span className="task-details-counter">
-                      {
-                        taskActions.length
-                      }
+                  <div className="task-details-card-title">
+                    <span>
+                      Activité
                     </span>
+
+                    <h3>
+                      Historique
+                    </h3>
                   </div>
 
+                  {!historyLoading && (
+                    <span className="task-details-counter">
+                      {
+                        taskHistory.length
+                      }
+                    </span>
+                  )}
+                </div>
+
+                {historyLoading ? (
+                  <div className="history-empty">
+                    Chargement de l'historique...
+                  </div>
+                ) : historyError ? (
+                  <div className="history-empty">
+                    {historyError}
+                  </div>
+                ) : (
                   <HistoryTimeline
                     actions={
-                      taskActions
+                      taskHistory
                     }
                   />
-                </section>
-              )}
+                )}
+              </section>
             </div>
 
             {/* =============================================
@@ -556,12 +1006,15 @@ function TaskModal({
             ============================================= */}
 
             <aside className="task-details-aside">
+
               <section className="task-details-information">
+
                 <h3>
                   Informations
                 </h3>
 
                 <div className="task-details-info-item">
+
                   <span className="task-details-info-icon">
                     <UserIcon />
                   </span>
@@ -579,6 +1032,7 @@ function TaskModal({
                 </div>
 
                 <div className="task-details-info-item">
+
                   <span className="task-details-info-icon">
                     <FolderIcon />
                   </span>
@@ -590,13 +1044,13 @@ function TaskModal({
 
                     <strong>
                       {project?.name ??
-                        project?.title ??
                         "Non défini"}
                     </strong>
                   </div>
                 </div>
 
                 <div className="task-details-info-item">
+
                   <span className="task-details-info-icon">
                     <CalendarIcon />
                   </span>
@@ -608,14 +1062,14 @@ function TaskModal({
 
                     <strong>
                       {formatDate(
-                        task.dueDate ??
-                          task.deadline
+                        task.dueDate
                       )}
                     </strong>
                   </div>
                 </div>
 
                 <div className="task-details-info-item">
+
                   <span className="task-details-info-icon">
                     <FlagIcon />
                   </span>
@@ -634,7 +1088,8 @@ function TaskModal({
                 </div>
               </section>
 
-              {isSimpleMember && (
+              {currentUserIsSimpleMember &&
+                isAssignedToCurrentUser && (
                 <section className="task-details-member-box">
                   <span>
                     Votre tâche
@@ -655,11 +1110,14 @@ function TaskModal({
 
               {canEditMainTask && (
                 <div className="task-details-admin-buttons">
+
                   <button
                     type="button"
                     className="task-details-secondary-button"
                     onClick={() =>
-                      setIsEditing(true)
+                      setIsEditing(
+                        true
+                      )
                     }
                   >
                     Modifier
@@ -683,14 +1141,6 @@ function TaskModal({
     </div>
   );
 
-  /*
-   * IMPORTANT :
-   * Le modal sort complètement
-   * du MemberLayout.
-   *
-   * La sidebar et le header ne
-   * peuvent donc plus passer devant.
-   */
   return createPortal(
     modal,
     document.body

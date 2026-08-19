@@ -1,65 +1,42 @@
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
+
 import "./SubtaskList.css";
 
 /* =========================================================
    DÉPARTEMENTS
 ========================================================= */
 
-/**
- * Retourne tous les IDs de départements
- * associés à un utilisateur.
- *
- * On accepte plusieurs structures possibles
- * car la forme exacte peut dépendre de l'API.
- */
-function getDepartmentIds(user) {
+function getDepartmentIds(
+  user
+) {
   if (!user) {
     return [];
   }
 
-  const departmentIds = [];
+  const departmentIds =
+    [];
 
-  /* Cas :
-     user.departmentId
-  */
-  if (
-    user.departmentId !== undefined &&
-    user.departmentId !== null
-  ) {
-    departmentIds.push(
-      user.departmentId
-    );
-  }
-
-  /* Cas :
-     user.department.id
-  */
-  if (
-    user.department?.id !== undefined &&
-    user.department?.id !== null
-  ) {
-    departmentIds.push(
-      user.department.id
-    );
-  }
-
-  /* Cas :
-     user.departmentRoles[]
-  */
   if (
     Array.isArray(
       user.departmentRoles
     )
   ) {
     user.departmentRoles.forEach(
-      (departmentRole) => {
+      (
+        departmentRole
+      ) => {
         const departmentId =
-          departmentRole?.departmentId ??
-          departmentRole?.department?.id;
+          departmentRole
+            ?.departmentId;
 
         if (
-          departmentId !== undefined &&
-          departmentId !== null
+          departmentId !==
+            undefined &&
+          departmentId !==
+            null
         ) {
           departmentIds.push(
             departmentId
@@ -69,15 +46,11 @@ function getDepartmentIds(user) {
     );
   }
 
-  /*
-   * On transforme en String
-   * pour éviter les problèmes :
-   *
-   * 5 !== "5"
-   */
   return [
     ...new Set(
-      departmentIds.map(String)
+      departmentIds.map(
+        String
+      )
     ),
   ];
 }
@@ -86,14 +59,12 @@ function getDepartmentIds(user) {
    RÔLES
 ========================================================= */
 
-function isAdmin(user) {
-  if (!user) {
-    return false;
-  }
-
+function isAdmin(
+  user
+) {
   return (
     Array.isArray(
-      user.globalRoles
+      user?.globalRoles
     ) &&
     user.globalRoles.includes(
       "ADMIN"
@@ -101,67 +72,74 @@ function isAdmin(user) {
   );
 }
 
-function isScrumMaster(user) {
-  if (!user) {
-    return false;
-  }
-
+function isScrumMaster(
+  user
+) {
   return (
     Array.isArray(
-      user.departmentRoles
+      user?.departmentRoles
     ) &&
     user.departmentRoles.some(
-      (departmentRole) =>
-        departmentRole?.role ===
+      (
+        departmentRole
+      ) =>
+        departmentRole
+          ?.role ===
         "SCRUM_MASTER"
     )
   );
 }
 
-/**
- * Un simple MEMBER :
- *
- * - n'est pas ADMIN
- * - n'est pas SCRUM_MASTER
- */
-function isSimpleMember(user) {
-  if (!user) {
+function isSimpleMember(
+  user
+) {
+  if (
+    !user
+  ) {
     return false;
   }
 
   return (
-    !isAdmin(user) &&
-    !isScrumMaster(user)
+    !isAdmin(
+      user
+    ) &&
+    !isScrumMaster(
+      user
+    )
   );
 }
 
 /* =========================================================
-   COMPARAISON DÉPARTEMENTS
+   MÊME DÉPARTEMENT
 ========================================================= */
 
-/**
- * Vérifie si deux utilisateurs partagent
- * au moins un département.
- */
 function shareSameDepartment(
   userA,
   userB
 ) {
   const departmentsA =
-    getDepartmentIds(userA);
+    getDepartmentIds(
+      userA
+    );
 
   const departmentsB =
-    getDepartmentIds(userB);
+    getDepartmentIds(
+      userB
+    );
 
   if (
-    departmentsA.length === 0 ||
-    departmentsB.length === 0
+    departmentsA.length ===
+      0 ||
+    departmentsB.length ===
+      0
   ) {
     return false;
   }
 
   return departmentsA.some(
-    (departmentId) =>
+    (
+      departmentId
+    ) =>
       departmentsB.includes(
         departmentId
       )
@@ -169,11 +147,15 @@ function shareSameDepartment(
 }
 
 /* =========================================================
-   AFFICHAGE UTILISATEUR
+   NOM UTILISATEUR
 ========================================================= */
 
-function getUserName(user) {
-  if (!user) {
+function getUserName(
+  user
+) {
+  if (
+    !user
+  ) {
     return "Utilisateur";
   }
 
@@ -184,14 +166,13 @@ function getUserName(user) {
 
   return (
     fullName ||
-    user.name ||
     user.email ||
     "Utilisateur"
   );
 }
 
 /* =========================================================
-   COMPOSANT
+   SUBTASK LIST
 ========================================================= */
 
 function SubtaskList({
@@ -200,154 +181,165 @@ function SubtaskList({
   currentUser,
   onCreateSubtask,
 }) {
-  const [title, setTitle] =
+  const [
+    title,
+    setTitle,
+  ] =
     useState("");
 
   const [
     assigneeId,
     setAssigneeId,
-  ] = useState("");
+  ] =
+    useState("");
 
-  const [error, setError] =
+  const [
+    error,
+    setError,
+  ] =
     useState("");
 
   /* =======================================================
-     RÔLE DE L'UTILISATEUR CONNECTÉ
+     RÔLE UTILISATEUR
   ======================================================= */
 
   const currentUserIsAdmin =
-    isAdmin(currentUser);
+    isAdmin(
+      currentUser
+    );
 
   const currentUserIsScrumMaster =
-    isScrumMaster(currentUser);
+    isScrumMaster(
+      currentUser
+    );
 
   const currentUserIsMember =
-    isSimpleMember(currentUser);
+    isSimpleMember(
+      currentUser
+    );
 
   /* =======================================================
-     UTILISATEURS AUTORISÉS
+     MEMBRES AUTORISÉS
   ======================================================= */
 
   const allowedMembers =
-    useMemo(() => {
-      if (!currentUser) {
-        return [];
-      }
+    useMemo(
+      () => {
+        if (
+          !currentUser
+        ) {
+          return [];
+        }
 
-      /*
-       * ===================================================
-       * ADMIN
-       * ===================================================
-       *
-       * On ne lui applique pas les restrictions MEMBER.
-       *
-       * Il conserve l'accès aux utilisateurs existants.
-       */
-      if (currentUserIsAdmin) {
-        return users.filter(
-          (user) => user?.id != null
-        );
-      }
-
-      /*
-       * ===================================================
-       * SCRUM MASTER
-       * ===================================================
-       *
-       * On ne lui applique pas non plus
-       * les restrictions du MEMBER.
-       *
-       * On conserve ici les utilisateurs
-       * disponibles pour ne pas casser le
-       * fonctionnement existant.
-       */
-      if (
-        currentUserIsScrumMaster
-      ) {
-        return users.filter(
-          (user) => user?.id != null
-        );
-      }
-
-      /*
-       * ===================================================
-       * MEMBER
-       * ===================================================
-       *
-       * Le membre peut uniquement attribuer
-       * une sous-tâche :
-       *
-       * - à lui-même
-       * - à un MEMBER de son département
-       *
-       * INTERDIT :
-       *
-       * - ADMIN
-       * - SCRUM_MASTER
-       * - autre département
-       */
-      return users.filter(
-        (user) => {
-          if (
-            user?.id === undefined ||
-            user?.id === null
-          ) {
-            return false;
-          }
-
-          const isCurrentUser =
-            String(user.id) ===
-            String(
-              currentUser.id
-            );
-
-          /*
-           * Le MEMBER peut toujours
-           * sélectionner son propre compte
-           * s'il apparaît dans users.
-           */
-          if (isCurrentUser) {
-            return true;
-          }
-
-          /*
-           * On retire Admin et Scrum Master.
-           */
-          if (
-            !isSimpleMember(user)
-          ) {
-            return false;
-          }
-
-          /*
-           * Il doit appartenir au même
-           * département.
-           */
-          return shareSameDepartment(
-            currentUser,
-            user
+        /*
+         * ADMIN :
+         * conserve les utilisateurs
+         * disponibles.
+         */
+        if (
+          currentUserIsAdmin
+        ) {
+          return users.filter(
+            (
+              user
+            ) =>
+              user?.id !==
+                undefined &&
+              user?.id !==
+                null
           );
         }
-      );
-    }, [
-      users,
-      currentUser,
-      currentUserIsAdmin,
-      currentUserIsScrumMaster,
-    ]);
+
+        /*
+         * SCRUM MASTER :
+         * conserve le fonctionnement
+         * existant.
+         */
+        if (
+          currentUserIsScrumMaster
+        ) {
+          return users.filter(
+            (
+              user
+            ) =>
+              user?.id !==
+                undefined &&
+              user?.id !==
+                null
+          );
+        }
+
+        /*
+         * MEMBER :
+         *
+         * - lui-même
+         * - autre MEMBER
+         * - même département
+         */
+        return users.filter(
+          (
+            user
+          ) => {
+            if (
+              user?.id ===
+                undefined ||
+              user?.id ===
+                null
+            ) {
+              return false;
+            }
+
+            const isCurrentUser =
+              String(
+                user.id
+              ) ===
+              String(
+                currentUser.id
+              );
+
+            if (
+              isCurrentUser
+            ) {
+              return true;
+            }
+
+            if (
+              !isSimpleMember(
+                user
+              )
+            ) {
+              return false;
+            }
+
+            return shareSameDepartment(
+              currentUser,
+              user
+            );
+          }
+        );
+      },
+      [
+        users,
+        currentUser,
+        currentUserIsAdmin,
+        currentUserIsScrumMaster,
+      ]
+    );
 
   /* =======================================================
      AUTRES UTILISATEURS
-
-     "Moi-même" est affiché séparément.
   ======================================================= */
 
   const otherAllowedUsers =
     useMemo(
       () =>
         allowedMembers.filter(
-          (user) =>
-            String(user.id) !==
+          (
+            user
+          ) =>
+            String(
+              user.id
+            ) !==
             String(
               currentUser?.id
             )
@@ -362,7 +354,9 @@ function SubtaskList({
      CRÉATION
   ======================================================= */
 
-  function handleSubmit(event) {
+  function handleSubmit(
+    event
+  ) {
     event.preventDefault();
 
     setError("");
@@ -370,11 +364,9 @@ function SubtaskList({
     const trimmedTitle =
       title.trim();
 
-    /* ---------------------------------
-       Titre obligatoire
-    --------------------------------- */
-
-    if (!trimmedTitle) {
+    if (
+      !trimmedTitle
+    ) {
       setError(
         "Veuillez renseigner le titre de la sous-tâche."
       );
@@ -382,11 +374,12 @@ function SubtaskList({
       return;
     }
 
-    /* ---------------------------------
-       Utilisateur connecté obligatoire
-    --------------------------------- */
-
-    if (!currentUser?.id) {
+    if (
+      currentUser?.id ===
+        undefined ||
+      currentUser?.id ===
+        null
+    ) {
       setError(
         "Impossible d'identifier l'utilisateur connecté."
       );
@@ -395,23 +388,22 @@ function SubtaskList({
     }
 
     /*
-     * Si aucune personne n'est sélectionnée,
-     * la sous-tâche est assignée
-     * automatiquement à l'utilisateur connecté.
+     * Si aucun utilisateur n'est
+     * sélectionné :
+     *
+     * assignation à soi-même.
      */
     const selectedUserId =
       assigneeId ||
       currentUser.id;
 
     /* =====================================================
-       CONTRÔLE PERMISSIONS MEMBER
+       CONTRÔLE MEMBER
     ===================================================== */
 
-    if (currentUserIsMember) {
-      /*
-       * Le MEMBER peut toujours
-       * s'assigner à lui-même.
-       */
+    if (
+      currentUserIsMember
+    ) {
       const assigningToSelf =
         String(
           selectedUserId
@@ -420,14 +412,14 @@ function SubtaskList({
           currentUser.id
         );
 
-      /*
-       * Sinon, l'utilisateur doit être
-       * présent dans allowedMembers.
-       */
       const selectedUserIsAllowed =
         allowedMembers.some(
-          (user) =>
-            String(user.id) ===
+          (
+            user
+          ) =>
+            String(
+              user.id
+            ) ===
             String(
               selectedUserId
             )
@@ -446,24 +438,34 @@ function SubtaskList({
     }
 
     /* =====================================================
-       CONTRÔLE ADMIN / SCRUM
+       CONTRÔLE ADMIN / SCRUM MASTER
     ===================================================== */
 
     if (
       !currentUserIsMember &&
-      String(selectedUserId) !==
-        String(currentUser.id)
+      String(
+        selectedUserId
+      ) !==
+        String(
+          currentUser.id
+        )
     ) {
       const selectedUserExists =
         allowedMembers.some(
-          (user) =>
-            String(user.id) ===
+          (
+            user
+          ) =>
+            String(
+              user.id
+            ) ===
             String(
               selectedUserId
             )
         );
 
-      if (!selectedUserExists) {
+      if (
+        !selectedUserExists
+      ) {
         setError(
           "L'utilisateur sélectionné n'est pas disponible."
         );
@@ -473,86 +475,90 @@ function SubtaskList({
     }
 
     /* =====================================================
-       DONNÉES DE LA SOUS-TÂCHE
+       DONNÉES SOUS-TÂCHE
     ===================================================== */
 
-    const subtaskData = {
-      title: trimmedTitle,
+    const subtaskData =
+      {
+        title:
+          trimmedTitle,
 
-      status: "A_FAIRE",
+        status:
+          "A_FAIRE",
 
-      assignments: [
-        {
-          /*
-           * IMPORTANT :
-           * on ne fait pas Number(...)
-           * afin de conserver le vrai type
-           * d'identifiant du backend.
-           */
-          userId:
-            selectedUserId,
+        /*
+         * IMPORTANT :
+         *
+         * Le frontend ne génère plus
+         * assignedAt.
+         *
+         * Le backend le fera lors de :
+         *
+         * POST
+         * /api/v1/tasks/{id}/assignees
+         */
+        assignments: [
+          {
+            userId:
+              selectedUserId,
 
-          assignedBy:
-            currentUser.id,
+            assignedBy:
+              currentUser.id,
+          },
+        ],
+      };
 
-          assignedAt:
-            new Date().toISOString(),
-        },
-      ],
-    };
-
-    /*
-     * TaskModal adaptera ensuite cet objet
-     * vers :
-     *
-     * handleCreateSubtask(
-     *   task.id,
-     *   title,
-     *   assignments
-     * )
-     */
     onCreateSubtask?.(
       subtaskData
     );
 
-    /*
-     * Réinitialisation du formulaire.
-     */
+    /* =====================================================
+       RESET
+    ===================================================== */
+
     setTitle("");
     setAssigneeId("");
     setError("");
   }
 
   /* =========================================================
-     AFFICHAGE
+     RENDER
   ========================================================= */
 
   return (
     <div className="subtask-list">
-      {/* =====================================================
+
+      {/* =================================================
           HEADER
-      ===================================================== */}
+      ================================================= */}
 
       <div className="subtask-list-header">
-        <h3>Sous-tâches</h3>
+        <h3>
+          Sous-tâches
+        </h3>
 
         <span>
-          {subtasks.length}
+          {
+            subtasks.length
+          }
         </span>
       </div>
 
-      {/* =====================================================
-          LISTE DES SOUS-TÂCHES
-      ===================================================== */}
+      {/* =================================================
+          LISTE
+      ================================================= */}
 
-      {subtasks.length === 0 ? (
+      {subtasks.length ===
+      0 ? (
         <p className="subtask-empty">
           Aucune sous-tâche pour le moment.
         </p>
       ) : (
         <div className="subtask-items">
           {subtasks.map(
-            (subtask) => (
+            (
+              subtask
+            ) => (
               <div
                 key={
                   subtask.id
@@ -585,9 +591,9 @@ function SubtaskList({
         </div>
       )}
 
-      {/* =====================================================
+      {/* =================================================
           FORMULAIRE
-      ===================================================== */}
+      ================================================= */}
 
       <form
         className="subtask-create-form"
@@ -595,13 +601,14 @@ function SubtaskList({
           handleSubmit
         }
       >
+
         <h4>
           Ajouter une sous-tâche
         </h4>
 
-        {/* ===============================
+        {/* =================================================
             TITRE
-        =============================== */}
+        ================================================= */}
 
         <div className="subtask-form-group">
           <label htmlFor="subtask-title">
@@ -611,7 +618,9 @@ function SubtaskList({
           <input
             id="subtask-title"
             type="text"
-            value={title}
+            value={
+              title
+            }
             onChange={(
               event
             ) => {
@@ -619,7 +628,9 @@ function SubtaskList({
                 event.target.value
               );
 
-              if (error) {
+              if (
+                error
+              ) {
                 setError("");
               }
             }}
@@ -628,18 +639,21 @@ function SubtaskList({
           />
         </div>
 
-        {/* ===============================
+        {/* =================================================
             ASSIGNATION
-        =============================== */}
+        ================================================= */}
 
         <div className="subtask-form-group">
+
           <label htmlFor="subtask-assignee">
             Assigné à
           </label>
 
           <select
             id="subtask-assignee"
-            value={assigneeId}
+            value={
+              assigneeId
+            }
             onChange={(
               event
             ) => {
@@ -647,17 +661,22 @@ function SubtaskList({
                 event.target.value
               );
 
-              if (error) {
+              if (
+                error
+              ) {
                 setError("");
               }
             }}
           >
+
             <option value="">
               Moi-même
             </option>
 
             {otherAllowedUsers.map(
-              (user) => (
+              (
+                user
+              ) => (
                 <option
                   key={
                     user.id
@@ -674,11 +693,8 @@ function SubtaskList({
                 </option>
               )
             )}
-          </select>
 
-          {/* =============================
-              INFORMATION MEMBER
-          ============================= */}
+          </select>
 
           {currentUserIsMember &&
             otherAllowedUsers.length ===
@@ -691,19 +707,21 @@ function SubtaskList({
             )}
         </div>
 
-        {/* ===============================
+        {/* =================================================
             ERREUR
-        =============================== */}
+        ================================================= */}
 
         {error && (
           <p className="subtask-form-error">
-            {error}
+            {
+              error
+            }
           </p>
         )}
 
-        {/* ===============================
+        {/* =================================================
             BOUTON
-        =============================== */}
+        ================================================= */}
 
         <button
           type="submit"

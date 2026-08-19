@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
   BrowserRouter,
@@ -29,19 +32,18 @@ import Navbar from "./components/Navbar";
 import MemberLayout from "./components/member/MemberLayout";
 
 import {
+  fetchCurrentUser,
   fetchTasks,
   fetchProjects,
   fetchUsers,
-  fetchActions,
   createProject,
-  createAction,
   createTask,
+  createSubtask as createSubtaskApi,
   updateTask,
+  updateTaskStatus,
+  deleteTask,
+  assignUserToTask,
 } from "./api/api";
-
-import {
-  normalizeAssignments,
-} from "./utils/dashboardHelpers";
 
 /* =========================================================
    STATUTS
@@ -63,10 +65,109 @@ const ALLOWED_TASK_STATUSES = [
    HELPERS
 ========================================================= */
 
-function generateActionId() {
-  return `${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+/**
+ * Lit l'utilisateur sauvegardé dans
+ * le navigateur.
+ *
+ * Ce stockage contient actuellement :
+ *
+ * {
+ *   ...user,
+ *   token
+ * }
+ */
+function getSavedUser() {
+  try {
+    const saved =
+      localStorage.getItem(
+        "currentUser"
+      );
+
+    if (!saved) {
+      return null;
+    }
+
+    return JSON.parse(
+      saved
+    );
+  } catch (error) {
+    console.error(
+      "Impossible de lire la session locale :",
+      error
+    );
+
+    localStorage.removeItem(
+      "currentUser"
+    );
+
+    return null;
+  }
+}
+
+/**
+ * Transforme les différentes formes
+ * d'assignation utilisées dans les
+ * composants en une simple liste
+ * d'identifiants utilisateurs.
+ *
+ * Accepte :
+ *
+ * [1, 2]
+ *
+ * ou :
+ *
+ * [
+ *   { userId: 1 },
+ *   { userId: 2 }
+ * ]
+ */
+function getAssignmentUserIds(
+  assignments
+) {
+  if (
+    !Array.isArray(
+      assignments
+    )
+  ) {
+    return [];
+  }
+
+  const ids =
+    assignments
+      .map(
+        (assignment) => {
+          if (
+            typeof assignment ===
+              "number" ||
+            typeof assignment ===
+              "string"
+          ) {
+            return assignment;
+          }
+
+          return (
+            assignment?.userId ??
+            null
+          );
+        }
+      )
+      .filter(
+        (id) =>
+          id !== null &&
+          id !== undefined &&
+          id !== ""
+      );
+
+  return [
+    ...new Map(
+      ids.map(
+        (id) => [
+          String(id),
+          id,
+        ]
+      )
+    ).values(),
+  ];
 }
 
 /* =========================================================
@@ -81,8 +182,12 @@ function AppLayout({
   return (
     <>
       <Navbar
-        currentUser={currentUser}
-        onLogout={onLogout}
+        currentUser={
+          currentUser
+        }
+        onLogout={
+          onLogout
+        }
       />
 
       {children}
@@ -95,269 +200,509 @@ function AppLayout({
 ========================================================= */
 
 function App() {
-  const [tasks, setTasks] =
-    useState([]);
+  /* =======================================================
+     DONNÉES
+  ======================================================= */
 
-  const [projects, setProjects] =
-    useState([]);
+  const [
+    tasks,
+    setTasks,
+  ] = useState([]);
 
-  const [users, setUsers] =
-    useState([]);
+  const [
+    projects,
+    setProjects,
+  ] = useState([]);
 
-  const [actions, setActions] =
-    useState([]);
+  const [
+    users,
+    setUsers,
+  ] = useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState(null);
+  /*
+   * Les anciennes notifications utilisent
+   * encore "actions".
+   *
+   * Le nouveau backend utilise HistoryEntry.
+   *
+   * Nous les adapterons dans une prochaine
+   * étape.
+   */
+  const [
+    actions,
+    setActions,
+  ] = useState([]);
 
   const [
     selectedTask,
     setSelectedTask,
   ] = useState(null);
 
+  /* =======================================================
+     CHARGEMENT
+  ======================================================= */
+
+  const [
+    authChecking,
+    setAuthChecking,
+  ] = useState(true);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState(null);
+
+  /* =======================================================
+     UTILISATEUR CONNECTÉ
+  ======================================================= */
+
   const [
     currentUser,
     setCurrentUser,
-  ] = useState(() => {
-    const saved =
-      localStorage.getItem(
-        "currentUser"
-      );
-
-    return saved
-      ? JSON.parse(saved)
-      : null;
-  });
+  ] = useState(null);
 
   /* =========================================================
-     AUTH
+     RESTAURATION DE LA SESSION
   ========================================================= */
 
-  function handleLogin(data) {
-    const merged = {
-      ...data.user,
-      token: data.token,
+  useEffect(() => {
+    let cancelled =
+      false;
+
+    async function restoreSession() {
+      const savedUser =
+        getSavedUser();
+
+      /*
+       * Aucun token :
+       * l'utilisateur n'est pas connecté.
+       */
+      if (
+        !savedUser?.token
+      ) {
+        if (!cancelled) {
+          setCurrentUser(
+            null
+          );
+
+          setAuthChecking(
+            false
+          );
+        }
+
+        return;
+      }
+
+      try {
+        /*
+         * Le token existe.
+         *
+         * On demande maintenant au backend
+         * de confirmer qu'il est valide.
+         */
+        const userFromApi =
+          await fetchCurrentUser();
+
+        if (cancelled) {
+          return;
+        }
+
+        const authenticatedUser =
+          {
+            ...userFromApi,
+
+            token:
+              savedUser.token,
+          };
+
+        localStorage.setItem(
+          "currentUser",
+          JSON.stringify(
+            authenticatedUser
+          )
+        );
+
+        setCurrentUser(
+          authenticatedUser
+        );
+      } catch (err) {
+        console.error(
+          "Session invalide :",
+          err
+        );
+
+        /*
+         * Si /auth/me refuse le token,
+         * on supprime la session locale.
+         */
+        localStorage.removeItem(
+          "currentUser"
+        );
+
+        if (!cancelled) {
+          setCurrentUser(
+            null
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthChecking(
+            false
+          );
+        }
+      }
+    }
+
+    restoreSession();
+
+    return () => {
+      cancelled =
+        true;
     };
+  }, []);
+
+  /* =========================================================
+     LOGIN
+  ========================================================= */
+
+  function handleLogin(
+    data
+  ) {
+    if (
+      !data?.token ||
+      !data?.user
+    ) {
+      console.error(
+        "Réponse de connexion invalide :",
+        data
+      );
+
+      return;
+    }
+
+    const authenticatedUser =
+      {
+        ...data.user,
+
+        token:
+          data.token,
+      };
 
     localStorage.setItem(
       "currentUser",
-      JSON.stringify(merged)
+      JSON.stringify(
+        authenticatedUser
+      )
     );
 
-    setCurrentUser(merged);
+    setCurrentUser(
+      authenticatedUser
+    );
+
+    setError(
+      null
+    );
   }
+
+  /* =========================================================
+     LOGOUT
+  ========================================================= */
 
   function handleLogout() {
     localStorage.removeItem(
       "currentUser"
     );
 
-    setCurrentUser(null);
+    setCurrentUser(
+      null
+    );
+
+    setTasks([]);
+    setProjects([]);
+    setUsers([]);
+    setActions([]);
+    setSelectedTask(null);
+
+    setError(
+      null
+    );
   }
 
   /* =========================================================
-     CHARGEMENT INITIAL
+     CHARGEMENT DES DONNÉES
   ========================================================= */
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    let cancelled =
+      false;
 
-    Promise.all([
-      fetchTasks(),
-      fetchProjects(),
-      fetchUsers(),
-      fetchActions(),
-    ])
-      .then(
-        ([
+    /*
+     * On attend que la vérification
+     * /auth/me soit terminée.
+     */
+    if (
+      authChecking
+    ) {
+      return;
+    }
+
+    /*
+     * Pas connecté :
+     * aucun appel aux endpoints protégés.
+     */
+    if (
+      !currentUser?.id
+    ) {
+      setTasks([]);
+      setProjects([]);
+      setUsers([]);
+      setActions([]);
+      setLoading(false);
+
+      return;
+    }
+
+    async function loadData() {
+      setLoading(
+        true
+      );
+
+      setError(
+        null
+      );
+
+      try {
+        const [
           tasksData,
           projectsData,
           usersData,
-          actionsData,
-        ]) => {
-          setTasks(
-            Array.isArray(tasksData)
-              ? tasksData
-              : []
-          );
+        ] =
+          await Promise.all([
+            fetchTasks(),
+            fetchProjects(),
+            fetchUsers(),
+          ]);
 
-          setProjects(
-            Array.isArray(
-              projectsData
-            )
-              ? projectsData
-              : []
-          );
-
-          setUsers(
-            Array.isArray(usersData)
-              ? usersData
-              : []
-          );
-
-          setActions(
-            Array.isArray(
-              actionsData
-            )
-              ? actionsData
-              : []
-          );
+        if (cancelled) {
+          return;
         }
-      )
-      .catch((err) => {
+
+        setTasks(
+          Array.isArray(
+            tasksData
+          )
+            ? tasksData
+            : []
+        );
+
+        setProjects(
+          Array.isArray(
+            projectsData
+          )
+            ? projectsData
+            : []
+        );
+
+        setUsers(
+          Array.isArray(
+            usersData
+          )
+            ? usersData
+            : []
+        );
+
+        /*
+         * Le nouveau backend n'a pas
+         * de GET /actions.
+         *
+         * L'historique sera récupéré avec :
+         *
+         * /tasks/{id}/history
+         *
+         * à une prochaine étape.
+         */
+        setActions([]);
+      } catch (err) {
         console.error(
           "Erreur chargement données :",
           err
         );
 
-        setError(err.message);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+        if (
+          cancelled
+        ) {
+          return;
+        }
 
-  /* =========================================================
-     HISTORIQUE / ACTIONS
-  ========================================================= */
-
-  async function persistAction(
-    action
-  ) {
-    try {
-      const savedAction =
-        await createAction(
-          action
+        setError(
+          err.message ??
+            "Impossible de charger les données."
         );
 
-      return (
-        savedAction ??
-        action
-      );
-    } catch (err) {
-      console.error(
-        "Impossible d'enregistrer l'action :",
-        err
-      );
-
-      return action;
-    }
-  }
-
-  /* =========================================================
-     PROJETS
-  ========================================================= */
-
-  const handleCreateProject =
-    async (projectData) => {
-      try {
-        const newProject =
-          await createProject(
-            projectData
+        /*
+         * Si le serveur retourne 401,
+         * la session n'est plus valide.
+         */
+        if (
+          err.status ===
+          401
+        ) {
+          localStorage.removeItem(
+            "currentUser"
           );
 
-        setProjects(
-          (previous) => [
-            ...previous,
-            newProject,
-          ]
-        );
+          setCurrentUser(
+            null
+          );
 
-        return newProject;
-      } catch (err) {
-        console.error(
-          "Erreur création projet :",
-          err
-        );
-
-        alert(
-          "Erreur lors de la création du projet"
-        );
-
-        return null;
+          setTasks([]);
+          setProjects([]);
+          setUsers([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(
+            false
+          );
+        }
       }
-    };
+    }
 
-  const handleSelectProject = (
-    projectId
-  ) => {
-    console.log(
-      "Projet sélectionné :",
-      projectId
-    );
-  };
+    loadData();
+
+    return () => {
+      cancelled =
+        true;
+    };
+  }, [
+    authChecking,
+    currentUser?.id,
+  ]);
+
+  /* =========================================================
+     RÔLES
+  ========================================================= */
+
+  const isAdmin =
+    currentUser
+      ?.globalRoles
+      ?.includes(
+        "ADMIN"
+      );
+
+  const isScrumMaster =
+    currentUser
+      ?.departmentRoles
+      ?.some(
+        (
+          departmentRole
+        ) =>
+          departmentRole.role ===
+          "SCRUM_MASTER"
+      );
+
+  const isSimpleMember =
+    !!currentUser &&
+    !isAdmin &&
+    !isScrumMaster;
 
   /* =========================================================
      VISIBILITÉ DES TÂCHES
   ========================================================= */
 
   function getVisibleTasks() {
-    if (!currentUser) {
+    if (
+      !currentUser
+    ) {
       return [];
     }
 
-    const userIsAdmin =
-      currentUser.globalRoles?.includes(
-        "ADMIN"
-      );
-
-    if (userIsAdmin) {
+    /*
+     * L'ADMIN voit tout.
+     */
+    if (
+      isAdmin
+    ) {
       return tasks;
     }
 
-    const myDeptRoles =
-      currentUser.departmentRoles ||
+    const myDepartmentRoles =
+      currentUser
+        .departmentRoles ??
       [];
 
-    const isScrumMasterOf = (
-      deptId
-    ) =>
-      myDeptRoles.some(
-        (departmentRole) =>
+    /* -------------------------------------------------------
+       SCRUM MASTER D'UN DÉPARTEMENT
+    ------------------------------------------------------- */
+
+    function isScrumMasterOf(
+      departmentId
+    ) {
+      return myDepartmentRoles.some(
+        (
+          departmentRole
+        ) =>
           String(
             departmentRole.departmentId
           ) ===
-            String(deptId) &&
+            String(
+              departmentId
+            ) &&
           departmentRole.role ===
             "SCRUM_MASTER"
       );
+    }
 
-    const isAssignedToMe = (
+    /* -------------------------------------------------------
+       TÂCHE ASSIGNÉE À L'UTILISATEUR
+    ------------------------------------------------------- */
+
+    function isAssignedToMe(
       task
-    ) =>
-      (
-        task.assignments || []
+    ) {
+      return (
+        task.assignments ??
+        []
       ).some(
-        (assignment) =>
+        (
+          assignment
+        ) =>
           String(
             assignment.userId
           ) ===
-            String(
-              currentUser.id
-            ) &&
-          !assignment.unassignedAt
+          String(
+            currentUser.id
+          )
       );
+    }
 
-    const isDirectlyVisible = (
+    /* -------------------------------------------------------
+       VISIBILITÉ DIRECTE
+    ------------------------------------------------------- */
+
+    function isDirectlyVisible(
       task
-    ) => {
-      const isScrumMaster =
-        myDeptRoles.some(
-          (departmentRole) =>
-            departmentRole.role ===
-            "SCRUM_MASTER"
-        );
-
-      if (isScrumMaster) {
+    ) {
+      /*
+       * Un Scrum Master voit les tâches
+       * des projets appartenant à son
+       * département.
+       */
+      if (
+        isScrumMaster
+      ) {
         const project =
           projects.find(
-            (project) =>
+            (
+              currentProject
+            ) =>
               String(
-                project.id
+                currentProject.id
               ) ===
               String(
                 task.projectId
@@ -374,10 +719,14 @@ function App() {
         }
       }
 
+      /*
+       * Un MEMBER voit les tâches
+       * qui lui sont assignées.
+       */
       return isAssignedToMe(
         task
       );
-    };
+    }
 
     const visibleIds =
       new Set(
@@ -385,23 +734,43 @@ function App() {
           .filter(
             isDirectlyVisible
           )
-          .map((task) =>
-            String(task.id)
+          .map(
+            (task) =>
+              String(
+                task.id
+              )
           )
       );
 
-    let changed = true;
+    /*
+     * Si une sous-tâche est visible,
+     * on garde aussi sa tâche parente.
+     *
+     * Si une tâche parente est visible,
+     * on conserve également ses
+     * sous-tâches déjà chargées.
+     */
+    let changed =
+      true;
 
-    while (changed) {
-      changed = false;
+    while (
+      changed
+    ) {
+      changed =
+        false;
 
       tasks.forEach(
         (task) => {
           const taskId =
-            String(task.id);
+            String(
+              task.id
+            );
 
           const parentId =
-            task.parentTaskId
+            task.parentTaskId !==
+              null &&
+            task.parentTaskId !==
+              undefined
               ? String(
                   task.parentTaskId
                 )
@@ -420,7 +789,8 @@ function App() {
               parentId
             );
 
-            changed = true;
+            changed =
+              true;
           }
 
           if (
@@ -436,7 +806,8 @@ function App() {
               taskId
             );
 
-            changed = true;
+            changed =
+              true;
           }
         }
       );
@@ -445,7 +816,9 @@ function App() {
     return tasks.filter(
       (task) =>
         visibleIds.has(
-          String(task.id)
+          String(
+            task.id
+          )
         )
     );
   }
@@ -453,27 +826,161 @@ function App() {
   const visibleTasks =
     getVisibleTasks();
 
-  const isAdmin =
-    currentUser?.globalRoles?.includes(
-      "ADMIN"
-    );
+  /* =========================================================
+     PROJETS
+  ========================================================= */
 
-  const isScrumMaster =
-    currentUser?.departmentRoles?.some(
-      (departmentRole) =>
-        departmentRole.role ===
-        "SCRUM_MASTER"
-    );
+  async function handleCreateProject(
+    projectData
+  ) {
+    if (
+      !currentUser?.id
+    ) {
+      return null;
+    }
 
-  const isSimpleMember =
-    !!currentUser &&
-    !isAdmin &&
-    !isScrumMaster;
+    /*
+     * Un simple MEMBER ne crée pas
+     * de projet.
+     */
+    if (
+      isSimpleMember
+    ) {
+      console.error(
+        "Un membre ne peut pas créer de projet."
+      );
+
+      return null;
+    }
+
+    const projectToCreate =
+      {
+        ...projectData,
+
+        creatorId:
+          projectData
+            ?.creatorId ??
+          currentUser.id,
+      };
+
+    try {
+      const newProject =
+        await createProject(
+          projectToCreate
+        );
+
+      setProjects(
+        (
+          previousProjects
+        ) => [
+          ...previousProjects,
+          newProject,
+        ]
+      );
+
+      return newProject;
+    } catch (err) {
+      console.error(
+        "Erreur création projet :",
+        err
+      );
+
+      alert(
+        err.message ??
+          "Erreur lors de la création du projet."
+      );
+
+      return null;
+    }
+  }
+
+  function handleSelectProject(
+    projectId
+  ) {
+    console.log(
+      "Projet sélectionné :",
+      projectId
+    );
+  }
+
+  /* =========================================================
+     ASSIGNER DES UTILISATEURS À UNE TÂCHE
+  ========================================================= */
+
+  async function createTaskAssignments(
+    taskId,
+    assignmentValues
+  ) {
+    if (
+      !currentUser?.id
+    ) {
+      return [];
+    }
+
+    let userIds =
+      getAssignmentUserIds(
+        assignmentValues
+      );
+
+    /*
+     * Pour conserver le comportement
+     * actuel :
+     *
+     * si aucun utilisateur n'a été
+     * choisi, le créateur est assigné.
+     */
+    if (
+      userIds.length ===
+      0
+    ) {
+      userIds = [
+        currentUser.id,
+      ];
+    }
+
+    const createdAssignments =
+      [];
+
+    /*
+     * Le contrat API exige une requête
+     * séparée pour chaque assignation.
+     */
+    for (
+      const userId
+      of userIds
+    ) {
+      try {
+        const assignment =
+          await assignUserToTask(
+            taskId,
+            {
+              userId,
+
+              assignedBy:
+                currentUser.id,
+            }
+          );
+
+        if (
+          assignment
+        ) {
+          createdAssignments.push(
+            assignment
+          );
+        }
+      } catch (err) {
+        console.error(
+          `Impossible d'assigner l'utilisateur ${userId} à la tâche ${taskId} :`,
+          err
+        );
+      }
+    }
+
+    return createdAssignments;
+  }
 
   /* =========================================================
      CHANGEMENT DE STATUT
-     IMPORTANT :
-     maintenant persisté dans le mock/backend
   ========================================================= */
 
   async function handleStatusChange(
@@ -482,12 +989,20 @@ function App() {
   ) {
     const task =
       tasks.find(
-        (task) =>
-          String(task.id) ===
-          String(taskId)
+        (
+          currentTask
+        ) =>
+          String(
+            currentTask.id
+          ) ===
+          String(
+            taskId
+          )
       );
 
-    if (!task) {
+    if (
+      !task
+    ) {
       console.error(
         "Tâche introuvable :",
         taskId
@@ -497,25 +1012,31 @@ function App() {
     }
 
     /* -------------------------------------------------------
-       Sécurité côté interface pour MEMBER
+       PROTECTION MEMBER
     ------------------------------------------------------- */
 
-    if (isSimpleMember) {
+    if (
+      isSimpleMember
+    ) {
       const assigned =
         (
-          task.assignments || []
+          task.assignments ??
+          []
         ).some(
-          (assignment) =>
+          (
+            assignment
+          ) =>
             String(
               assignment.userId
             ) ===
-              String(
-                currentUser.id
-              ) &&
-            !assignment.unassignedAt
+            String(
+              currentUser.id
+            )
         );
 
-      if (!assigned) {
+      if (
+        !assigned
+      ) {
         console.error(
           "Le membre ne peut pas modifier le statut de cette tâche."
         );
@@ -524,10 +1045,10 @@ function App() {
       }
     }
 
-    const ancienStatut =
+    const oldStatus =
       task.status;
 
-    let nouveauStatut;
+    let newStatus;
 
     if (
       requestedStatus &&
@@ -535,53 +1056,50 @@ function App() {
         requestedStatus
       )
     ) {
-      nouveauStatut =
+      newStatus =
         requestedStatus;
     } else {
-      nouveauStatut =
+      newStatus =
         NEXT_STATUS[
-          ancienStatut
+          oldStatus
         ];
     }
 
-    if (!nouveauStatut) {
+    if (
+      !newStatus
+    ) {
       console.error(
         "Statut inconnu :",
-        ancienStatut
+        oldStatus
       );
 
       return;
     }
 
     if (
-      nouveauStatut ===
-      ancienStatut
+      newStatus ===
+      oldStatus
     ) {
       return;
     }
 
     try {
       /*
-        Sauvegarde réelle dans
-        db.json / backend.
-      */
-
+       * NOUVEAU CONTRAT :
+       *
+       * PATCH
+       * /api/v1/tasks/{id}/status
+       */
       const updatedTask =
-        await updateTask(
+        await updateTaskStatus(
           taskId,
-          {
-            status:
-              nouveauStatut,
-          }
+          newStatus
         );
 
-      /*
-        Mise à jour de React avec
-        la réponse du serveur.
-      */
-
       setTasks(
-        (previousTasks) =>
+        (
+          previousTasks
+        ) =>
           previousTasks.map(
             (
               currentTask
@@ -589,63 +1107,50 @@ function App() {
               String(
                 currentTask.id
               ) ===
-              String(taskId)
+              String(
+                taskId
+              )
                 ? {
                     ...currentTask,
+
                     ...updatedTask,
+
                     status:
-                      nouveauStatut,
+                      newStatus,
                   }
                 : currentTask
           )
       );
 
       /*
-        Historique / notification.
-      */
+       * On garde également la tâche
+       * actuellement ouverte synchronisée.
+       */
+      setSelectedTask(
+        (
+          current
+        ) => {
+          if (
+            !current ||
+            String(
+              current.id
+            ) !==
+            String(
+              taskId
+            )
+          ) {
+            return current;
+          }
 
-      const actionToCreate =
-        {
-          id:
-            generateActionId(),
+          return {
+            ...current,
 
-          id_tache:
-            taskId,
+            ...updatedTask,
 
-          id_user:
-            currentUser?.email ??
-            "inconnu",
-
-          nom_user:
-            currentUser?.firstName ??
-            "Utilisateur",
-
-          type_action:
-            "CHANGEMENT_STATUT",
-
-          champ_modifie:
-            "statut",
-
-          ancienne_valeur:
-            ancienStatut,
-
-          nouvelle_valeur:
-            nouveauStatut,
-
-          date_action:
-            new Date().toISOString(),
-        };
-
-      const savedAction =
-        await persistAction(
-          actionToCreate
-        );
-
-      setActions(
-        (previousActions) => [
-          ...previousActions,
-          savedAction,
-        ]
+            status:
+              newStatus,
+          };
+        }
       );
     } catch (err) {
       console.error(
@@ -654,140 +1159,117 @@ function App() {
       );
 
       alert(
-        "Impossible de modifier le statut de la tâche."
+        err.message ??
+          "Impossible de modifier le statut de la tâche."
       );
     }
   }
 
   /* =========================================================
-     CRÉATION D'UNE TÂCHE
-     IMPORTANT :
-     maintenant persistée dans le mock/backend
+     CRÉATION D'UNE TÂCHE PRINCIPALE
   ========================================================= */
 
   async function handleCreateTask(
     newTask
   ) {
-    const normalized =
-      normalizeAssignments(
-        newTask.assignments,
-        currentUser
-      );
-
-    const assignments =
-      normalized.length > 0
-        ? normalized
-        : currentUser?.id
-        ? [
-            {
-              userId:
-                currentUser.id,
-
-              assignedBy:
-                currentUser.id,
-
-              assignedAt:
-                new Date().toISOString(),
-            },
-          ]
-        : [];
-
-    const taskToCreate = {
-      ...newTask,
-
-      creatorId:
-        currentUser?.id ??
-        null,
-
-      assignments,
-    };
+    if (
+      !currentUser?.id
+    ) {
+      return null;
+    }
 
     /*
-      Le serveur mock génère
-      l'identifiant de la tâche.
+     * Le MEMBER ne crée pas de tâche
+     * principale.
+     */
+    if (
+      isSimpleMember
+    ) {
+      console.error(
+        "Un membre ne peut pas créer une tâche principale."
+      );
 
-      On retire donc l'id local
-      éventuellement envoyé.
-    */
+      return null;
+    }
 
-    delete taskToCreate.id;
+    const assignmentValues =
+      newTask?.assignments ??
+      [];
+
+    /*
+     * Le backend crée la tâche sans
+     * assignments.
+     *
+     * On retire donc ce champ du body.
+     */
+    const {
+      assignments:
+        ignoredAssignments,
+
+      id:
+        ignoredId,
+
+      ...taskFields
+    } = newTask;
+
+    const taskToCreate =
+      {
+        ...taskFields,
+
+        creatorId:
+          newTask
+            ?.creatorId ??
+          currentUser.id,
+      };
 
     try {
+      /*
+       * 1. Création de la tâche.
+       */
       const createdTask =
         await createTask(
           taskToCreate
         );
 
-      if (!createdTask) {
+      if (
+        !createdTask?.id
+      ) {
         throw new Error(
-          "La tâche créée n'a pas été retournée par l'API."
+          "La tâche créée n'a pas été retournée correctement par l'API."
         );
       }
 
       /*
-        Maintenant la tâche
-        existe réellement dans
-        db.json.
-      */
-
-      setTasks(
-        (previousTasks) => [
-          ...previousTasks,
-          createdTask,
-        ]
-      );
-
-      /*
-        Création de l'action.
-        Cette action alimentera
-        les notifications.
-      */
-
-      const actionToCreate =
-        {
-          id:
-            generateActionId(),
-
-          id_tache:
-            createdTask.id,
-
-          id_user:
-            currentUser?.email ??
-            "inconnu",
-
-          nom_user:
-            currentUser?.firstName ??
-            "Utilisateur",
-
-          type_action:
-            "CREATION",
-
-          champ_modifie:
-            null,
-
-          ancienne_valeur:
-            null,
-
-          nouvelle_valeur:
-            null,
-
-          date_action:
-            new Date().toISOString(),
-        };
-
-      const savedAction =
-        await persistAction(
-          actionToCreate
+       * 2. Création des assignations
+       * séparément.
+       */
+      const createdAssignments =
+        await createTaskAssignments(
+          createdTask.id,
+          assignmentValues
         );
 
-      setActions(
-        (previousActions) => [
-          ...previousActions,
-          savedAction,
+      const completeTask =
+        {
+          ...createdTask,
+
+          assignments:
+            createdAssignments,
+        };
+
+      /*
+       * 3. Mise à jour du state.
+       */
+      setTasks(
+        (
+          previousTasks
+        ) => [
+          ...previousTasks,
+          completeTask,
         ]
       );
 
-      return createdTask;
+      return completeTask;
     } catch (err) {
       console.error(
         "Impossible de créer la tâche :",
@@ -795,7 +1277,8 @@ function App() {
       );
 
       alert(
-        "Impossible de créer la tâche."
+        err.message ??
+          "Impossible de créer la tâche."
       );
 
       return null;
@@ -804,8 +1287,6 @@ function App() {
 
   /* =========================================================
      CRÉATION D'UNE SOUS-TÂCHE
-     Elle passe maintenant elle aussi
-     par createTask() et est persistée.
   ========================================================= */
 
   async function handleCreateSubtask(
@@ -813,16 +1294,28 @@ function App() {
     title,
     assignments
   ) {
+    if (
+      !currentUser?.id
+    ) {
+      return null;
+    }
+
     const parentTask =
       tasks.find(
-        (task) =>
-          String(task.id) ===
+        (
+          task
+        ) =>
+          String(
+            task.id
+          ) ===
           String(
             parentTaskId
           )
       );
 
-    if (!parentTask) {
+    if (
+      !parentTask
+    ) {
       console.error(
         "Impossible de créer la sous-tâche : tâche parente introuvable."
       );
@@ -833,37 +1326,42 @@ function App() {
     const cleanTitle =
       title?.trim();
 
-    if (!cleanTitle) {
+    if (
+      !cleanTitle
+    ) {
       console.error(
-        "Impossible de créer la sous-tâche : le titre est obligatoire."
+        "Le titre de la sous-tâche est obligatoire."
       );
 
       return null;
     }
 
-    /*
-      Protection MEMBER :
-      la tâche principale doit
-      lui être assignée.
-    */
+    /* -------------------------------------------------------
+       PROTECTION MEMBER
+    ------------------------------------------------------- */
 
-    if (isSimpleMember) {
+    if (
+      isSimpleMember
+    ) {
       const parentAssigned =
         (
-          parentTask.assignments ||
+          parentTask.assignments ??
           []
         ).some(
-          (assignment) =>
+          (
+            assignment
+          ) =>
             String(
               assignment.userId
             ) ===
-              String(
-                currentUser.id
-              ) &&
-            !assignment.unassignedAt
+            String(
+              currentUser.id
+            )
         );
 
-      if (!parentAssigned) {
+      if (
+        !parentAssigned
+      ) {
         console.error(
           "Vous ne pouvez pas créer une sous-tâche sur cette tâche."
         );
@@ -872,21 +1370,126 @@ function App() {
       }
     }
 
-    return handleCreateTask({
-      title: cleanTitle,
+    const subtaskToCreate =
+      {
+        title:
+          cleanTitle,
 
-      description: "",
+        description:
+          "",
 
-      status: "A_FAIRE",
+        status:
+          "A_FAIRE",
 
-      parentTaskId:
-        parentTask.id,
+        projectId:
+          parentTask.projectId,
 
-      projectId:
-        parentTask.projectId,
+        creatorId:
+          currentUser.id,
 
-      assignments,
-    });
+        /*
+         * Ces dates sont reprises de
+         * la tâche parente lorsqu'elles
+         * existent.
+         */
+        ...(parentTask.startDate
+          ? {
+              startDate:
+                parentTask.startDate,
+            }
+          : {}),
+
+        ...(parentTask.endDate
+          ? {
+              endDate:
+                parentTask.endDate,
+            }
+          : {}),
+
+        ...(parentTask.dueDate
+          ? {
+              dueDate:
+                parentTask.dueDate,
+            }
+          : {}),
+      };
+
+    try {
+      /*
+       * NOUVEAU CONTRAT :
+       *
+       * POST
+       * /api/v1/tasks/{id}/subtasks
+       *
+       * Le backend ajoute lui-même :
+       * parentTaskId = parentTaskId
+       */
+      const createdSubtask =
+        await createSubtaskApi(
+          parentTaskId,
+          subtaskToCreate
+        );
+
+      if (
+        !createdSubtask?.id
+      ) {
+        throw new Error(
+          "La sous-tâche créée n'a pas été retournée correctement par l'API."
+        );
+      }
+
+      /*
+       * Assignation séparée.
+       */
+      const createdAssignments =
+        await createTaskAssignments(
+          createdSubtask.id,
+          assignments
+        );
+
+      const completeSubtask =
+        {
+          ...createdSubtask,
+
+          /*
+           * Normalement fourni par
+           * le backend.
+           *
+           * Cette valeur garantit aussi
+           * l'affichage immédiat.
+           */
+          parentTaskId:
+            createdSubtask
+              .parentTaskId ??
+            parentTaskId,
+
+          assignments:
+            createdAssignments,
+        };
+
+      setTasks(
+        (
+          previousTasks
+        ) => [
+          ...previousTasks,
+          completeSubtask,
+        ]
+      );
+
+      return completeSubtask;
+    } catch (err) {
+      console.error(
+        "Impossible de créer la sous-tâche :",
+        err
+      );
+
+      alert(
+        err.message ??
+          "Impossible de créer la sous-tâche."
+      );
+
+      return null;
+    }
   }
 
   /* =========================================================
@@ -899,27 +1502,36 @@ function App() {
   ) {
     const task =
       tasks.find(
-        (task) =>
-          String(task.id) ===
-          String(taskId)
+        (
+          currentTask
+        ) =>
+          String(
+            currentTask.id
+          ) ===
+          String(
+            taskId
+          )
       );
 
-    if (!task) {
-      return;
+    if (
+      !task
+    ) {
+      return null;
     }
 
     /*
-      Un membre simple ne doit pas
-      modifier titre/description
-      d'une tâche principale.
-    */
-
-    if (isSimpleMember) {
+     * Le MEMBER simple ne modifie
+     * pas le titre ou la description
+     * d'une tâche principale.
+     */
+    if (
+      isSimpleMember
+    ) {
       console.error(
         "Modification interdite pour un membre."
       );
 
-      return;
+      return null;
     }
 
     try {
@@ -930,7 +1542,9 @@ function App() {
         );
 
       setTasks(
-        (previousTasks) =>
+        (
+          previousTasks
+        ) =>
           previousTasks.map(
             (
               currentTask
@@ -938,96 +1552,43 @@ function App() {
               String(
                 currentTask.id
               ) ===
-              String(taskId)
+              String(
+                taskId
+              )
                 ? {
                     ...currentTask,
+
                     ...updatedTask,
                   }
                 : currentTask
           )
       );
 
-      const changedActions =
-        [];
-
-      if (
-        updatedFields.title !==
-          undefined &&
-        updatedFields.title !==
-          task.title
-      ) {
-        changedActions.push(
-          {
-            champ_modifie:
-              "titre",
-
-            ancienne_valeur:
-              task.title,
-
-            nouvelle_valeur:
-              updatedFields.title,
+      setSelectedTask(
+        (
+          current
+        ) => {
+          if (
+            !current ||
+            String(
+              current.id
+            ) !==
+            String(
+              taskId
+            )
+          ) {
+            return current;
           }
-        );
-      }
 
-      if (
-        updatedFields.description !==
-          undefined &&
-        updatedFields.description !==
-          task.description
-      ) {
-        changedActions.push(
-          {
-            champ_modifie:
-              "description",
+          return {
+            ...current,
 
-            ancienne_valeur:
-              task.description,
-
-            nouvelle_valeur:
-              updatedFields.description,
-          }
-        );
-      }
-
-      for (const change of changedActions) {
-        const actionToCreate =
-          {
-            id:
-              generateActionId(),
-
-            id_tache:
-              taskId,
-
-            id_user:
-              currentUser?.email ??
-              "inconnu",
-
-            nom_user:
-              currentUser?.firstName ??
-              "Utilisateur",
-
-            type_action:
-              "MODIFICATION",
-
-            ...change,
-
-            date_action:
-              new Date().toISOString(),
+            ...updatedTask,
           };
+        }
+      );
 
-        const savedAction =
-          await persistAction(
-            actionToCreate
-          );
-
-        setActions(
-          (previousActions) => [
-            ...previousActions,
-            savedAction,
-          ]
-        );
-      }
+      return updatedTask;
     } catch (err) {
       console.error(
         "Impossible de modifier la tâche :",
@@ -1035,79 +1596,150 @@ function App() {
       );
 
       alert(
-        "Impossible de modifier la tâche."
+        err.message ??
+          "Impossible de modifier la tâche."
       );
+
+      return null;
     }
   }
 
   /* =========================================================
-     SUPPRESSION
-     Pour l'instant on conserve ton
-     fonctionnement existant.
+     SUPPRESSION D'UNE TÂCHE
   ========================================================= */
 
-  function handleDeleteTask(
+  async function handleDeleteTask(
     taskId
   ) {
-    setTasks(
-      (previousTasks) => {
-        const idsToDelete =
-          new Set([
-            String(taskId),
-          ]);
+    /*
+     * Protection supplémentaire.
+     */
+    if (
+      isSimpleMember
+    ) {
+      console.error(
+        "Un membre ne peut pas supprimer une tâche principale."
+      );
 
-        let changed = true;
+      return false;
+    }
 
-        while (changed) {
-          changed = false;
+    try {
+      /*
+       * NOUVEAU CONTRAT :
+       *
+       * DELETE /api/v1/tasks/{id}
+       *
+       * Le backend supprime également
+       * les sous-tâches.
+       */
+      await deleteTask(
+        taskId
+      );
 
-          previousTasks.forEach(
-            (task) => {
-              const parentId =
-                task.parentTaskId
-                  ? String(
-                      task.parentTaskId
+      /*
+       * Après confirmation du serveur,
+       * on retire la tâche et ses
+       * descendants du state React.
+       */
+      setTasks(
+        (
+          previousTasks
+        ) => {
+          const idsToDelete =
+            new Set([
+              String(
+                taskId
+              ),
+            ]);
+
+          let changed =
+            true;
+
+          while (
+            changed
+          ) {
+            changed =
+              false;
+
+            previousTasks.forEach(
+              (
+                task
+              ) => {
+                const parentId =
+                  task.parentTaskId !==
+                    null &&
+                  task.parentTaskId !==
+                    undefined
+                    ? String(
+                        task.parentTaskId
+                      )
+                    : null;
+
+                if (
+                  parentId &&
+                  idsToDelete.has(
+                    parentId
+                  ) &&
+                  !idsToDelete.has(
+                    String(
+                      task.id
                     )
-                  : null;
-
-              if (
-                parentId &&
-                idsToDelete.has(
-                  parentId
-                ) &&
-                !idsToDelete.has(
-                  String(
-                    task.id
                   )
-                )
-              ) {
-                idsToDelete.add(
-                  String(
-                    task.id
-                  )
-                );
+                ) {
+                  idsToDelete.add(
+                    String(
+                      task.id
+                    )
+                  );
 
-                changed = true;
+                  changed =
+                    true;
+                }
               }
-            }
+            );
+          }
+
+          return previousTasks.filter(
+            (
+              task
+            ) =>
+              !idsToDelete.has(
+                String(
+                  task.id
+                )
+              )
           );
         }
+      );
 
-        return previousTasks.filter(
-          (task) =>
-            !idsToDelete.has(
-              String(task.id)
-            )
-        );
-      }
-    );
+      setSelectedTask(
+        null
+      );
+
+      return true;
+    } catch (err) {
+      console.error(
+        "Impossible de supprimer la tâche :",
+        err
+      );
+
+      alert(
+        err.message ??
+          "Impossible de supprimer la tâche."
+      );
+
+      return false;
+    }
   }
 
   /* =========================================================
      EMAIL
   ========================================================= */
 
-  function handleVerify(code) {
+  function handleVerify(
+    code
+  ) {
     console.log(
       "Code entered:",
       code
@@ -1115,23 +1747,50 @@ function App() {
   }
 
   /* =========================================================
-     CHARGEMENT
+     CHARGEMENT SESSION
   ========================================================= */
 
-  if (loading) {
+  if (
+    authChecking
+  ) {
     return (
       <div
         style={{
-          padding: "30px",
+          padding:
+            "30px",
         }}
       >
-        Chargement...
+        Vérification de la session...
       </div>
     );
   }
 
-  if (error) {
-    console.error(error);
+  /* =========================================================
+     CHARGEMENT DONNÉES
+  ========================================================= */
+
+  if (
+    loading &&
+    currentUser
+  ) {
+    return (
+      <div
+        style={{
+          padding:
+            "30px",
+        }}
+      >
+        Chargement des données...
+      </div>
+    );
+  }
+
+  if (
+    error
+  ) {
+    console.error(
+      error
+    );
   }
 
   /* =========================================================
@@ -1143,19 +1802,30 @@ function App() {
       <Routes>
 
         {/* =================================================
-            ROUTES PUBLIQUES
+            LOGIN
         ================================================= */}
 
         <Route
           path="/login"
           element={
-            <LoginPage
-              onLogin={
-                handleLogin
-              }
-            />
+            currentUser ? (
+              <Navigate
+                to="/"
+                replace
+              />
+            ) : (
+              <LoginPage
+                onLogin={
+                  handleLogin
+                }
+              />
+            )
           }
         />
+
+        {/* =================================================
+            SIGNUP
+        ================================================= */}
 
         <Route
           path="/signup"
@@ -1163,6 +1833,10 @@ function App() {
             <SignupPage />
           }
         />
+
+        {/* =================================================
+            RESET PASSWORD
+        ================================================= */}
 
         <Route
           path="/reset-password"
@@ -1190,7 +1864,7 @@ function App() {
         />
 
         {/* =================================================
-            ROUTE RACINE
+            RACINE
         ================================================= */}
 
         <Route
@@ -1229,14 +1903,29 @@ function App() {
                     currentUser={
                       currentUser
                     }
+                    selectedTask={
+                      selectedTask
+                    }
+                    setSelectedTask={
+                      setSelectedTask
+                    }
+                    actions={
+                      actions
+                    }
                     onStatusChange={
                       handleStatusChange
                     }
-                    onTaskClick={
-                      setSelectedTask
-                    }
                     onCreateTask={
                       handleCreateTask
+                    }
+                    onCreateSubtask={
+                      handleCreateSubtask
+                    }
+                    onEditTask={
+                      handleEditTask
+                    }
+                    onDeleteTask={
+                      handleDeleteTask
                     }
                   />
                 </AppLayout>
@@ -1265,17 +1954,20 @@ function App() {
                   handleLogout
                 }
               >
-                <ProjectsPage
-                  projects={
-                    projects
-                  }
-                  onCreateProject={
-                    handleCreateProject
-                  }
-                  onSelectProject={
-                    handleSelectProject
-                  }
-                />
+<ProjectsPage
+  projects={
+    projects
+  }
+  currentUser={
+    currentUser
+  }
+  onCreateProject={
+    handleCreateProject
+  }
+  onSelectProject={
+    handleSelectProject
+  }
+/>
               </AppLayout>
             </ProtectedRoute>
           }
@@ -1343,13 +2035,6 @@ function App() {
                   onLogout={
                     handleLogout
                   }
-
-                  /*
-                    IMPORTANT :
-                    permet au Header
-                    de calculer les
-                    notifications.
-                  */
                   tasks={
                     visibleTasks
                   }
@@ -1393,11 +2078,9 @@ function App() {
                 onLogout={
                   handleLogout
                 }
-
                 tasks={
                   visibleTasks
                 }
-
                 actions={
                   actions
                 }
@@ -1414,6 +2097,9 @@ function App() {
                   }
                   currentUser={
                     currentUser
+                  }
+                  actions={
+                    actions
                   }
                   onStatusChange={
                     handleStatusChange
@@ -1446,11 +2132,9 @@ function App() {
                 onLogout={
                   handleLogout
                 }
-
                 tasks={
                   visibleTasks
                 }
-
                 actions={
                   actions
                 }
@@ -1472,28 +2156,40 @@ function App() {
         />
 
         {/* =================================================
-          BILAN PERSONNEL MEMBER
-       ================================================= */}
+            BILAN PERSONNEL MEMBER
+        ================================================= */}
 
-<Route
-  path="/member/personal-report"
-  element={
-    <ProtectedRoute
-      isLoggedIn={!!currentUser}
-    >
-      <MemberLayout
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        tasks={visibleTasks}
-        actions={actions}
-      >
-        <MemberPersonalReportPage
-          currentUser={currentUser}
+        <Route
+          path="/member/personal-report"
+          element={
+            <ProtectedRoute
+              isLoggedIn={
+                !!currentUser
+              }
+            >
+              <MemberLayout
+                currentUser={
+                  currentUser
+                }
+                onLogout={
+                  handleLogout
+                }
+                tasks={
+                  visibleTasks
+                }
+                actions={
+                  actions
+                }
+              >
+                <MemberPersonalReportPage
+                  currentUser={
+                    currentUser
+                  }
+                />
+              </MemberLayout>
+            </ProtectedRoute>
+          }
         />
-      </MemberLayout>
-    </ProtectedRoute>
-  }
-/>
 
         {/* =================================================
             FALLBACK

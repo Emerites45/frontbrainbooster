@@ -84,12 +84,9 @@
 
   gap: 12px;
 
-  padding:
-    11px 14px;
+  padding: 11px 14px;
 
-  border:
-    1px solid
-    #e6e8e8;
+  border: 1px solid #e6e8e8;
 
   border-radius: 12px;
 
@@ -196,12 +193,9 @@
 
   gap: 12px;
 
-  padding:
-    13px 15px;
+  padding: 13px 15px;
 
-  border:
-    1px solid
-    #e8e9e7;
+  border: 1px solid #e8e9e7;
 
   border-radius: 12px;
 
@@ -214,6 +208,26 @@
       46,
       70,
       0.035
+    );
+
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.member-project-overview-item:hover {
+  transform: translateY(-1px);
+
+  border-color: #dce3e8;
+
+  box-shadow:
+    0 7px 18px
+    rgba(
+      23,
+      46,
+      70,
+      0.055
     );
 }
 
@@ -313,14 +327,11 @@
 
   gap: 20px;
 
-  padding:
-    0 17px;
+  padding: 0 17px;
 
   margin-bottom: 14px;
 
-  border:
-    1px solid
-    #e7e8e6;
+  border: 1px solid #e7e8e6;
 
   border-radius: 12px;
 
@@ -362,8 +373,7 @@
 
   overflow: hidden;
 
-  padding:
-    6px 9px;
+  padding: 6px 9px;
 
   border-radius: 7px;
 
@@ -417,9 +427,7 @@
 
   overflow: hidden;
 
-  border:
-    1px solid
-    #e7e8e6;
+  border: 1px solid #e7e8e6;
 
   border-radius: 15px;
 
@@ -436,12 +444,14 @@
 
   transition:
     transform 0.18s ease,
-    box-shadow 0.18s ease;
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .member-project-card:hover {
-  transform:
-    translateY(-2px);
+  transform: translateY(-2px);
+
+  border-color: #dce3e8;
 
   box-shadow:
     0 12px 28px
@@ -460,8 +470,7 @@
 .member-project-main {
   min-width: 0;
 
-  padding:
-    21px 22px;
+  padding: 21px 22px;
 }
 
 /* =========================================================
@@ -572,8 +581,7 @@
 
   min-height: 27px;
 
-  padding:
-    3px 9px;
+  padding: 3px 9px;
 
   border-radius: 999px;
 
@@ -612,12 +620,6 @@
   background: #fff5e4;
 }
 
-.member-project-status-paused {
-  color: #875fa7;
-
-  background: #f4eff8;
-}
-
 /* =========================================================
    DESCRIPTION
 ========================================================= */
@@ -627,8 +629,7 @@
 
   min-height: 42px;
 
-  margin:
-    18px 0;
+  margin: 18px 0;
 
   color: #71808d;
 
@@ -669,12 +670,9 @@
 
   min-height: 57px;
 
-  padding:
-    9px 10px;
+  padding: 9px 10px;
 
-  border:
-    1px solid
-    #edefef;
+  border: 1px solid #edefef;
 
   border-radius: 10px;
 
@@ -840,9 +838,7 @@
 
   flex-direction: column;
 
-  border-left:
-    1px solid
-    #e9eae8;
+  border-left: 1px solid #e9eae8;
 
   background:
     linear-gradient(
@@ -863,12 +859,9 @@
 
   gap: 15px;
 
-  padding:
-    13px 16px;
+  padding: 13px 16px;
 
-  border-bottom:
-    1px solid
-    #e9eae8;
+  border-bottom: 1px solid #e9eae8;
 }
 
 .member-project-task-panel-header
@@ -903,8 +896,7 @@
 
   justify-content: center;
 
-  padding:
-    0 8px;
+  padding: 0 8px;
 
   border-radius: 8px;
 
@@ -924,8 +916,7 @@
 .member-project-task-list {
   flex: 1;
 
-  padding:
-    7px 10px 10px;
+  padding: 7px 10px 10px;
 }
 
 .member-project-task-row {
@@ -941,14 +932,11 @@
 
   gap: 12px;
 
-  padding:
-    7px 7px;
+  padding: 7px;
 
   border: none;
 
-  border-bottom:
-    1px solid
-    #eceeec;
+  border-bottom: 1px solid #eceeec;
 
   border-radius: 0;
 
@@ -960,7 +948,7 @@
 
   text-align: left;
 
-  cursor: pointer;
+  cursor: default;
 
   transition:
     background 0.15s ease;
@@ -1075,8 +1063,7 @@
 
   min-height: 24px;
 
-  padding:
-    3px 7px;
+  padding: 3px 7px;
 
   border-radius: 999px;
 
@@ -1114,12 +1101,6 @@
   color: #2c805b;
 
   background: #eaf6ef;
-}
-
-.member-project-task-status-a_revoir {
-  color: #7c5a9b;
-
-  background: #f3eef8;
 }
 
 /* =========================================================
@@ -1180,13 +1161,20 @@
 
   padding: 30px;
 
-  border:
-    1px dashed
-    #d7d9d8;
+  border: 1px solid #e5e9ed;
 
   border-radius: 14px;
 
   background: #ffffff;
+
+  box-shadow:
+    0 6px 18px
+    rgba(
+      24,
+      47,
+      71,
+      0.035
+    );
 
   text-align: center;
 }
@@ -1271,9 +1259,7 @@
   .member-project-task-panel {
     border-left: none;
 
-    border-top:
-      1px solid
-      #e9eae8;
+    border-top: 1px solid #e9eae8;
   }
 }
 
@@ -1300,8 +1286,7 @@
 
     flex-direction: column;
 
-    padding:
-      13px 15px;
+    padding: 13px 15px;
   }
 
   .member-project-search-value {
@@ -1309,8 +1294,7 @@
   }
 
   .member-project-main {
-    padding:
-      18px 16px;
+    padding: 18px 16px;
   }
 
   .member-project-card-header {

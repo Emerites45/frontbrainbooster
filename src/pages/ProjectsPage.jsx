@@ -1,129 +1,858 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import AuthLayout from "../components/AuthLayout";
-import wallyLogo from "../assets/wally-logo.png";
-import marinaImg from "../assets/marina.png";
-import { loginUser } from "../api/api";
-import "./login/LoginPage.css";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+import {
+  fetchDepartments,
+} from "../api/api";
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const data = await loginUser(email, password); // vrai appel API
-      if (onLogin) {
-        onLogin(data); // data doit contenir { token, ... } venant du serveur
-      }
-      navigate("/"); // redirection après succès
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+import "./ProjectsPage.css";
 
+/* =========================================================
+   STATUS
+========================================================= */
+
+const STATUS_OPTIONS = [
+  {
+    value: "A_FAIRE",
+    label: "À faire",
+  },
+  {
+    value: "EN_COURS",
+    label: "En cours",
+  },
+  {
+    value: "TERMINE",
+    label: "Terminé",
+  },
+];
+
+function getStatusLabel(status) {
   return (
-    <AuthLayout
-      rightContent={
-        <img src={marinaImg} alt="Nourrir un avenir radieux" className="showcase-image" />
-      }
-    >
-      <div className="login-form-wrap">
-
-        <div className="login-header">
-          <h1 className="login-title">Bon retour</h1>
-          <p className="login-subtitle">
-            Connectez-vous à votre tableau de bord d'audit d'entreprise.
-          </p>
-        </div>
-
-        {error && <p style={{ color: "red", fontSize: 13, marginBottom: 12 }}>{error}</p>}
-
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">Adresse e-mail</label>
-            <div className="input-wrapper">
-              <span className="input-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <rect x="3" y="5" width="18" height="14" rx="2" />
-                  <path d="M3 7l9 6 9-6" />
-                </svg>
-              </span>
-              <input
-                id="email"
-                type="email"
-                placeholder="nom@entreprise.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <div className="label-row">
-              <label htmlFor="password">Mot de passe</label>
-              <a href="#" className="link-small">Mot de passe oublié ?</a>
-            </div>
-            <div className="input-wrapper">
-              <span className="input-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <rect x="5" y="11" width="14" height="9" rx="2" />
-                  <path d="M8 11V7a4 4 0 018 0v4" />
-                </svg>
-              </span>
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <span className="toggle-eye" onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M9.9 5.1A10.4 10.4 0 0112 5c6.5 0 10 7 10 7a17.7 17.7 0 01-3.2 4.1M6.5 6.6C4 8.3 2 12 2 12s3.5 7 10 7c1.4 0 2.6-.3 3.7-.8" />
-                  </svg>
-                )}
-              </span>
-            </div>
-          </div>
-
-          <div className="form-footer-row">
-            <label className="checkbox-row">
-              <input type="checkbox" />
-              <span>Se souvenir de moi pendant 30 jours</span>
-            </label>
-
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? "Connexion..." : "Se connecter au tableau de bord"}
-              <span className="btn-arrow">→</span>
-            </button>
-          </div>
-        </form>
-
-        <p className="login-footer">
-          Pas encore de compte ?{" "}
-          <a href="/signup" className="link">Demandez l'accès à votre manager</a>
-        </p>
-      </div>
-    </AuthLayout>
+    STATUS_OPTIONS.find(
+      (item) =>
+        item.value === status
+    )?.label ??
+    status ??
+    "Non défini"
   );
 }
 
-export default LoginPage;
+/* =========================================================
+   DATE
+========================================================= */
+
+function formatDate(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat(
+    "fr-FR",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
+  )
+    .format(date)
+    .replace(".", "");
+}
+
+/* =========================================================
+   PROJECTS PAGE
+========================================================= */
+
+function ProjectsPage({
+  projects = [],
+  onCreateProject,
+  onSelectProject,
+  currentUser,
+}) {
+  const [
+    showForm,
+    setShowForm,
+  ] =
+    useState(false);
+
+  const [
+    name,
+    setName,
+  ] =
+    useState("");
+
+  const [
+    description,
+    setDescription,
+  ] =
+    useState("");
+
+  const [
+    departmentId,
+    setDepartmentId,
+  ] =
+    useState("");
+
+  const [
+    status,
+    setStatus,
+  ] =
+    useState("A_FAIRE");
+
+  const [
+    startDate,
+    setStartDate,
+  ] =
+    useState("");
+
+  const [
+    endDate,
+    setEndDate,
+  ] =
+    useState("");
+
+  const [
+    departments,
+    setDepartments,
+  ] =
+    useState([]);
+
+  const [
+    departmentsLoading,
+    setDepartmentsLoading,
+  ] =
+    useState(false);
+
+  const [
+    error,
+    setError,
+  ] =
+    useState("");
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(false);
+
+  /* =======================================================
+     RÔLES
+  ======================================================= */
+
+  const isAdmin =
+    currentUser
+      ?.globalRoles
+      ?.includes(
+        "ADMIN"
+      );
+
+  const scrumMasterRoles =
+    useMemo(
+      () => {
+        if (
+          !Array.isArray(
+            currentUser?.departmentRoles
+          )
+        ) {
+          return [];
+        }
+
+        return currentUser.departmentRoles.filter(
+          (role) =>
+            role?.role ===
+              "SCRUM_MASTER" &&
+            role?.departmentId !==
+              undefined &&
+            role?.departmentId !==
+              null
+        );
+      },
+      [currentUser]
+    );
+
+  const isScrumMaster =
+    scrumMasterRoles.length >
+    0;
+
+  const canCreateProject =
+    !!currentUser &&
+    (isAdmin ||
+      isScrumMaster);
+
+  /* =======================================================
+     CHARGEMENT DES DÉPARTEMENTS POUR ADMIN
+  ======================================================= */
+
+  useEffect(
+    () => {
+      if (!isAdmin) {
+        setDepartments([]);
+        return;
+      }
+
+      let cancelled =
+        false;
+
+      async function loadDepartments() {
+        setDepartmentsLoading(
+          true
+        );
+
+        try {
+          const data =
+            await fetchDepartments();
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          setDepartments(
+            Array.isArray(
+              data
+            )
+              ? data
+              : []
+          );
+        } catch (err) {
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          console.error(
+            "Erreur chargement départements :",
+            err
+          );
+
+          setDepartments([]);
+        } finally {
+          if (
+            !cancelled
+          ) {
+            setDepartmentsLoading(
+              false
+            );
+          }
+        }
+      }
+
+      loadDepartments();
+
+      return () => {
+        cancelled =
+          true;
+      };
+    },
+    [isAdmin]
+  );
+
+  /* =======================================================
+     DÉPARTEMENTS DISPONIBLES
+  ======================================================= */
+
+  const availableDepartments =
+    useMemo(
+      () => {
+        /*
+         * ADMIN :
+         * tous les départements
+         */
+        if (isAdmin) {
+          return departments
+            .filter(
+              (department) =>
+                department?.id !==
+                  undefined &&
+                department?.id !==
+                  null
+            )
+            .map(
+              (department) => ({
+                id:
+                  department.id,
+
+                name:
+                  department.name ??
+                  `Département ${department.id}`,
+              })
+            );
+        }
+
+        /*
+         * SCRUM MASTER :
+         * seulement ses départements
+         * où il est Scrum Master
+         */
+        return scrumMasterRoles
+          .map(
+            (role) => ({
+              id:
+                role.departmentId,
+
+              name:
+                role.departmentName ??
+                `Département ${role.departmentId}`,
+            })
+          )
+          .filter(
+            (
+              department,
+              index,
+              array
+            ) =>
+              array.findIndex(
+                (item) =>
+                  String(
+                    item.id
+                  ) ===
+                  String(
+                    department.id
+                  )
+              ) === index
+          );
+      },
+      [
+        isAdmin,
+        departments,
+        scrumMasterRoles,
+      ]
+    );
+
+  /* =======================================================
+     SUBMIT
+  ======================================================= */
+
+  async function handleSubmit(
+    event
+  ) {
+    event.preventDefault();
+
+    setError("");
+
+    if (
+      !canCreateProject
+    ) {
+      setError(
+        "Vous n'avez pas la permission de créer un projet."
+      );
+
+      return;
+    }
+
+    const cleanName =
+      name.trim();
+
+    const cleanDescription =
+      description.trim();
+
+    if (!cleanName) {
+      setError(
+        "Le nom du projet est obligatoire."
+      );
+
+      return;
+    }
+
+    if (!departmentId) {
+      setError(
+        "Veuillez sélectionner un département."
+      );
+
+      return;
+    }
+
+    if (
+      !currentUser?.id
+    ) {
+      setError(
+        "Utilisateur courant introuvable."
+      );
+
+      return;
+    }
+
+    if (
+      startDate &&
+      endDate &&
+      new Date(endDate) <
+        new Date(startDate)
+    ) {
+      setError(
+        "La date de fin ne peut pas être antérieure à la date de début."
+      );
+
+      return;
+    }
+
+    const projectData = {
+      name:
+        cleanName,
+
+      description:
+        cleanDescription,
+
+      departmentId:
+        Number(
+          departmentId
+        ),
+
+      creatorId:
+        currentUser.id,
+
+      status,
+    };
+
+    /*
+     * On ajoute les dates
+     * seulement si elles sont saisies.
+     */
+    if (startDate) {
+      projectData.startDate =
+        startDate;
+    }
+
+    if (endDate) {
+      projectData.endDate =
+        endDate;
+    }
+
+    setLoading(true);
+
+    try {
+      const createdProject =
+        await onCreateProject?.(
+          projectData
+        );
+
+      if (
+        createdProject ===
+        null
+      ) {
+        setError(
+          "Le projet n'a pas pu être créé."
+        );
+
+        return;
+      }
+
+      setName("");
+      setDescription("");
+      setDepartmentId("");
+      setStatus(
+        "A_FAIRE"
+      );
+      setStartDate("");
+      setEndDate("");
+      setShowForm(false);
+    } catch (err) {
+      console.error(
+        "Erreur création projet :",
+        err
+      );
+
+      setError(
+        err?.message ??
+          "Impossible de créer le projet."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* =======================================================
+     RENDER
+  ======================================================= */
+
+  return (
+    <main className="projects-page">
+
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
+      <div className="projects-page-header">
+
+        <div>
+          <span className="projects-page-eyebrow">
+            Gestion
+          </span>
+
+          <h1>
+            Projets
+          </h1>
+
+          <p>
+            Consultez les projets et
+            gérez leur création.
+          </p>
+        </div>
+
+        {canCreateProject && (
+          <button
+            type="button"
+            className="projects-create-button"
+            onClick={() =>
+              setShowForm(
+                (current) =>
+                  !current
+              )
+            }
+          >
+            {showForm
+              ? "Fermer"
+              : "+ Nouveau projet"}
+          </button>
+        )}
+      </div>
+
+      {/* =================================================
+          FORMULAIRE
+      ================================================= */}
+
+      {showForm &&
+        canCreateProject && (
+          <section className="projects-form-card">
+
+            <h2>
+              Créer un projet
+            </h2>
+
+            <form
+              onSubmit={
+                handleSubmit
+              }
+              className="projects-form"
+            >
+
+              <div className="projects-form-group">
+                <label htmlFor="project-name">
+                  Nom du projet
+                </label>
+
+                <input
+                  id="project-name"
+                  type="text"
+                  value={name}
+                  onChange={(
+                    event
+                  ) =>
+                    setName(
+                      event.target.value
+                    )
+                  }
+                  placeholder="Ex. Refonte du portail"
+                  required
+                />
+              </div>
+
+              <div className="projects-form-group">
+                <label htmlFor="project-department">
+                  Département
+                </label>
+
+                <select
+                  id="project-department"
+                  value={
+                    departmentId
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setDepartmentId(
+                      event.target.value
+                    )
+                  }
+                  required
+                  disabled={
+                    departmentsLoading
+                  }
+                >
+                  <option value="">
+                    {departmentsLoading
+                      ? "Chargement..."
+                      : "Sélectionner"}
+                  </option>
+
+                  {availableDepartments.map(
+                    (department) => (
+                      <option
+                        key={
+                          department.id
+                        }
+                        value={
+                          department.id
+                        }
+                      >
+                        {
+                          department.name
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div className="projects-form-group">
+                <label htmlFor="project-status">
+                  Statut
+                </label>
+
+                <select
+                  id="project-status"
+                  value={status}
+                  onChange={(
+                    event
+                  ) =>
+                    setStatus(
+                      event.target.value
+                    )
+                  }
+                >
+                  {STATUS_OPTIONS.map(
+                    (item) => (
+                      <option
+                        key={
+                          item.value
+                        }
+                        value={
+                          item.value
+                        }
+                      >
+                        {
+                          item.label
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div className="projects-form-group">
+                <label htmlFor="project-start-date">
+                  Date de début
+                </label>
+
+                <input
+                  id="project-start-date"
+                  type="date"
+                  value={
+                    startDate
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setStartDate(
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
+
+              <div className="projects-form-group">
+                <label htmlFor="project-end-date">
+                  Date de fin
+                </label>
+
+                <input
+                  id="project-end-date"
+                  type="date"
+                  value={
+                    endDate
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setEndDate(
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
+
+              <div className="projects-form-group projects-form-group-full">
+                <label htmlFor="project-description">
+                  Description
+                </label>
+
+                <textarea
+                  id="project-description"
+                  rows="4"
+                  value={
+                    description
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setDescription(
+                      event.target.value
+                    )
+                  }
+                  placeholder="Description du projet"
+                />
+              </div>
+
+              {error && (
+                <div className="projects-form-error">
+                  {
+                    error
+                  }
+                </div>
+              )}
+
+              <div className="projects-form-actions">
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowForm(
+                      false
+                    )
+                  }
+                  disabled={
+                    loading
+                  }
+                >
+                  Annuler
+                </button>
+
+                <button
+                  type="submit"
+                  className="projects-create-button"
+                  disabled={
+                    loading ||
+                    departmentsLoading
+                  }
+                >
+                  {loading
+                    ? "Création..."
+                    : "Créer le projet"}
+                </button>
+
+              </div>
+            </form>
+          </section>
+        )}
+
+      {/* =================================================
+          LISTE DES PROJETS
+      ================================================= */}
+
+      <section className="projects-list">
+
+        {projects.length ===
+        0 ? (
+          <div className="projects-empty">
+
+            <strong>
+              Aucun projet
+            </strong>
+
+            <span>
+              Aucun projet n'est
+              disponible pour le
+              moment.
+            </span>
+
+          </div>
+        ) : (
+          projects.map(
+            (project) => (
+              <article
+                key={
+                  project.id
+                }
+                className="project-card"
+                onClick={() =>
+                  onSelectProject?.(
+                    project
+                  )
+                }
+              >
+
+                <div className="project-card-top">
+
+                  <div>
+                    <span className="project-card-label">
+                      Projet
+                    </span>
+
+                    <h2>
+                      {
+                        project.name
+                      }
+                    </h2>
+                  </div>
+
+                  <span
+                    className={`project-status project-status-${String(
+                      project.status ??
+                        ""
+                    ).toLowerCase()}`}
+                  >
+                    {getStatusLabel(
+                      project.status
+                    )}
+                  </span>
+
+                </div>
+
+                <p className="project-description">
+                  {project.description ||
+                    "Aucune description."}
+                </p>
+
+                <div className="project-dates">
+
+                  <div>
+                    <span>
+                      Début
+                    </span>
+
+                    <strong>
+                      {formatDate(
+                        project.startDate
+                      )}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Fin
+                    </span>
+
+                    <strong>
+                      {formatDate(
+                        project.endDate
+                      )}
+                    </strong>
+                  </div>
+
+                </div>
+
+              </article>
+            )
+          )
+        )}
+
+      </section>
+    </main>
+  );
+}
+
+export default ProjectsPage;

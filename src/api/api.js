@@ -1,433 +1,1242 @@
-const API_URL = import.meta.env.VITE_API_URL;
-
 /* =========================================================
-   HELPERS
+   CONFIGURATION API
 ========================================================= */
 
-function getCurrentUser() {
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3001";
+
+const API_BASE_URL =
+  `${API_URL}/api/v1`;
+
+/* =========================================================
+   TOKEN
+========================================================= */
+
+/**
+ * Récupère le token actuellement
+ * enregistré dans localStorage.
+ *
+ * Pour le moment ton application stocke
+ * encore l'utilisateur complet dans :
+ *
+ * currentUser
+ *
+ * avec :
+ * {
+ *   ...user,
+ *   token
+ * }
+ *
+ * Nous gardons donc cette structure
+ * jusqu'à la prochaine étape App.jsx.
+ */
+export function getAuthToken() {
   try {
-    return JSON.parse(
-      localStorage.getItem("currentUser")
+    const savedUser =
+      localStorage.getItem(
+        "currentUser"
+      );
+
+    if (!savedUser) {
+      return null;
+    }
+
+    const parsedUser =
+      JSON.parse(savedUser);
+
+    return (
+      parsedUser?.token ??
+      null
     );
-  } catch {
+  } catch (error) {
+    console.error(
+      "Impossible de lire le token :",
+      error
+    );
+
     return null;
   }
 }
 
-function getAuthHeaders() {
-  const currentUser = getCurrentUser();
+/* =========================================================
+   HEADERS
+========================================================= */
 
-  return {
-    Authorization:
-      `Bearer ${currentUser?.token ?? ""}`,
+function buildHeaders({
+  authenticated = true,
+  hasBody = false,
+} = {}) {
+  const headers = {
+    Accept: "application/json",
   };
+
+  if (hasBody) {
+    headers[
+      "Content-Type"
+    ] = "application/json";
+  }
+
+  if (authenticated) {
+    const token =
+      getAuthToken();
+
+    if (token) {
+      headers.Authorization =
+        `Bearer ${token}`;
+    }
+  }
+
+  return headers;
 }
 
 /* =========================================================
-   TASKS
+   ERREURS
 ========================================================= */
 
-export async function fetchTasks() {
-  const response = await fetch(
-    `${API_URL}/tasks`,
-    {
-      headers: getAuthHeaders(),
+/**
+ * Le backend utilise normalement :
+ *
+ * {
+ *   "message": "..."
+ * }
+ *
+ * Cette fonction permet donc d'avoir
+ * des erreurs cohérentes dans tout le
+ * frontend.
+ */
+async function getErrorMessage(
+  response
+) {
+  try {
+    const data =
+      await response.json();
+
+    if (
+      data?.message
+    ) {
+      return data.message;
     }
-  );
+  } catch {
+    // La réponse n'est peut-être
+    // pas du JSON.
+  }
+
+  switch (
+    response.status
+  ) {
+    case 400:
+      return "La requête envoyée est invalide.";
+
+    case 401:
+      return "Votre session est invalide ou a expiré.";
+
+    case 403:
+      return "Vous n'êtes pas autorisé à effectuer cette action.";
+
+    case 404:
+      return "L'inscription publique est actuellement désactivée. Contactez un administrateur pour obtenir un compte.";
+
+    case 409:
+      return "Un conflit empêche cette opération.";
+
+    case 500:
+      return "Une erreur interne est survenue sur le serveur.";
+
+    default:
+      return `Erreur HTTP ${response.status}.`;
+  }
+}
+
+/* =========================================================
+   REQUÊTE GÉNÉRIQUE
+========================================================= */
+
+async function apiRequest(
+  endpoint,
+  options = {}
+) {
+  const {
+    method = "GET",
+    body,
+    authenticated = true,
+  } = options;
+
+  const hasBody =
+    body !== undefined &&
+    body !== null;
+
+  let response;
+
+  try {
+    response =
+      await fetch(
+        `${API_BASE_URL}${endpoint}`,
+        {
+          method,
+
+          headers:
+            buildHeaders({
+              authenticated,
+              hasBody,
+            }),
+
+          ...(hasBody
+            ? {
+                body:
+                  JSON.stringify(
+                    body
+                  ),
+              }
+            : {}),
+        }
+      );
+  } catch (error) {
+    console.error(
+      "Erreur réseau API :",
+      error
+    );
+
+    throw new Error(
+      "Impossible de contacter le serveur. Vérifiez que le backend est démarré."
+    );
+  }
 
   if (!response.ok) {
-    throw new Error(
-      `Erreur API: ${response.status}`
+    const message =
+      await getErrorMessage(
+        response
+      );
+
+    const error =
+      new Error(message);
+
+    error.status =
+      response.status;
+
+    throw error;
+  }
+
+  /*
+   * Certains endpoints DELETE
+   * renvoient volontairement 204
+   * sans contenu.
+   */
+  if (
+    response.status ===
+    204
+  ) {
+    return null;
+  }
+
+  /*
+   * Certains serveurs peuvent
+   * éventuellement renvoyer une
+   * réponse vide même avec 200.
+   */
+  const contentType =
+    response.headers.get(
+      "content-type"
     );
+
+  if (
+    !contentType ||
+    !contentType.includes(
+      "application/json"
+    )
+  ) {
+    return null;
   }
 
   return response.json();
 }
 
 /* =========================================================
-   AUTH - SIGNUP
+   AUTH
 ========================================================= */
 
-export async function registerUser(
-  userData
-) {
-  const response = await fetch(
-    `${API_URL}/api/v1/auth/signup`,
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type":
-          "application/json",
-      },
-
-      body:
-        JSON.stringify(userData),
-    }
-  );
-
-  if (!response.ok) {
-    const errorMessage =
-      await response.text();
-
-    throw new Error(
-      errorMessage ||
-        "Inscription échouée"
-    );
-  }
-
-  return response.text();
-}
-
-/* =========================================================
-   AUTH - LOGIN
-========================================================= */
-
+/**
+ * POST /api/v1/auth/login
+ */
 export async function loginUser(
   email,
   password
 ) {
-  const response = await fetch(
-    `${API_URL}/auth/login`,
+  return apiRequest(
+    "/auth/login",
     {
       method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
+      authenticated:
+        false,
+
+      body: {
+        email:
+          email.trim(),
+
+        password,
       },
-
-      body:
-        JSON.stringify({
-          email,
-          password,
-        }),
     }
   );
-
-  if (!response.ok) {
-    const errorMessage =
-      await response.text();
-
-    throw new Error(
-      errorMessage ||
-        "Identifiants invalides"
-    );
-  }
-
-  return response.json();
 }
 
-/* =========================================================
-   PROJECTS
-========================================================= */
-
-export async function fetchProjects() {
-  const response = await fetch(
-    `${API_URL}/projects`,
-    {
-      headers: getAuthHeaders(),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Erreur API: ${response.status}`
-    );
-  }
-
-  return response.json();
-}
-
-export async function createProject(
-  project
+/**
+ * POST /api/v1/auth/signup
+ *
+ * Le backend attend :
+ *
+ * {
+ *   firstName,
+ *   lastName,
+ *   email,
+ *   password
+ * }
+ */
+export async function registerUser(
+  userData
 ) {
-  const response = await fetch(
-    `${API_URL}/projects`,
+  /*
+   * Compatibilité temporaire avec
+   * ton SignupPage actuel qui
+   * transmet encore :
+   *
+   * {
+   *   name,
+   *   email,
+   *   password
+   * }
+   *
+   * Nous modifierons SignupPage
+   * à une prochaine étape.
+   */
+  let firstName =
+    userData?.firstName ??
+    "";
+
+  let lastName =
+    userData?.lastName ??
+    "";
+
+  if (
+    !firstName &&
+    userData?.name
+  ) {
+    const parts =
+      String(
+        userData.name
+      )
+        .trim()
+        .split(/\s+/);
+
+    firstName =
+      parts.shift() ??
+      "";
+
+    lastName =
+      parts.join(" ");
+  }
+
+  return apiRequest(
+    "/auth/signup",
     {
       method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
+      authenticated:
+        false,
 
-        ...getAuthHeaders(),
+      body: {
+        firstName,
+        lastName,
+
+        email:
+          userData?.email?.trim(),
+
+        password:
+          userData?.password,
       },
-
-      body:
-        JSON.stringify(project),
     }
   );
+}
 
-  if (!response.ok) {
-    throw new Error(
-      `Erreur API: ${response.status}`
-    );
-  }
+/**
+ * POST /api/v1/auth/change-password
+ *
+ * Body :
+ * {
+ *   userId,
+ *   newPassword
+ * }
+ */
+export async function changePassword({
+  userId,
+  newPassword,
+}) {
+  return apiRequest(
+    "/auth/change-password",
+    {
+      method: "POST",
 
-  return response.json();
+      body: {
+        userId,
+        newPassword,
+      },
+    }
+  );
+}
+
+/**
+ * GET /api/v1/auth/me
+ */
+export async function fetchCurrentUser() {
+  return apiRequest(
+    "/auth/me"
+  );
 }
 
 /* =========================================================
-   PASSWORD RESET
+   AUTH - ANCIENNES ROUTES NON CONFIRMÉES
 ========================================================= */
 
+/**
+ * ATTENTION :
+ *
+ * Les endpoints forgot-password
+ * et reset-password ne figurent pas
+ * dans le contrat API reçu.
+ *
+ * Nous gardons ces fonctions seulement
+ * pour empêcher les pages existantes
+ * de casser pendant la migration.
+ *
+ * Elles devront être confirmées
+ * par l'équipe backend.
+ */
+
+/* =========================================================
+   MOT DE PASSE OUBLIÉ
+   ENDPOINT À CONFIRMER AVEC LE BACKEND
+========================================================= */
+
+/**
+ * Ton frontend existant utilise encore
+ * requestPasswordReset().
+ *
+ * L'endpoint /auth/forgot-password
+ * n'apparaît pas dans le contrat API
+ * officiel reçu.
+ *
+ * Nous gardons donc cette fonction
+ * temporairement pour que le frontend
+ * continue de compiler.
+ */
 export async function requestPasswordReset(
   email
 ) {
-  const response = await fetch(
-    `${API_URL}/api/v1/auth/forgot-password?email=${encodeURIComponent(
-      email
-    )}`,
+  return apiRequest(
+    "/auth/forgot-password",
     {
       method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
+      authenticated:
+        false,
+
+      body: {
+        email:
+          email?.trim(),
       },
     }
   );
-
-  if (!response.ok) {
-    const errorMessage =
-      await response.text();
-
-    throw new Error(
-      errorMessage ||
-        "Impossible d'envoyer le code de vérification."
-    );
-  }
-
-  const message =
-    await response.text();
-
-  return {
-    success: true,
-    message,
-  };
 }
 
-export async function resetPassword({
-  email,
-  otp,
-  newPassword,
-}) {
-  const response = await fetch(
-    `${API_URL}/api/v1/auth/reset-password`,
+/**
+ * Alias temporaire.
+ *
+ * Permet également d'utiliser
+ * forgotPassword() si un autre
+ * composant l'appelle.
+ */
+export async function forgotPassword(
+  email
+) {
+  return requestPasswordReset(
+    email
+  );
+}
+
+export async function resetPassword(
+  {
+    email,
+    otp,
+    newPassword,
+  }
+) {
+  return apiRequest(
+    "/auth/reset-password",
     {
       method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
-      },
+      authenticated:
+        false,
 
-      body:
-        JSON.stringify({
-          email,
-          otp,
-          newPassword,
-        }),
+      body: {
+        email,
+        otp,
+        newPassword,
+      },
     }
   );
-
-  if (!response.ok) {
-    const errorMessage =
-      await response.text();
-
-    throw new Error(
-      errorMessage ||
-        "Impossible de réinitialiser le mot de passe."
-    );
-  }
-
-  const message =
-    await response.text();
-
-  return {
-    success: true,
-    message,
-  };
 }
 
 /* =========================================================
    USERS
 ========================================================= */
 
-export async function fetchUsers() {
-  const response = await fetch(
-    `${API_URL}/users`,
+/**
+ * GET /api/v1/users
+ *
+ * Option :
+ * ?departmentId=1
+ */
+export async function fetchUsers(
+  departmentId = null
+) {
+  const query =
+    departmentId !== null &&
+    departmentId !== undefined
+      ? `?departmentId=${encodeURIComponent(
+          departmentId
+        )}`
+      : "";
+
+  return apiRequest(
+    `/users${query}`
+  );
+}
+
+/**
+ * GET /api/v1/users/{id}
+ */
+export async function fetchUserById(
+  userId
+) {
+  return apiRequest(
+    `/users/${encodeURIComponent(
+      userId
+    )}`
+  );
+}
+
+/**
+ * POST /api/v1/users
+ */
+export async function createUser(
+  userData
+) {
+  return apiRequest(
+    "/users",
     {
-      headers: getAuthHeaders(),
+      method: "POST",
+
+      body: userData,
     }
   );
+}
 
-  if (!response.ok) {
-    throw new Error(
-      `Erreur API: ${response.status}`
-    );
-  }
+/**
+ * Compatibilité avec ton
+ * AdminDashboardPage actuel.
+ *
+ * Ton fichier importe encore :
+ *
+ * createAdminUser()
+ *
+ * mais le nouveau contrat utilise :
+ *
+ * POST /api/v1/users
+ */
+export async function createAdminUser(
+  userData
+) {
+  return createUser(
+    userData
+  );
+}
 
-  return response.json();
+/**
+ * PATCH /api/v1/users/{id}
+ */
+export async function updateUser(
+  userId,
+  updatedFields
+) {
+  return apiRequest(
+    `/users/${encodeURIComponent(
+      userId
+    )}`,
+    {
+      method: "PATCH",
+
+      body:
+        updatedFields,
+    }
+  );
+}
+
+/**
+ * PATCH /api/v1/users/{id}/status
+ */
+export async function updateUserStatus(
+  userId,
+  status
+) {
+  return apiRequest(
+    `/users/${encodeURIComponent(
+      userId
+    )}/status`,
+    {
+      method: "PATCH",
+
+      body: {
+        status,
+      },
+    }
+  );
 }
 
 /* =========================================================
    DEPARTMENTS
 ========================================================= */
 
+/**
+ * GET /api/v1/departments
+ */
 export async function fetchDepartments() {
-  const response = await fetch(
-    `${API_URL}/departments`,
-    {
-      headers: getAuthHeaders(),
-    }
+  return apiRequest(
+    "/departments"
   );
+}
 
-  if (!response.ok) {
-    throw new Error(
-      `Erreur API: ${response.status}`
-    );
-  }
+/**
+ * GET /api/v1/departments/{id}
+ */
+export async function fetchDepartmentById(
+  departmentId
+) {
+  return apiRequest(
+    `/departments/${encodeURIComponent(
+      departmentId
+    )}`
+  );
+}
 
-  return response.json();
+/**
+ * GET /api/v1/departments/{id}/users
+ */
+export async function fetchDepartmentUsers(
+  departmentId
+) {
+  return apiRequest(
+    `/departments/${encodeURIComponent(
+      departmentId
+    )}/users`
+  );
 }
 
 /* =========================================================
-   ADMIN - CREATE USER
+   PROJECTS
 ========================================================= */
 
-export async function createAdminUser(
-  userData
+/**
+ * GET /api/v1/projects
+ *
+ * Options :
+ *
+ * {
+ *   departmentId,
+ *   status
+ * }
+ */
+export async function fetchProjects(
+  filters = {}
 ) {
-  const response = await fetch(
-    `${API_URL}/admin/users`,
+  const params =
+    new URLSearchParams();
+
+  if (
+    filters?.departmentId !==
+      undefined &&
+    filters?.departmentId !==
+      null
+  ) {
+    params.set(
+      "departmentId",
+      filters.departmentId
+    );
+  }
+
+  if (
+    filters?.status
+  ) {
+    params.set(
+      "status",
+      filters.status
+    );
+  }
+
+  const query =
+    params.toString();
+
+  return apiRequest(
+    `/projects${
+      query
+        ? `?${query}`
+        : ""
+    }`
+  );
+}
+
+/**
+ * GET /api/v1/projects/{id}
+ */
+export async function fetchProjectById(
+  projectId
+) {
+  return apiRequest(
+    `/projects/${encodeURIComponent(
+      projectId
+    )}`
+  );
+}
+
+/**
+ * POST /api/v1/projects
+ */
+export async function createProject(
+  projectData
+) {
+  return apiRequest(
+    "/projects",
     {
       method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
-
-        ...getAuthHeaders(),
-      },
-
       body:
-        JSON.stringify(userData),
+        projectData,
     }
   );
+}
 
-  if (!response.ok) {
-    const errorMessage =
-      await response.text();
+/**
+ * PATCH /api/v1/projects/{id}
+ */
+export async function updateProject(
+  projectId,
+  updatedFields
+) {
+  return apiRequest(
+    `/projects/${encodeURIComponent(
+      projectId
+    )}`,
+    {
+      method: "PATCH",
 
-    throw new Error(
-      errorMessage ||
-        `Erreur API: ${response.status}`
-    );
-  }
+      body:
+        updatedFields,
+    }
+  );
+}
 
-  return response.json();
+/**
+ * DELETE /api/v1/projects/{id}
+ */
+export async function deleteProject(
+  projectId
+) {
+  return apiRequest(
+    `/projects/${encodeURIComponent(
+      projectId
+    )}`,
+    {
+      method:
+        "DELETE",
+    }
+  );
+}
+
+/**
+ * GET /api/v1/projects/{id}/tasks
+ */
+export async function fetchProjectTasks(
+  projectId
+) {
+  return apiRequest(
+    `/projects/${encodeURIComponent(
+      projectId
+    )}/tasks`
+  );
 }
 
 /* =========================================================
-   ACTION HISTORY
+   TASKS
 ========================================================= */
 
-export async function fetchActions() {
-  const response = await fetch(
-    `${API_URL}/actions`,
-    {
-      headers: getAuthHeaders(),
-    }
-  );
+/**
+ * GET /api/v1/tasks
+ *
+ * Filtres disponibles :
+ *
+ * projectId
+ * status
+ * assigneeId
+ */
+export async function fetchTasks(
+  filters = {}
+) {
+  const params =
+    new URLSearchParams();
 
-  if (!response.ok) {
-    throw new Error(
-      `Erreur API: ${response.status}`
+  if (
+    filters?.projectId !==
+      undefined &&
+    filters?.projectId !==
+      null
+  ) {
+    params.set(
+      "projectId",
+      filters.projectId
     );
   }
 
-  return response.json();
+  if (
+    filters?.status
+  ) {
+    params.set(
+      "status",
+      filters.status
+    );
+  }
+
+  if (
+    filters?.assigneeId !==
+      undefined &&
+    filters?.assigneeId !==
+      null
+  ) {
+    params.set(
+      "assigneeId",
+      filters.assigneeId
+    );
+  }
+
+  const query =
+    params.toString();
+
+  return apiRequest(
+    `/tasks${
+      query
+        ? `?${query}`
+        : ""
+    }`
+  );
+}
+
+/**
+ * GET /api/v1/tasks/{id}
+ */
+export async function fetchTaskById(
+  taskId
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}`
+  );
+}
+
+/**
+ * POST /api/v1/tasks
+ */
+export async function createTask(
+  taskData
+) {
+  return apiRequest(
+    "/tasks",
+    {
+      method: "POST",
+
+      body:
+        taskData,
+    }
+  );
+}
+
+/**
+ * PATCH /api/v1/tasks/{id}
+ */
+export async function updateTask(
+  taskId,
+  updatedFields
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}`,
+    {
+      method: "PATCH",
+
+      body:
+        updatedFields,
+    }
+  );
+}
+
+/**
+ * DELETE /api/v1/tasks/{id}
+ */
+export async function deleteTask(
+  taskId
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}`,
+    {
+      method:
+        "DELETE",
+    }
+  );
+}
+
+/**
+ * PATCH /api/v1/tasks/{id}/status
+ */
+export async function updateTaskStatus(
+  taskId,
+  status
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/status`,
+    {
+      method: "PATCH",
+
+      body: {
+        status,
+      },
+    }
+  );
+}
+
+/* =========================================================
+   ASSIGNMENTS
+========================================================= */
+
+/**
+ * GET /api/v1/tasks/{id}/assignees
+ */
+export async function fetchTaskAssignees(
+  taskId
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/assignees`
+  );
+}
+
+/**
+ * POST /api/v1/tasks/{id}/assignees
+ *
+ * assignedAt n'est PAS envoyé.
+ *
+ * Il est généré par le serveur.
+ */
+export async function assignUserToTask(
+  taskId,
+  {
+    userId,
+    assignedBy,
+  }
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/assignees`,
+    {
+      method: "POST",
+
+      body: {
+        userId,
+        assignedBy,
+      },
+    }
+  );
+}
+
+/**
+ * DELETE
+ * /api/v1/tasks/{id}/assignees/{userId}
+ */
+export async function removeTaskAssignee(
+  taskId,
+  userId
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/assignees/${encodeURIComponent(
+      userId
+    )}`,
+    {
+      method:
+        "DELETE",
+    }
+  );
+}
+
+/* =========================================================
+   SUBTASKS
+========================================================= */
+
+/**
+ * GET /api/v1/tasks/{id}/subtasks
+ */
+export async function fetchSubtasks(
+  taskId
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/subtasks`
+  );
+}
+
+/**
+ * POST /api/v1/tasks/{id}/subtasks
+ *
+ * Le backend force lui-même
+ * parentTaskId = taskId.
+ */
+export async function createSubtask(
+  taskId,
+  subtaskData
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/subtasks`,
+    {
+      method: "POST",
+
+      body:
+        subtaskData,
+    }
+  );
+}
+
+/* =========================================================
+   COMMENTS
+========================================================= */
+
+/**
+ * GET /api/v1/tasks/{id}/comments
+ */
+export async function fetchTaskComments(
+  taskId
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/comments`
+  );
+}
+
+/**
+ * POST /api/v1/tasks/{id}/comments
+ */
+export async function createTaskComment(
+  taskId,
+  {
+    authorId,
+    content,
+  }
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/comments`,
+    {
+      method: "POST",
+
+      body: {
+        authorId,
+        content,
+      },
+    }
+  );
+}
+
+/**
+ * DELETE /api/v1/comments/{id}
+ */
+export async function deleteComment(
+  commentId
+) {
+  return apiRequest(
+    `/comments/${encodeURIComponent(
+      commentId
+    )}`,
+    {
+      method:
+        "DELETE",
+    }
+  );
+}
+
+/* =========================================================
+   ATTACHMENTS
+========================================================= */
+
+/**
+ * GET /api/v1/tasks/{id}/attachments
+ */
+export async function fetchTaskAttachments(
+  taskId
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/attachments`
+  );
+}
+
+/**
+ * POST /api/v1/tasks/{id}/attachments
+ *
+ * Attention :
+ * le contrat actuel parle de JSON
+ * avec une URL déjà disponible.
+ *
+ * Ce n'est donc pas encore un upload
+ * multipart de fichier.
+ */
+export async function createTaskAttachment(
+  taskId,
+  {
+    fileName,
+    url,
+    uploadedBy,
+  }
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/attachments`,
+    {
+      method: "POST",
+
+      body: {
+        fileName,
+        url,
+        uploadedBy,
+      },
+    }
+  );
+}
+
+/**
+ * DELETE /api/v1/attachments/{id}
+ */
+export async function deleteAttachment(
+  attachmentId
+) {
+  return apiRequest(
+    `/attachments/${encodeURIComponent(
+      attachmentId
+    )}`,
+    {
+      method:
+        "DELETE",
+    }
+  );
+}
+
+/* =========================================================
+   HISTORY
+========================================================= */
+
+/**
+ * GET /api/v1/tasks/{id}/history
+ */
+export async function fetchTaskHistory(
+  taskId
+) {
+  return apiRequest(
+    `/tasks/${encodeURIComponent(
+      taskId
+    )}/history`
+  );
+}
+
+/**
+ * GET /api/v1/projects/{id}/history
+ */
+export async function fetchProjectHistory(
+  projectId
+) {
+  return apiRequest(
+    `/projects/${encodeURIComponent(
+      projectId
+    )}/history`
+  );
+}
+
+/* =========================================================
+   COMPATIBILITÉ TEMPORAIRE - ACTIONS
+========================================================= */
+
+/**
+ * IMPORTANT :
+ *
+ * Ton ancien App.jsx utilise encore :
+ *
+ * fetchActions()
+ * createAction()
+ *
+ * Mais le nouveau contrat backend
+ * ne fournit AUCUN :
+ *
+ * GET /actions
+ * POST /actions
+ *
+ * Nous évitons donc volontairement
+ * d'appeler un endpoint inexistant.
+ *
+ * Ces deux fonctions seront supprimées
+ * lorsque nous adapterons App.jsx
+ * et les notifications au vrai modèle
+ * HistoryEntry.
+ */
+
+export async function fetchActions() {
+  return [];
 }
 
 export async function createAction(
-  actionData
+  action
 ) {
-  const response = await fetch(
-    `${API_URL}/actions`,
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type":
-          "application/json",
-
-        ...getAuthHeaders(),
-      },
-
-      body:
-        JSON.stringify(
-          actionData
-        ),
-    }
-  );
-
-  if (!response.ok) {
-    const errorMessage = await response.text();
-    throw new Error(
-      `Erreur API: ${response.status}`
-    );
-  }
-
-  return response.json();
+  /*
+   * Compatibilité temporaire
+   * uniquement côté frontend.
+   */
+  return action;
 }
 
-export async function createTask(taskData) {
-  const response = await fetch(
-    `${API_URL}/tasks`,
-    {
-      method: "POST",
+/* =========================================================
+   EXPORT CONFIG
+========================================================= */
 
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify(taskData),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Erreur création tâche : ${response.status}`
-    );
-  }
-
-  return response.json();
-}
-
-export async function updateTask(
-  taskId,
-  updates
-) {
-  const response = await fetch(
-    `${API_URL}/tasks/${taskId}`,
-    {
-      method: "PUT",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify(updates),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Erreur modification tâche : ${response.status}`
-    );
-  }
-
-  return response.json();
-}
+export {
+  API_URL,
+  API_BASE_URL,
+};

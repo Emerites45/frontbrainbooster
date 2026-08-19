@@ -1,93 +1,668 @@
+/* =========================================================
+   STATUTS
+========================================================= */
+
 export const STATUS_LABEL = {
   A_FAIRE: "À faire",
   EN_COURS: "En cours",
-  TERMINE: "Terminé",
+  TERMINE: "Terminée",
 };
 
-export function timeAgo(iso) {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "à l'instant";
-  if (mins < 60) return `il y a ${mins} min`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `il y a ${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `il y a ${days}j`;
+/* =========================================================
+   ASSIGNATIONS
+========================================================= */
+
+export function getAssigneeIds(
+  task
+) {
+  if (
+    !Array.isArray(
+      task?.assignments
+    )
+  ) {
+    return [];
+  }
+
+  const ids =
+    task.assignments
+      .map(
+        (
+          assignment
+        ) =>
+          assignment?.userId
+      )
+      .filter(
+        (
+          userId
+        ) =>
+          userId !==
+            undefined &&
+          userId !==
+            null
+      );
+
+  return [
+    ...new Map(
+      ids.map(
+        (
+          userId
+        ) => [
+          String(
+            userId
+          ),
+          userId,
+        ]
+      )
+    ).values(),
+  ];
 }
 
-export function initials(firstName, lastName) {
-  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
+/* =========================================================
+   NOM UTILISATEUR
+========================================================= */
+
+export function getUserFullName(
+  user
+) {
+  if (
+    !user
+  ) {
+    return "Utilisateur";
+  }
+
+  const fullName =
+    `${user.firstName ?? ""} ${
+      user.lastName ?? ""
+    }`.trim();
+
+  return (
+    fullName ||
+    user.email ||
+    "Utilisateur"
+  );
 }
 
-// Format TASK_ASSIGNMENT déduit du MCD validé par Franck (voir contrat-api-auth.md
-// pour ce qui est réellement confirmé par écrit par Joel/Verdream — ça ne couvrait
-// que /auth/login, pas l'assignation de tâches) :
-// task.assignments = [{ userId, assignedBy, assignedAt, unassignedAt? }]
-// unassignedAt présent = la personne a été retirée, on l'exclut des listes actives.
-export function getAssigneeIds(task) {
-  return (task.assignments || [])
-    .filter((a) => !a.unassignedAt)
-    .map((a) => a.userId);
+/* =========================================================
+   NOMS DES ASSIGNÉS
+========================================================= */
+
+export function getAssigneeNames(
+  assigneeIds,
+  users = []
+) {
+  if (
+    !Array.isArray(
+      assigneeIds
+    ) ||
+    assigneeIds.length ===
+      0
+  ) {
+    return "Non assignée";
+  }
+
+  const names =
+    assigneeIds
+      .map(
+        (
+          userId
+        ) =>
+          users.find(
+            (
+              user
+            ) =>
+              String(
+                user.id
+              ) ===
+              String(
+                userId
+              )
+          )
+      )
+      .filter(
+        Boolean
+      )
+      .map(
+        getUserFullName
+      );
+
+  if (
+    names.length ===
+    0
+  ) {
+    return "Non assignée";
+  }
+
+  return names.join(
+    ", "
+  );
 }
 
-// Convertit une liste d'IDs assignés en noms lisibles, pour l'affichage
-// (cartes de tâche, détail de tâche). Centralisé ici pour éviter la
-// duplication qu'il y avait entre TaskCard.jsx et TaskModal.jsx.
-export function getAssigneeNames(userIds = [], users = []) {
-  if (!userIds.length) return "Non assigné";
-  return userIds
-    .map((id) => {
-      const u = users.find((usr) => usr.id === id);
-      return u ? `${u.firstName} ${u.lastName}` : `#${id}`;
-    })
-    .join(", ");
+/* =========================================================
+   TEMPS RELATIF
+========================================================= */
+
+/**
+ * Compatibilité avec RecentActivity.jsx
+ *
+ * Exemples :
+ *
+ * "À l'instant"
+ * "Il y a 4 min"
+ * "Il y a 2 h"
+ * "Il y a 3 jours"
+ */
+export function timeAgo(
+  value
+) {
+  if (
+    !value
+  ) {
+    return "";
+  }
+
+  const date =
+    new Date(
+      value
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  const now =
+    new Date();
+
+  const differenceMs =
+    now.getTime() -
+    date.getTime();
+
+  /*
+   * Si la date est dans le futur,
+   * on évite d'afficher une valeur
+   * négative.
+   */
+  if (
+    differenceMs <
+    0
+  ) {
+    return "À l'instant";
+  }
+
+  const seconds =
+    Math.floor(
+      differenceMs /
+        1000
+    );
+
+  if (
+    seconds <
+    60
+  ) {
+    return "À l'instant";
+  }
+
+  const minutes =
+    Math.floor(
+      seconds /
+        60
+    );
+
+  if (
+    minutes <
+    60
+  ) {
+    return `Il y a ${minutes} min`;
+  }
+
+  const hours =
+    Math.floor(
+      minutes /
+        60
+    );
+
+  if (
+    hours <
+    24
+  ) {
+    return `Il y a ${hours} h`;
+  }
+
+  const days =
+    Math.floor(
+      hours /
+        24
+    );
+
+  if (
+    days <
+    7
+  ) {
+    return `Il y a ${days} jour${
+      days > 1
+        ? "s"
+        : ""
+    }`;
+  }
+
+  const weeks =
+    Math.floor(
+      days /
+        7
+    );
+
+  if (
+    weeks <
+    5
+  ) {
+    return `Il y a ${weeks} semaine${
+      weeks > 1
+        ? "s"
+        : ""
+    }`;
+  }
+
+  const months =
+    Math.floor(
+      days /
+        30
+    );
+
+  if (
+    months <
+    12
+  ) {
+    return `Il y a ${months} mois`;
+  }
+
+  const years =
+    Math.floor(
+      days /
+        365
+    );
+
+  return `Il y a ${years} an${
+    years > 1
+      ? "s"
+      : ""
+  }`;
 }
 
-// Filet de sécurité : certains formulaires (NewTaskModal, SubtaskList) peuvent
-// encore produire un simple tableau d'IDs bruts au lieu d'objets enrichis.
-// Cette fonction accepte les deux formats en entrée et renvoie toujours des
-// objets conformes à TASK_ASSIGNMENT, pour que getAssigneeIds() ne casse jamais
-// en aval peu importe ce qui arrive en amont.
-export function normalizeAssignments(input, currentUser) {
-  if (!Array.isArray(input) || input.length === 0) return [];
-  const now = new Date().toISOString();
-  return input.map((item) => {
-    if (item && typeof item === "object" && "userId" in item) {
-      return item; // déjà au format enrichi
+/* =========================================================
+   TÂCHE EN RETARD
+========================================================= */
+
+/**
+ * EN_RETARD n'est PAS un statut backend.
+ *
+ * On calcule uniquement l'information
+ * depuis dueDate.
+ */
+export function isTaskOverdue(
+  task
+) {
+  if (
+    !task?.dueDate ||
+    task.status ===
+      "TERMINE"
+  ) {
+    return false;
+  }
+
+  const dueDate =
+    new Date(
+      task.dueDate
+    );
+
+  if (
+    Number.isNaN(
+      dueDate.getTime()
+    )
+  ) {
+    return false;
+  }
+
+  const today =
+    new Date();
+
+  today.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  dueDate.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  return (
+    dueDate <
+    today
+  );
+}
+
+/* =========================================================
+   STATISTIQUES DES TÂCHES
+========================================================= */
+
+export function computeTaskStats(
+  tasks = []
+) {
+  const safeTasks =
+    Array.isArray(
+      tasks
+    )
+      ? tasks
+      : [];
+
+  const total =
+    safeTasks.length;
+
+  const todo =
+    safeTasks.filter(
+      (
+        task
+      ) =>
+        task.status ===
+        "A_FAIRE"
+    ).length;
+
+  const inProgress =
+    safeTasks.filter(
+      (
+        task
+      ) =>
+        task.status ===
+        "EN_COURS"
+    ).length;
+
+  const done =
+    safeTasks.filter(
+      (
+        task
+      ) =>
+        task.status ===
+        "TERMINE"
+    ).length;
+
+  const overdue =
+    safeTasks.filter(
+      isTaskOverdue
+    ).length;
+
+  const progression =
+    total ===
+    0
+      ? 0
+      : Math.round(
+          (
+            done /
+            total
+          ) *
+            100
+        );
+
+  return {
+    total,
+    todo,
+    inProgress,
+    done,
+    overdue,
+    progression,
+  };
+}
+
+/* =========================================================
+   PROGRESSION D'UN PROJET
+========================================================= */
+
+export function projectProgress(
+  project,
+  tasks = []
+) {
+  if (
+    !project?.id
+  ) {
+    return 0;
+  }
+
+  const projectTasks =
+    tasks.filter(
+      (
+        task
+      ) =>
+        String(
+          task.projectId
+        ) ===
+          String(
+            project.id
+          ) &&
+        (
+          task.parentTaskId ===
+            null ||
+          task.parentTaskId ===
+            undefined
+        )
+    );
+
+  if (
+    projectTasks.length ===
+    0
+  ) {
+    return 0;
+  }
+
+  const completedTasks =
+    projectTasks.filter(
+      (
+        task
+      ) =>
+        task.status ===
+        "TERMINE"
+    ).length;
+
+  return Math.round(
+    (
+      completedTasks /
+      projectTasks.length
+    ) *
+      100
+  );
+}
+
+/* =========================================================
+   ÉQUIPE D'UN PROJET
+========================================================= */
+
+export function projectTeam(
+  project,
+  tasks = [],
+  users = []
+) {
+  if (
+    !project?.id
+  ) {
+    return [];
+  }
+
+  const projectTasks =
+    tasks.filter(
+      (
+        task
+      ) =>
+        String(
+          task.projectId
+        ) ===
+        String(
+          project.id
+        )
+    );
+
+  const userIds =
+    new Set();
+
+  projectTasks.forEach(
+    (
+      task
+    ) => {
+      getAssigneeIds(
+        task
+      ).forEach(
+        (
+          userId
+        ) => {
+          userIds.add(
+            String(
+              userId
+            )
+          );
+        }
+      );
     }
-    // sinon on suppose que c'est un ID brut (number ou string)
-    return { userId: item, assignedBy: currentUser?.id ?? null, assignedAt: now };
-  });
+  );
+
+  return users.filter(
+    (
+      user
+    ) =>
+      userIds.has(
+        String(
+          user.id
+        )
+      )
+  );
 }
 
-export function computeTaskStats(tasks) {
-  const total = tasks.length;
-  const done = tasks.filter((t) => t.status === "TERMINE").length;
-  const active = tasks.filter((t) => t.status !== "TERMINE").length;
-  const overdue = tasks.filter(
-    (t) => t.status !== "TERMINE" && t.dueDate && new Date(t.dueDate) < new Date()
-  ).length;
+/* =========================================================
+   INITIALES
+========================================================= */
 
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const doneThisWeek = tasks.filter(
-    (t) => t.status === "TERMINE" && t.endDate && new Date(t.endDate) >= sevenDaysAgo
-  ).length;
+export function initials(
+  firstName,
+  lastName
+) {
+  const first =
+    String(
+      firstName ??
+        ""
+    )
+      .trim()
+      .charAt(
+        0
+      )
+      .toUpperCase();
 
-  const progression = total === 0 ? 0 : Math.round((done / total) * 100);
+  const last =
+    String(
+      lastName ??
+        ""
+    )
+      .trim()
+      .charAt(
+        0
+      )
+      .toUpperCase();
 
-  return { total, done, active, overdue, doneThisWeek, progression };
+  const result =
+    `${first}${last}`;
+
+  return (
+    result ||
+    "?"
+  );
 }
 
-export function projectProgress(project, tasks) {
-  const pTasks = tasks.filter((t) => t.projectId === project.id);
-  if (pTasks.length === 0) return 0;
-  const done = pTasks.filter((t) => t.status === "TERMINE").length;
-  return Math.round((done / pTasks.length) * 100);
-}
+/* =========================================================
+   NORMALISATION TEMPORAIRE DES ASSIGNATIONS
+========================================================= */
 
-export function projectTeam(project, tasks, users) {
-  const pTasks = tasks.filter((t) => t.projectId === project.id);
-  const ids = [...new Set(pTasks.flatMap((t) => getAssigneeIds(t)))];
-  return ids.map((id) => users.find((u) => u.id === id)).filter(Boolean);
+/**
+ * Fonction conservée pour compatibilité
+ * avec d'anciens composants.
+ *
+ * Elle ne génère plus assignedAt.
+ */
+export function normalizeAssignments(
+  assignments,
+  currentUser = null
+) {
+  if (
+    !Array.isArray(
+      assignments
+    )
+  ) {
+    return [];
+  }
+
+  const assignedBy =
+    currentUser?.id ??
+    null;
+
+  const normalized =
+    assignments
+      .map(
+        (
+          assignment
+        ) => {
+          if (
+            typeof assignment ===
+              "number" ||
+            typeof assignment ===
+              "string"
+          ) {
+            return {
+              userId:
+                assignment,
+
+              assignedBy,
+            };
+          }
+
+          if (
+            assignment &&
+            typeof assignment ===
+              "object" &&
+            assignment.userId !==
+              undefined &&
+            assignment.userId !==
+              null
+          ) {
+            return {
+              userId:
+                assignment.userId,
+
+              assignedBy:
+                assignment.assignedBy ??
+                assignedBy,
+            };
+          }
+
+          return null;
+        }
+      )
+      .filter(
+        Boolean
+      );
+
+  return [
+    ...new Map(
+      normalized.map(
+        (
+          assignment
+        ) => [
+          String(
+            assignment.userId
+          ),
+          assignment,
+        ]
+      )
+    ).values(),
+  ];
 }

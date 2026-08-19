@@ -21,7 +21,6 @@ import "./MemberDashboard.css";
 const STATUS_LABEL = {
   A_FAIRE: "À faire",
   EN_COURS: "En cours",
-  A_REVOIR: "À revoir",
   TERMINE: "Terminée",
 };
 
@@ -64,8 +63,11 @@ function getDeadlineInformation(
 ) {
   if (!dueDate) {
     return {
-      label: "Sans échéance",
-      state: "neutral",
+      label:
+        "Sans échéance",
+
+      state:
+        "neutral",
     };
   }
 
@@ -73,7 +75,9 @@ function getDeadlineInformation(
     new Date();
 
   const deadline =
-    new Date(dueDate);
+    new Date(
+      dueDate
+    );
 
   if (
     Number.isNaN(
@@ -81,8 +85,13 @@ function getDeadlineInformation(
     )
   ) {
     return {
-      label: formatDate(dueDate),
-      state: "neutral",
+      label:
+        formatDate(
+          dueDate
+        ),
+
+      state:
+        "neutral",
     };
   }
 
@@ -114,37 +123,62 @@ function getDeadlineInformation(
         )
     );
 
-  if (difference < 0) {
+  if (
+    difference < 0
+  ) {
     return {
-      label: "En retard",
-      state: "late",
+      label:
+        "En retard",
+
+      state:
+        "late",
     };
   }
 
-  if (difference === 0) {
+  if (
+    difference === 0
+  ) {
     return {
-      label: "Aujourd'hui",
-      state: "today",
+      label:
+        "Aujourd'hui",
+
+      state:
+        "today",
     };
   }
 
-  if (difference === 1) {
+  if (
+    difference === 1
+  ) {
     return {
-      label: "Demain",
-      state: "soon",
+      label:
+        "Demain",
+
+      state:
+        "soon",
     };
   }
 
-  if (difference <= 7) {
+  if (
+    difference <= 7
+  ) {
     return {
-      label: `Dans ${difference} jours`,
-      state: "soon",
+      label:
+        `Dans ${difference} jours`,
+
+      state:
+        "soon",
     };
   }
 
   return {
-    label: formatDate(dueDate),
-    state: "normal",
+    label:
+      formatDate(
+        dueDate
+      ),
+
+    state:
+      "normal",
   };
 }
 
@@ -152,8 +186,12 @@ function getDeadlineInformation(
    ICÔNES
 ========================================================= */
 
-function StatsIcon({ type }) {
-  if (type === "done") {
+function StatsIcon({
+  type,
+}) {
+  if (
+    type === "done"
+  ) {
     return (
       <svg viewBox="0 0 24 24">
         <circle
@@ -167,7 +205,9 @@ function StatsIcon({ type }) {
     );
   }
 
-  if (type === "late") {
+  if (
+    type === "late"
+  ) {
     return (
       <svg viewBox="0 0 24 24">
         <circle
@@ -183,7 +223,10 @@ function StatsIcon({ type }) {
     );
   }
 
-  if (type === "progress") {
+  if (
+    type ===
+    "progress"
+  ) {
     return (
       <svg viewBox="0 0 24 24">
         <path d="m4 16 5-5 4 3 7-8" />
@@ -269,7 +312,9 @@ function MemberDashboardPage({
   const [
     statusFilter,
     setStatusFilter,
-  ] = useState("ALL");
+  ] = useState(
+    "ALL"
+  );
 
   /* =======================================================
      TÂCHES DU MEMBER
@@ -287,11 +332,15 @@ function MemberDashboardPage({
       }
 
       return tasks.filter(
-        (task) =>
+        (
+          task
+        ) =>
           getAssigneeIds(
             task
           ).some(
-            (userId) =>
+            (
+              userId
+            ) =>
               String(
                 userId
               ) ===
@@ -315,18 +364,24 @@ function MemberDashboardPage({
         computeTaskStats(
           myTasks
         ),
-      [myTasks]
+      [
+        myTasks,
+      ]
     );
 
   const activeTasks =
     useMemo(
       () =>
         myTasks.filter(
-          (task) =>
+          (
+            task
+          ) =>
             task.status !==
             "TERMINE"
         ).length,
-      [myTasks]
+      [
+        myTasks,
+      ]
     );
 
   /* =======================================================
@@ -343,7 +398,9 @@ function MemberDashboardPage({
       }
 
       return myTasks.filter(
-        (task) =>
+        (
+          task
+        ) =>
           task.status ===
           statusFilter
       );
@@ -358,15 +415,22 @@ function MemberDashboardPage({
 
   const upcomingTasks =
     useMemo(() => {
-      return [...myTasks]
+      return [
+        ...myTasks,
+      ]
         .filter(
-          (task) =>
+          (
+            task
+          ) =>
             task.dueDate &&
             task.status !==
               "TERMINE"
         )
         .sort(
-          (a, b) =>
+          (
+            a,
+            b
+          ) =>
             new Date(
               a.dueDate
             ) -
@@ -378,10 +442,12 @@ function MemberDashboardPage({
           0,
           4
         );
-    }, [myTasks]);
+    }, [
+      myTasks,
+    ]);
 
   /* =======================================================
-     PROJET
+     NOM DU PROJET
   ======================================================= */
 
   function projectName(
@@ -389,7 +455,9 @@ function MemberDashboardPage({
   ) {
     const project =
       projects.find(
-        (project) =>
+        (
+          project
+        ) =>
           String(
             project.id
           ) ===
@@ -420,9 +488,10 @@ function MemberDashboardPage({
 
   return (
     <section className="member-dashboard-page">
-      {/* ===================================================
+
+      {/* =================================================
           INTRODUCTION
-      =================================================== */}
+      ================================================= */}
 
       <div className="member-dashboard-heading">
         <div>
@@ -433,15 +502,16 @@ function MemberDashboardPage({
           <h1>
             Bonjour,{" "}
             <span>
-              {currentUser?.firstName ??
+              {currentUser
+                ?.firstName ??
                 "Utilisateur"}
             </span>{" "}
             👋
           </h1>
 
           <p>
-            Voici un aperçu de
-            vos tâches et de votre
+            Voici un aperçu de vos
+            tâches et de votre
             progression actuelle.
           </p>
         </div>
@@ -459,11 +529,12 @@ function MemberDashboardPage({
         </button>
       </div>
 
-      {/* ===================================================
+      {/* =================================================
           STATISTIQUES
-      =================================================== */}
+      ================================================= */}
 
       <div className="member-dashboard-stats">
+
         {/* MES TÂCHES */}
 
         <article className="member-stat-card member-stat-card-blue">
@@ -479,7 +550,9 @@ function MemberDashboardPage({
 
           <div className="member-stat-content">
             <strong>
-              {stats.total}
+              {
+                stats.total
+              }
             </strong>
 
             <span>
@@ -487,9 +560,12 @@ function MemberDashboardPage({
             </span>
 
             <small>
-              {activeTasks} actuellement
-              active
-              {activeTasks > 1
+              {
+                activeTasks
+              }{" "}
+              actuellement active
+              {activeTasks >
+              1
                 ? "s"
                 : ""}
             </small>
@@ -511,7 +587,9 @@ function MemberDashboardPage({
 
           <div className="member-stat-content">
             <strong>
-              {stats.done}
+              {
+                stats.done
+              }
             </strong>
 
             <span>
@@ -519,7 +597,8 @@ function MemberDashboardPage({
             </span>
 
             <small>
-              {stats.total > 0
+              {stats.total >
+              0
                 ? `${stats.done} sur ${stats.total} tâches`
                 : "Aucune tâche"}
             </small>
@@ -541,7 +620,9 @@ function MemberDashboardPage({
 
           <div className="member-stat-content">
             <strong>
-              {stats.overdue}
+              {
+                stats.overdue
+              }
             </strong>
 
             <span>
@@ -549,7 +630,8 @@ function MemberDashboardPage({
             </span>
 
             <small>
-              {stats.overdue > 0
+              {stats.overdue >
+              0
                 ? "Nécessite votre attention"
                 : "Aucun retard actuellement"}
             </small>
@@ -572,7 +654,10 @@ function MemberDashboardPage({
           <div className="member-progress-stat-content">
             <div>
               <strong>
-                {stats.progression}%
+                {
+                  stats.progression
+                }
+                %
               </strong>
 
               <span>
@@ -588,7 +673,10 @@ function MemberDashboardPage({
               }}
             >
               <div>
-                {stats.progression}%
+                {
+                  stats.progression
+                }
+                %
               </div>
             </div>
           </div>
@@ -604,11 +692,12 @@ function MemberDashboardPage({
         </article>
       </div>
 
-      {/* ===================================================
+      {/* =================================================
           CONTENU PRINCIPAL
-      =================================================== */}
+      ================================================= */}
 
       <div className="member-dashboard-grid">
+
         {/* =================================================
             ÉCHÉANCES
         ================================================= */}
@@ -626,14 +715,17 @@ function MemberDashboardPage({
                 </h2>
 
                 <p>
-                  Les tâches à surveiller
-                  en priorité.
+                  Les tâches à
+                  surveiller en
+                  priorité.
                 </p>
               </div>
             </div>
 
             <span className="member-card-counter">
-              {upcomingTasks.length}
+              {
+                upcomingTasks.length
+              }
             </span>
           </div>
 
@@ -657,7 +749,9 @@ function MemberDashboardPage({
             )}
 
             {upcomingTasks.map(
-              (task) => {
+              (
+                task
+              ) => {
                 const deadline =
                   getDeadlineInformation(
                     task.dueDate
@@ -739,6 +833,7 @@ function MemberDashboardPage({
         ================================================= */}
 
         <article className="member-dashboard-card member-tasks-card">
+
           <div className="member-tasks-card-header">
             <div className="member-card-title">
               <div className="member-small-icon">
@@ -785,10 +880,6 @@ function MemberDashboardPage({
                   En cours
                 </option>
 
-                <option value="A_REVOIR">
-                  À revoir
-                </option>
-
                 <option value="TERMINE">
                   Terminées
                 </option>
@@ -832,9 +923,9 @@ function MemberDashboardPage({
                         </strong>
 
                         <span>
-                          Aucune tâche ne
-                          correspond à ce
-                          filtre.
+                          Aucune tâche
+                          ne correspond
+                          à ce filtre.
                         </span>
                       </div>
                     </td>
@@ -847,7 +938,9 @@ function MemberDashboardPage({
                     7
                   )
                   .map(
-                    (task) => {
+                    (
+                      task
+                    ) => {
                       const deadline =
                         getDeadlineInformation(
                           task.dueDate
@@ -866,6 +959,9 @@ function MemberDashboardPage({
                             )
                           }
                         >
+
+                          {/* TÂCHE */}
+
                           <td>
                             <div className="member-dashboard-task-cell">
                               <span className="member-task-leading-icon">
@@ -880,6 +976,8 @@ function MemberDashboardPage({
                             </div>
                           </td>
 
+                          {/* PROJET */}
+
                           <td>
                             <span className="member-dashboard-project-name">
                               {projectName(
@@ -887,6 +985,8 @@ function MemberDashboardPage({
                               )}
                             </span>
                           </td>
+
+                          {/* STATUT */}
 
                           <td>
                             <span
@@ -900,6 +1000,8 @@ function MemberDashboardPage({
                                 task.status}
                             </span>
                           </td>
+
+                          {/* ÉCHÉANCE */}
 
                           <td>
                             <div className="member-dashboard-deadline-cell">
@@ -938,7 +1040,8 @@ function MemberDashboardPage({
               {Math.min(
                 filteredTasks.length,
                 7
-              ) > 1
+              ) >
+              1
                 ? "s"
                 : ""}
             </span>
