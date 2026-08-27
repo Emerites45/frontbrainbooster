@@ -12,11 +12,11 @@ import aaprovidirMark from "../../assets/aaprovidir-mark.png";
 
 const ACCENTS = {
   blue: {
-    activeBg: "bg-blue-50",
-    activeText: "text-blue-700",
-    cta: "bg-blue-600 hover:bg-blue-700",
-    iconBg: "bg-blue-50",
-    iconText: "text-blue-600",
+    activeBg: "bg-[var(--color-blue-pale)]",
+    activeText: "text-[var(--color-blue-deep)]",
+    cta: "bg-[var(--color-blue)] hover:bg-[var(--color-blue-deep)]",
+    iconBg: "bg-[var(--color-blue-pale)]",
+    iconText: "text-[var(--color-blue)]",
   },
 
   green: {

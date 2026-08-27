@@ -1,4 +1,5 @@
 import Sidebar from "./Sidebar";
+
 import {
   LayoutGrid,
   FolderKanban,
@@ -7,6 +8,7 @@ import {
   ScrollText,
   BarChart3,
   Clock,
+  Settings as SettingsIcon,
 } from "lucide-react";
 
 const SM_NAV_SECTIONS = [
@@ -59,6 +61,17 @@ const SM_NAV_SECTIONS = [
         label: "Analytics",
         icon: BarChart3,
         path: "/analytics/user-performance",
+      },
+    ],
+  },
+
+  {
+    label: "Compte",
+    items: [
+      {
+        label: "Paramètres",
+        icon: SettingsIcon,
+        path: "/scrum-master/settings",
       },
     ],
   },

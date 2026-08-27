@@ -6,7 +6,7 @@ function RecentActivity({ actions, limit = 8 }) {
     .slice(0, limit);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-5">
+    <div className="surface-card rounded-xl p-5">
       <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">Activité récente</h2>
       {recent.length === 0 ? (
         <p className="text-[13px] text-slate-400">Aucune activité pour l'instant.</p>

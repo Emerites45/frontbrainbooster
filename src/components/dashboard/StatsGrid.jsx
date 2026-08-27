@@ -6,7 +6,7 @@ function StatsGrid({ items }) {
         return (
           <div
             key={item.label}
-            className="bg-white rounded-xl border border-slate-100 p-5"
+            className="surface-card rounded-xl p-5"
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">

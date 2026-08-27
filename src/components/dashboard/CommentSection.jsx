@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Trash2, Send } from "lucide-react";
 import { fetchComments, createComment, deleteComment } from "../../api/api";
+import Avatar from "../ui/Avatar";
+import { notifyUsers, taskBoardPathForUser } from "../../utils/notify";
 
 function timeAgo(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -12,11 +14,13 @@ function timeAgo(iso) {
   return `il y a ${Math.floor(diffH / 24)}j`;
 }
 
-function initials(name = "") {
-  return name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
-}
-
-function CommentSection({ taskId, currentUser }) {
+function CommentSection({
+  taskId,
+  currentUser,
+  assigneeIds = [],
+  taskTitle,
+  recipientUsers = [],
+}) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -37,6 +41,22 @@ function CommentSection({ taskId, currentUser }) {
     setSubmitting(true);
     try {
       await createComment(taskId, text.trim());
+
+      const others = assigneeIds.filter((id) => id !== currentUser?.id);
+      if (others.length > 0) {
+        const targets = recipientUsers.filter((u) => others.includes(u.id));
+        notifyUsers(
+          others,
+          {
+            type: "COMMENT",
+            title: "Nouveau commentaire",
+            message: `${currentUser?.firstName ?? "Quelqu'un"} a commenté « ${taskTitle ?? "une tâche"} »`,
+            link: targets[0] ? taskBoardPathForUser(targets[0]) : "/",
+          },
+          currentUser?.id
+        );
+      }
+
       setText("");
       load();
     } finally {
@@ -64,9 +84,12 @@ function CommentSection({ taskId, currentUser }) {
             const isMine = c.createdBy === currentUser?.id;
             return (
               <li key={c.id} className="flex items-start gap-2.5 group">
-                <span className="flex items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-semibold w-7 h-7 shrink-0">
-                  {initials(c.authorName)}
-                </span>
+                <Avatar
+                  userId={c.createdBy}
+                  firstName={c.authorName?.split(" ")[0]}
+                  lastName={c.authorName?.split(" ")[1]}
+                  size="sm"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[12.5px] font-medium text-slate-800">{c.authorName || "Utilisateur"}</span>

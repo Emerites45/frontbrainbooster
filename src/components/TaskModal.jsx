@@ -239,7 +239,13 @@ function TaskModal({
             Commentaires
           </h3>
 
-          <CommentSection taskId={task.id} currentUser={currentUser} />
+          <CommentSection
+            taskId={task.id}
+            currentUser={currentUser}
+            assigneeIds={assigneeIds}
+            taskTitle={task.title}
+            recipientUsers={users}
+          />
         </div>
 
         {/* =====================================================

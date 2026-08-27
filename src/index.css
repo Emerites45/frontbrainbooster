@@ -1,41 +1,143 @@
 @import "tailwindcss";
 
-@theme{
-  --color-navy: #1a3a5c;
-  --color-navy-dark: #0f2740;
-  --color-cream: #faf7f2;
-  --color-card: #ffffff;
-  --color-border: #e5e0d8;
-  --color-text: #2c2c2c;
-  --color-text-light: #6b6b6b;
-  --color-a-faire: #d97706;
-  --color-en-cours: #2563eb;
-  --color-termine: #16a34a;
-}
-
+/* =========================================================
+   THEME — palette officielle + alias de compatibilité
+   ========================================================= */
 
 @theme {
-  --color-cream: #FBF7F3;
+  /* Couleurs de marque */
+  --color-blue: #0B438C;
+  --color-blue-deep: #0D2C54;
+  --color-cyan: #2A9D8F;
+  --color-green: #30A036;
+  --color-yellow: #E9C46A;
+
+  /* Neutres */
+  --color-cream: #F8F7F4;
+  --color-border: #E0E0E0;
+  --color-text: #424242;
+  --color-card: #FFFFFF;
+
+  /* Variantes pâles */
+  --color-blue-pale: #D0DCF0;
+  --color-cyan-pale: #C8F0EC;
+  --color-green-pale: #D6F0D7;
+  --color-yellow-pale: #FDF5DC;
+
+  /* Statuts de tâches */
+  --color-a-faire: #E9C46A;
+  --color-en-cours: #0B438C;
+  --color-termine: #30A036;
+
+  /* Alias de compatibilité */
   --color-navy: #0B438C;
-  --color-navy-dark: #082f66;
-  --color-green: #20A036;
-  --color-green-light: #66B86B;
-  --color-yellow: #FFDE21;
+  --color-navy-dark: #0D2C54;
+  --color-text-light: #6B6B6B;
+
+  /* Typographie */
+  --font-sans: "Plus Jakarta Sans", Arial, Helvetica, sans-serif;
+  --font-display: "Gotham", "Plus Jakarta Sans", Arial, Helvetica, sans-serif;
+
+  --text-display: 1.75rem;
+  --text-heading: 1.25rem;
+  --text-subheading: 1rem;
+  --text-body: 0.875rem;
+  --text-small: 0.75rem;
+
+  --font-weight-display: 800;
+  --font-weight-heading: 700;
+  --font-weight-body: 400;
 }
 
+/* =========================================================
+   VARIABLES CLASSIQUES — var(--navy) etc.
+   ========================================================= */
 
-/* Variables classiques pour les fichiers CSS existants (auth pages) qui
-   utilisent var(--navy) au lieu des classes utilitaires Tailwind. */
 :root {
   --navy: #0B438C;
-  --navy-dark: #082f66;
-  --cream: #FBF7F3;
-  --text: #1e293b;
+  --navy-dark: #0D2C54;
+  --cream: #F8F7F4;
+  --text: #424242;
   --text-light: #6b6b6b;
+
+  --radius-card: 0.875rem;
+
+  --gradient-brand: linear-gradient(135deg, #0D2C54 0%, #0B438C 55%, #2A9D8F 100%);
+  --gradient-brand-soft: linear-gradient(135deg, #D0DCF0 0%, #C8F0EC 100%);
+
+  --gradient-page:
+    radial-gradient(circle at 0% 0%, rgba(11, 67, 140, 0.035), transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(48, 160, 54, 0.03), transparent 45%);
 }
 
+/* =========================================================
+   BASE
+   ========================================================= */
 
-body {
-  margin: 0;
-  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+@layer base {
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-body);
+    color: var(--color-text);
+    background: var(--gradient-page), var(--color-cream);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--color-blue-deep);
+    margin: 0;
+  }
+
+  h1 { font-size: var(--text-display); font-weight: var(--font-weight-display); }
+  h2 { font-size: var(--text-heading); font-weight: var(--font-weight-heading); }
+  h3, h4, h5, h6 { font-size: var(--text-subheading); font-weight: var(--font-weight-heading); }
+}
+
+/* =========================================================
+   COMPOSANTS
+   ========================================================= */
+
+@layer components {
+  .surface-card {
+    background-color: var(--color-card);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03);
+  }
+
+  .surface-card-interactive {
+    background-color: var(--color-card);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+  }
+
+  .surface-card-interactive:hover {
+    box-shadow: 0 4px 14px rgb(15 23 42 / 0.06);
+    border-color: rgb(203 213 225 / 0.9);
+  }
+
+  .surface-card-interactive:focus-visible,
+  .surface-card-interactive:has(:focus-visible) {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+
+  .brand-gradient {
+    background: var(--gradient-brand);
+    color: #ffffff;
+  }
+
+  .brand-gradient-soft {
+    background: var(--gradient-brand-soft);
+    color: var(--color-blue-deep);
+  }
+
+  .dashboard-shell {
+    background: var(--color-cream);
+  }
 }

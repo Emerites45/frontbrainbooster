@@ -16,16 +16,22 @@ import {
   updateProject,
   deleteProject,
   createAction,
+  updateUser,
 } from "./api/api";
 
 import { normalizeAssignments } from "./utils/dashboardHelpers";
+import { notifyUsers, taskBoardPathForUser } from "./utils/notify";
 
-import BoardPage from "./pages/BoardPage";import AdminDashboardPage from "./pages/AdminDashboardPage";
+import BoardPage from "./pages/BoardPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ScrumMasterDashboardPage from "./pages/ScrumMasterDashboardPage";
 import MemberDashboardPage from "./pages/MemberDashboardPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import Navbar from "./components/Navbar";
+import ParametresPage from "./pages/ParametresPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import InternReportPage from "./pages/admin/InternReportPage";
 
 import VerifyEmailPage from "./pages/VerifyEmailPage";import ForgotPasswordPage from "./pages/resetpassword/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/resetpassword/ResetPasswordPage";
@@ -155,6 +161,40 @@ function App() {
     localStorage.removeItem("currentUser");
     setCurrentUser(null);
   }
+
+
+  const handleUpdateProfile = async (updates) => {
+    try {
+      const updated = await updateUser(
+        currentUser.id,
+        updates
+      );
+
+      const merged = {
+        ...currentUser,
+        ...updated,
+      };
+
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify(merged)
+      );
+
+      setCurrentUser(merged);
+
+      // Keep the team/user list synchronized too.
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user.id === currentUser.id
+            ? { ...user, ...updated }
+            : user
+        )
+      );
+    } catch (err) {
+      alert("Erreur lors de la mise à jour du profil");
+      throw err;
+    }
+  };
 
 
   useEffect(() => {
@@ -417,6 +457,21 @@ function App() {
     ]);
 
     persistAction(newAction);
+
+    const assignedUserIds = (task.assignments || [])
+      .filter((a) => !a.unassignedAt)
+      .map((a) => a.userId);
+    const assignedUsers = users.filter((u) => assignedUserIds.includes(u.id));
+    notifyUsers(
+      assignedUserIds,
+      {
+        type: "STATUS_CHANGE",
+        title: "Statut de tâche modifié",
+        message: `« ${task.title} » est passée à ${nouveauStatut.replace("_", " ").toLowerCase()}`,
+        link: assignedUsers[0] ? taskBoardPathForUser(assignedUsers[0]) : "/",
+      },
+      currentUser?.id
+    );
   }
 
 
@@ -477,6 +532,21 @@ function App() {
     ]);
 
     persistAction(newAction);
+
+    const assignedUserIds = assignments.map((a) => a.userId);
+    const assignedUsers = users.filter((u) => assignedUserIds.includes(u.id));
+    assignedUsers.forEach((u) => {
+      notifyUsers(
+        [u.id],
+        {
+          type: "TASK_ASSIGNED",
+          title: "Nouvelle tâche assignée",
+          message: `${currentUser?.firstName ?? "Quelqu'un"} vous a assigné « ${taskWithMeta.title} »`,
+          link: taskBoardPathForUser(u),
+        },
+        currentUser?.id
+      );
+    });
   }
 
 
@@ -900,8 +970,19 @@ function App() {
           <Route
             path="settings"
             element={
-              <UnderConstruction
-                label="Paramètres"
+              <ParametresPage
+                currentUser={currentUser}
+                onUpdateProfile={handleUpdateProfile}
+              />
+            }
+          />
+
+          <Route
+            path="intern-report"
+            element={
+              <InternReportPage
+                tasks={visibleTasks}
+                projects={projects}
               />
             }
           />
@@ -1040,6 +1121,16 @@ function App() {
             }
           />
 
+          <Route
+            path="settings"
+            element={
+              <ParametresPage
+                currentUser={currentUser}
+                onUpdateProfile={handleUpdateProfile}
+              />
+            }
+          />
+
         </Route>
 
 
@@ -1069,6 +1160,25 @@ function App() {
       />
     }
   />
+</Route>
+
+{/* =========================
+    NOTIFICATIONS
+========================== */}
+
+<Route
+  path="/notifications"
+  element={
+    <ProtectedRoute isLoggedIn={!!currentUser}>
+      {isAdminUser ? (
+        <AdminLayout currentUser={currentUser} onLogout={handleLogout} />
+      ) : (
+        <ScrumMasterLayout currentUser={currentUser} onLogout={handleLogout} />
+      )}
+    </ProtectedRoute>
+  }
+>
+  <Route index element={<NotificationsPage currentUser={currentUser} />} />
 </Route>
 
 {/* =========================

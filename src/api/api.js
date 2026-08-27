@@ -347,3 +347,53 @@ export async function createPerformanceComment({ targetUserId, weekStart, conten
   if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
   return response.json();
 }
+
+export async function fetchNotifications(userId) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/notifications?userId=${userId}`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function createNotification(data) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/notifications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function markNotificationRead(id) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/notifications/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    body: JSON.stringify({ read: true }),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function markAllNotificationsRead(userId) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser?.token}` },
+    body: JSON.stringify({ userId }),
+  });
+  return response.ok;
+}
+
+export async function fetchAllWeeklyReports(userId) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const response = await fetch(`${API_URL}/weekly-reports?userId=${userId}`, {
+    headers: { Authorization: `Bearer ${currentUser?.token}` },
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}

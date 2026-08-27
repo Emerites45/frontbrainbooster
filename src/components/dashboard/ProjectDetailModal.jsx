@@ -10,10 +10,10 @@ import {
 
 import TaskModal from "../TaskModal";
 import AttachmentList from "./AttachmentList";
+import Avatar from "../ui/Avatar";
 
 import {
   STATUS_LABEL,
-  initials,
   projectProgress,
   projectTeam,
 } from "../../utils/dashboardHelpers";
@@ -272,16 +272,15 @@ function ProjectDetailModal({
             {/* Team */}
             {team.length > 0 && (
               <div className="mt-4 flex items-center">
-                {team.map((user, idx) => (
-                  <span
-                    key={user.id}
-                    title={`${user.firstName} ${user.lastName}`}
-                    className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-[10.5px] font-semibold text-white ${
-                      idx !== 0 ? "-ml-2" : ""
-                    }`}
-                  >
-                    {initials(user.firstName, user.lastName)}
-                  </span>
+                {team.map((u, idx) => (
+                  <Avatar
+                    key={u.id}
+                    userId={u.id}
+                    firstName={u.firstName}
+                    lastName={u.lastName}
+                    size="sm"
+                    className={`border-2 border-white ${idx !== 0 ? "-ml-2" : ""}`}
+                  />
                 ))}
               </div>
             )}

@@ -352,5 +352,51 @@ app.post('/performance-comments', (req, res) => {
   res.status(201).json(newComment);
 });
 
+app.get('/notifications', (req, res) => {
+  const db = readDb();
+  const { userId } = req.query;
+  let notifications = db.notifications || [];
+  if (userId) notifications = notifications.filter((n) => n.userId === Number(userId));
+  res.json(notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+});
+
+app.post('/notifications', (req, res) => {
+  const db = readDb();
+  const newNotif = { id: Date.now() + Math.random(), read: false, ...req.body, createdAt: new Date().toISOString() };
+  db.notifications = db.notifications || [];
+  db.notifications.push(newNotif);
+  writeDb(db);
+  res.status(201).json(newNotif);
+});
+
+app.patch('/notifications/:id', (req, res) => {
+  const db = readDb();
+  const id = req.params.id;
+  db.notifications = (db.notifications || []).map((n) => (String(n.id) === id ? { ...n, ...req.body } : n));
+  writeDb(db);
+  res.json(db.notifications.find((n) => String(n.id) === id));
+});
+
+app.post('/notifications/mark-all-read', (req, res) => {
+  const db = readDb();
+  const { userId } = req.body;
+  db.notifications = (db.notifications || []).map((n) => (n.userId === Number(userId) ? { ...n, read: true } : n));
+  writeDb(db);
+  res.status(204).end();
+});
+
+app.get('/weekly-reports', (req, res) => {
+  const db = readDb();
+  const { userId, weekStart } = req.query;
+  const all = db.weeklyReports || [];
+  if (weekStart) {
+    const report = all.find((r) => r.userId === Number(userId) && r.weekStart === weekStart);
+    return res.json(report || null);
+  }
+  // Pas de weekStart : retourne tous les rapports de l'utilisateur — utilisé par le rapport de stage.
+  res.json(all.filter((r) => r.userId === Number(userId)));
+});
+
+
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Mock server sur http://localhost:${PORT}`));

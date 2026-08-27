@@ -1,11 +1,11 @@
 import {
   STATUS_LABEL,
-  initials,
   projectProgress,
   projectTeam,
   projectDepartmentIds,
 } from "../../utils/dashboardHelpers";
 import Pagination from "./Pagination";
+import Avatar from "../ui/Avatar";
 
 const STATUS_STYLES = {
   A_FAIRE: "bg-amber-50 text-amber-700",
@@ -31,7 +31,7 @@ function ProjectsTable({
     3 + (showDepartment ? 1 : 0) + (showTeam ? 1 : 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+    <div className="surface-card rounded-2xl overflow-hidden">
       {/* Title */}
       {title && (
         <div className="px-5 py-4 border-b border-slate-100">
@@ -168,19 +168,15 @@ function ProjectsTable({
                   {showTeam && (
                     <td className="px-5 py-3.5">
                       <div className="flex items-center">
-                        {team.slice(0, 3).map((user, index) => (
-                          <span
-                            key={user.id}
-                            title={`${user.firstName} ${user.lastName}`}
-                            className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-[10.5px] font-semibold text-white ${
-                              index !== 0 ? "-ml-2" : ""
-                            }`}
-                          >
-                            {initials(
-                              user.firstName,
-                              user.lastName
-                            )}
-                          </span>
+                        {team.slice(0, 3).map((u, idx) => (
+                          <Avatar
+                            key={u.id}
+                            userId={u.id}
+                            firstName={u.firstName}
+                            lastName={u.lastName}
+                            size="sm"
+                            className={`border-2 border-white ${idx !== 0 ? "-ml-2" : ""}`}
+                          />
                         ))}
 
                         {team.length > 3 && (

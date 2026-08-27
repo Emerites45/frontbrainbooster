@@ -9,7 +9,7 @@ import AdminTopbar from "../../components/layout/AdminTopbar";
  */
 function AdminLayout({ currentUser, onLogout }) {
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="dashboard-shell flex min-h-screen">
       <AdminSidebar onLogout={onLogout} />
       <div className="flex-1 flex flex-col min-w-0">
         <AdminTopbar currentUser={currentUser} />

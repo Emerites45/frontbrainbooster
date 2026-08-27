@@ -141,22 +141,22 @@ function AdminActivityPage({ actions = [], tasks = [], projects = [] }) {
 
       <StatsGrid
         items={[
-          { label: "Actions totales", value: actions.length, icon: Activity, accent: "#1D4ED8", accentBg: "#DBEAFE" },
-          { label: "Aujourd'hui", value: actionsToday, icon: TrendingUp, accent: "#16A34A", accentBg: "#DCFCE7" },
-          { label: "Cette semaine", value: actionsThisWeek, icon: GitCommit, accent: "#7C3AED", accentBg: "#EDE9FE" },
+          { label: "Actions totales", value: actions.length, icon: Activity, accent: "#0B438C", accentBg: "#D0DCF0" },
+          { label: "Aujourd'hui", value: actionsToday, icon: TrendingUp, accent: "#30A036", accentBg: "#D6F0D7" },
+          { label: "Cette semaine", value: actionsThisWeek, icon: GitCommit, accent: "#2A9D8F", accentBg: "#C8F0EC" },
           {
             label: "Plus actif",
             value: mostActiveUser ? mostActiveUser[0].split(" ")[0] : "—",
             hint: mostActiveUser ? `${mostActiveUser[1]} actions` : undefined,
             icon: User,
-            accent: "#EA580C",
-            accentBg: "#FFEDD5",
+            accent: "#E9C46A",
+            accentBg: "#FDF5DC",
           },
         ]}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-5">
+        <div className="lg:col-span-2 surface-card rounded-xl p-5">
           <h2 className="text-[14.5px] font-semibold text-slate-900 mb-5">Activité des 7 derniers jours</h2>
           <div className="flex items-end gap-3 h-[140px]">
             {dailyCounts.map((d, i) => (
@@ -174,7 +174,7 @@ function AdminActivityPage({ actions = [], tasks = [], projects = [] }) {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-100 p-5">
+        <div className="surface-card rounded-xl p-5">
           <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">Répartition par type</h2>
           <div className="space-y-4">
             {Object.entries(typeBreakdown).map(([type, count]) => {
@@ -235,7 +235,7 @@ function AdminActivityPage({ actions = [], tasks = [], projects = [] }) {
         </select>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+      <div className="surface-card rounded-xl overflow-hidden">
         {pageItems.length === 0 ? (
           <p className="text-[13px] text-slate-400 text-center py-10">Aucune action ne correspond à ces filtres.</p>
         ) : (

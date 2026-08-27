@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
 import { fetchPerformanceComments, createPerformanceComment } from "../../api/api";
+import Avatar from "../ui/Avatar";
+import { notifyUsers } from "../../utils/notify";
 
 function timeAgo(iso) {
   const diffMin = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -9,10 +11,6 @@ function timeAgo(iso) {
   const diffH = Math.floor(diffMin / 60);
   if (diffH < 24) return `il y a ${diffH}h`;
   return `il y a ${Math.floor(diffH / 24)}j`;
-}
-
-function initials(name = "") {
-  return name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 }
 
 function PerformanceCommentSection({ targetUserId, weekStart, currentUser, readOnlyLabel }) {
@@ -35,6 +33,20 @@ function PerformanceCommentSection({ targetUserId, weekStart, currentUser, readO
     setSubmitting(true);
     try {
       await createPerformanceComment({ targetUserId, weekStart, content: text.trim() });
+
+      if (targetUserId !== currentUser?.id) {
+        notifyUsers(
+          [targetUserId],
+          {
+            type: "PERFORMANCE_COMMENT",
+            title: "Nouveau commentaire sur votre semaine",
+            message: `${currentUser?.firstName ?? "Un manager"} a laissé un commentaire sur votre suivi hebdomadaire`,
+            link: "/timesheet",
+          },
+          currentUser?.id
+        );
+      }
+
       setText("");
       load();
     } finally {
@@ -45,7 +57,7 @@ function PerformanceCommentSection({ targetUserId, weekStart, currentUser, readO
   const sorted = [...comments].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-5">
+    <div className="surface-card rounded-xl p-5">
       <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">Commentaires{readOnlyLabel ? ` — ${readOnlyLabel}` : ""}</h2>
       {loading ? (
         <p className="text-[12.5px] text-slate-400">Chargement...</p>
@@ -55,9 +67,12 @@ function PerformanceCommentSection({ targetUserId, weekStart, currentUser, readO
         <ul className="space-y-3.5 mb-4">
           {sorted.map((c) => (
             <li key={c.id} className="flex items-start gap-2.5">
-              <span className="flex items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-semibold w-7 h-7 shrink-0">
-                {initials(c.authorName)}
-              </span>
+              <Avatar
+                userId={c.authorId}
+                firstName={c.authorName?.split(" ")[0]}
+                lastName={c.authorName?.split(" ")[1]}
+                size="sm"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[12.5px] font-medium text-slate-800">{c.authorName || "Utilisateur"}</span>

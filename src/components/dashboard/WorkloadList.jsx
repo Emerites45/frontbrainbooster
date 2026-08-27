@@ -1,6 +1,6 @@
 function WorkloadList({ title, rows, emptyMessage = "Aucune donnée disponible." }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-5">
+    <div className="surface-card rounded-xl p-5">
       <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">{title}</h2>
       <div className="space-y-4">
         {rows.length === 0 && (
