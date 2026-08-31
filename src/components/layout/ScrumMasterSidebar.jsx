@@ -1,4 +1,3 @@
-
 import Sidebar from "./Sidebar";
 import {
   LayoutGrid,
@@ -6,6 +5,8 @@ import {
   CheckSquare,
   Users,
   ScrollText,
+  BarChart3,
+  Clock,
 } from "lucide-react";
 
 const SM_NAV_SECTIONS = [
@@ -16,6 +17,11 @@ const SM_NAV_SECTIONS = [
         label: "Tableau de bord",
         icon: LayoutGrid,
         path: "/scrum-master/dashboard",
+      },
+      {
+        label: "Mon suivi",
+        icon: Clock,
+        path: "/timesheet",
       },
     ],
   },
@@ -49,6 +55,11 @@ const SM_NAV_SECTIONS = [
         icon: ScrollText,
         path: "/scrum-master/activity",
       },
+      {
+        label: "Analytics",
+        icon: BarChart3,
+        path: "/analytics/user-performance",
+      },
     ],
   },
 ];
@@ -67,4 +78,3 @@ function ScrumMasterSidebar({ deptName, onLogout }) {
 }
 
 export default ScrumMasterSidebar;
-

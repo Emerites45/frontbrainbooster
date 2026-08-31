@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchUsers } from "../../api/api";
+import { fetchUsers } from "../../api/users.api";
 import TeamRoster from "../../components/dashboard/TeamRoster";
 
 function ScrumMasterTeamPage({ currentUser, tasks = [] }) {

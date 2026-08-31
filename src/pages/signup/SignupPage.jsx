@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../../components/AuthLayout";
 import aaprovidirLogo from "../../assets/aaprovidir-logo.png";
 import marinaImg from "../../assets/marina.png"; // Même image que le login
-import { registerUser } from "../../api/api";
+import { registerUser } from "../../api/auth.api";
 import "./SignupPage.css"; // Créez ce fichier (voir ci-dessous)
 
 function SignupPage() {
@@ -154,10 +154,10 @@ function SignupPage() {
         </form>
 
         {/* Pied de page pour redirection vers Login */}
-        <p className="signup-footer">
-          Vous avez déjà un compte ?{" "}
-          <Link to="/login" className="link">Se connecter</Link>
-        </p>
+        <p className="login-footer">
+  Vous avez déjà un compte ?{" "}
+  <Link to="/login" className="link">Se connecter</Link>
+</p>
       </div>
     </AuthLayout>
   );

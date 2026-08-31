@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../../components/AuthLayout";
 import aaprovidirLogo from "../../assets/aaprovidir-logo.png";
 import marinaImg from "../../assets/marina.png";
-import { requestPasswordReset } from "../../api/api";
+import { requestPasswordReset } from "../../api/auth.api";
 import "./ForgotPasswordPage.css";
 import PasswordResetStepper from "../../components/PasswordResetStepper";
 function ForgotPasswordPage() {

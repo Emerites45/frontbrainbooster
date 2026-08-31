@@ -1,21 +1,38 @@
-import { useState, useEffect } from "react";
 import AdminProjectsPage from "../admin/AdminProjectsPage";
-import { fetchDepartments } from "../../api/api";
+import { projectDepartmentIds } from "../../utils/dashboardHelpers";
 
-// Réutilise AdminProjectsPage tel quel, mais ne lui passe que les projets
-// du département du Scrum Master connecté — même logique de filtrage que
-// ScrumMasterDashboardPage.
-function ScrumMasterProjectsPage({ currentUser, projects = [], tasks = [], onCreateProject, onUpdateProject, onDeleteProject }) {
+function ScrumMasterProjectsPage({
+  currentUser,
+  projects = [],
+  tasks = [],
+  actions = [],
+  onCreateProject,
+  onUpdateProject,
+  onDeleteProject,
+  onCreateSubtask,
+  onEditTask,
+  onDeleteTask,
+  onStatusChange,
+}) {
   const myDeptRole = (currentUser?.departmentRoles || []).find((dr) => dr.role === "SCRUM_MASTER");
-  const deptProjects = myDeptRole ? projects.filter((p) => p.departmentId === myDeptRole.departmentId) : [];
+  const deptProjects = myDeptRole
+    ? projects.filter((p) => projectDepartmentIds(p).includes(myDeptRole.departmentId))
+    : [];
 
   return (
     <AdminProjectsPage
       projects={deptProjects}
       tasks={tasks}
+      actions={actions}
+      currentUser={currentUser}
       onCreateProject={onCreateProject}
       onUpdateProject={onUpdateProject}
       onDeleteProject={onDeleteProject}
+      onCreateSubtask={onCreateSubtask}
+      onEditTask={onEditTask}
+      onDeleteTask={onDeleteTask}
+      onStatusChange={onStatusChange}
+      lockedDepartmentId={myDeptRole?.departmentId}
     />
   );
 }

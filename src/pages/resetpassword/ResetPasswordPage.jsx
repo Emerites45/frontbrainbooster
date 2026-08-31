@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import AuthLayout from "../../components/AuthLayout";
 import PasswordResetStepper from "../../components/PasswordResetStepper";
-import { resetPassword } from "../../api/api";
+import { resetPassword } from "../../api/auth.api";
 import "./ResetPasswordPage.css";
 
 function checkStrength(password) {
