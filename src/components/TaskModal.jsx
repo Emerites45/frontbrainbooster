@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-
+import { useState } from "react";
 import SubtaskList from "./SubtaskList";
 import HistoryTimeline from "./HistoryTimeline";
 import { getAssigneeIds, getAssigneeNames, STATUS_LABEL } from "../utils/dashboardHelpers";
@@ -18,40 +16,15 @@ function TaskModal({ task, allTasks, users = [], actions, onClose, onCreateSubta
   const assigneeIds = getAssigneeIds(task);
 
   function handleSave() {
-    if (
-      !canEditMainTask ||
-      !onEditTask
-    ) {
-      return;
-    }
-
-    onEditTask(task.id, {
-      title,
-      description,
-    });
-
+    onEditTask(task.id, { title, description });
     setIsEditing(false);
   }
 
   function handleDelete() {
-    if (
-      !canDeleteMainTask ||
-      !onDeleteTask
-    ) {
-      return;
+    if (window.confirm("Supprimer cette tâche et ses sous-tâches ?")) {
+      onDeleteTask(task.id);
+      onClose();
     }
-
-    const confirmed =
-      window.confirm(
-        "Supprimer cette tâche et ses sous-tâches ?"
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    onDeleteTask(task.id);
-    onClose?.();
   }
 
   return (
@@ -102,19 +75,6 @@ function TaskModal({ task, allTasks, users = [], actions, onClose, onCreateSubta
         <HistoryTimeline actions={taskActions} />
       </div>
     </div>
-  );
-
-  /*
-   * IMPORTANT :
-   * Le modal sort complètement
-   * du MemberLayout.
-   *
-   * La sidebar et le header ne
-   * peuvent donc plus passer devant.
-   */
-  return createPortal(
-    modal,
-    document.body
   );
 }
 

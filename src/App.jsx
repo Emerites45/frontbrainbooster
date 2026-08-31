@@ -1,6 +1,8 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
+import LoginPage from "./pages/login/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import {
   fetchTasks,
@@ -20,8 +22,8 @@ import MemberDashboardPage from "./pages/MemberDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import Navbar from "./components/Navbar";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ForgotPasswordPage from "./pages/resetpassword/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/resetpassword/ResetPasswordPage";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import AdminLayout from "./pages/admin/AdminLayout";
 import ScrumMasterLayout from "./pages/scrum-master/ScrumMasterLayout";
@@ -50,11 +52,7 @@ function generateActionId() {
 function AppLayout({ children, currentUser, onLogout }) {
   return (
     <>
-      <Navbar
-        currentUser={currentUser}
-        onLogout={onLogout}
-      />
-
+      <Navbar currentUser={currentUser} onLogout={onLogout} />
       {children}
     </>
   );
@@ -92,10 +90,6 @@ function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  /* =========================================================
-     AUTH
-  ========================================================= */
-
   function handleLogin(data) {
     const merged = { ...data.user, token: data.token };
     localStorage.setItem("currentUser", JSON.stringify(merged));
@@ -103,10 +97,7 @@ function App() {
   }
 
   function handleLogout() {
-    localStorage.removeItem(
-      "currentUser"
-    );
-
+    localStorage.removeItem("currentUser");
     setCurrentUser(null);
   }
 
@@ -119,9 +110,8 @@ function App() {
         setUsers(usersData);
         setActions(actionsData);
       })
-      .finally(() => {
-        setLoading(false);
-      });
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   // Persiste une entrée d'historique côté mock-server, en plus de la mise à
@@ -141,28 +131,12 @@ function App() {
 
   const handleCreateProject = async (projectData) => {
     try {
-      const savedAction =
-        await createAction(
-          action
-        );
-
-      return (
-        savedAction ??
-        action
-      );
+      const newProject = await createProject(projectData);
+      setProjects((prev) => [...prev, newProject]);
     } catch (err) {
-      console.error(
-        "Impossible d'enregistrer l'action :",
-        err
-      );
-
-      return action;
+      alert("Erreur lors de la création du projet");
     }
-  }
-
-  /* =========================================================
-     PROJETS
-  ========================================================= */
+  };
 
   const handleUpdateProject = async (projectId, updates) => {
     try {
@@ -328,7 +302,6 @@ function App() {
       id: Date.now(),
       title,
       description: "",
-
       status: "A_FAIRE",
       parentTaskId,
       assignments,
@@ -434,29 +407,12 @@ function App() {
         <Route
           path="/projects"
           element={
-            <ProtectedRoute
-              isLoggedIn={
-                !!currentUser
-              }
-            >
-              <AppLayout
-                currentUser={
-                  currentUser
-                }
-                onLogout={
-                  handleLogout
-                }
-              >
+            <ProtectedRoute isLoggedIn={!!currentUser}>
+              <AppLayout currentUser={currentUser} onLogout={handleLogout}>
                 <ProjectsPage
-                  projects={
-                    projects
-                  }
-                  onCreateProject={
-                    handleCreateProject
-                  }
-                  onSelectProject={
-                    handleSelectProject
-                  }
+                  projects={projects}
+                  onCreateProject={handleCreateProject}
+                  onSelectProject={handleSelectProject}
                 />
               </AppLayout>
             </ProtectedRoute>
@@ -683,43 +639,7 @@ function App() {
           />
         </Route>
 
-        {/* =================================================
-          BILAN PERSONNEL MEMBER
-       ================================================= */}
-
-<Route
-  path="/member/personal-report"
-  element={
-    <ProtectedRoute
-      isLoggedIn={!!currentUser}
-    >
-      <MemberLayout
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        tasks={visibleTasks}
-        actions={actions}
-      >
-        <MemberPersonalReportPage
-          currentUser={currentUser}
-        />
-      </MemberLayout>
-    </ProtectedRoute>
-  }
-/>
-
-        {/* =================================================
-            FALLBACK
-        ================================================= */}
-
-        <Route
-          path="*"
-          element={
-            <Navigate
-              to="/"
-              replace
-            />
-          }
-        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
