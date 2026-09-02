@@ -114,3 +114,9 @@ export function isScrumMaster(user) {
 export function isAdminOrScrumMaster(user) {
   return isAdmin(user) || isScrumMaster(user);
 }
+
+export function isMember(user) {
+  const hasAdmin = user?.globalRoles?.includes("ADMIN");
+  const hasScrumMaster = (user?.departmentRoles || []).some((dr) => dr.role === "SCRUM_MASTER");
+  return !hasAdmin && !hasScrumMaster && !!user;
+}

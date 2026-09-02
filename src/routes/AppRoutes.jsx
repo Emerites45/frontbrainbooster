@@ -10,17 +10,16 @@ import ForgotPasswordPage from "../pages/resetpassword/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/resetpassword/ResetPasswordPage";
 
 import ProjectsPage from "../pages/ProjectsPage";
-import AdminDashboardPage from "../pages/AdminDashboardPage";
-import ScrumMasterDashboardPage from "../pages/ScrumMasterDashboardPage";
-import MemberDashboardPage from "../pages/MemberDashboardPage";
 import MyTimesheetPage from "../pages/MyTimesheetPage";
 import UserPerformancePage from "../pages/analytics/UserPerformancePage";
 
 import AdminLayout from "../pages/admin/AdminLayout";
 import ScrumMasterLayout from "../pages/scrum-master/ScrumMasterLayout";
+import MemberLayout from "../pages/member/MemberLayout";
 
 import getAdminRoutes from "./AdminRoutes";
 import getScrumMasterRoutes from "./ScrumMasterRoutes";
+import getMemberRoutes from "./MemberRoutes";
 
 import { useAuth } from "../context/AuthContext";
 import { useInitialData } from "../hooks/useInitialData";
@@ -106,7 +105,7 @@ export default function AppRoutes() {
                   ? "/admin/dashboard"
                   : isScrumMasterUser
                     ? "/scrum-master/tasks"
-                    : "/dashboard"
+                    : "/member/dashboard"
               }
               replace
             />
@@ -130,41 +129,14 @@ export default function AppRoutes() {
         }
       />
 
-      {/* GENERAL DASHBOARD */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute isLoggedIn={!!currentUser}>
-            <AppLayout currentUser={currentUser} onLogout={handleLogout}>
-              {isAdminUser ? (
-                <AdminDashboardPage
-                  tasks={data.visibleTasks}
-                  projects={data.projects}
-                  actions={data.actions}
-                />
-              ) : isScrumMasterUser ? (
-                <ScrumMasterDashboardPage
-                  tasks={data.visibleTasks}
-                  projects={data.projects}
-                  currentUser={currentUser}
-                />
-              ) : (
-                <MemberDashboardPage
-                  tasks={data.visibleTasks}
-                  projects={data.projects}
-                  currentUser={currentUser}
-                />
-              )}
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-
       {/* ADMIN ROUTES */}
       {getAdminRoutes(dataHandlers)}
 
       {/* SCRUM MASTER ROUTES */}
       {getScrumMasterRoutes(dataHandlers)}
+
+      {/* MEMBER ROUTES */}
+      {getMemberRoutes(dataHandlers)}
 
       {/* TIMESHEET */}
       <Route
@@ -173,11 +145,13 @@ export default function AppRoutes() {
           <ProtectedRoute isLoggedIn={!!currentUser}>
             {isAdminUser ? (
               <AdminLayout currentUser={currentUser} onLogout={handleLogout} />
-            ) : (
+            ) : isScrumMasterUser ? (
               <ScrumMasterLayout
                 currentUser={currentUser}
                 onLogout={handleLogout}
               />
+            ) : (
+              <MemberLayout currentUser={currentUser} onLogout={handleLogout} />
             )}
           </ProtectedRoute>
         }
@@ -194,7 +168,7 @@ export default function AppRoutes() {
         />
       </Route>
 
-      {/* USER PERFORMANCE ANALYTICS */}
+      {/* USER PERFORMANCE ANALYTICS — Admin/Scrum Master uniquement */}
       <Route
         path="/analytics/user-performance"
         element={
