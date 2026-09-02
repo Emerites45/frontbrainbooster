@@ -1,4 +1,5 @@
 import { STATUS_LABEL, getAssigneeNames } from "../utils/dashboardHelpers";
+import TaskTypeBadge from "./dashboard/TaskTypeBadge";
 
 
 const STATUS_STYLES = {
@@ -7,7 +8,6 @@ const STATUS_STYLES = {
   TERMINE: "bg-green-50 text-green-700",
 };
 
-
 const PRIORITY_DOT = {
   BASSE: "bg-slate-300",
   MOYENNE: "bg-blue-400",
@@ -15,21 +15,33 @@ const PRIORITY_DOT = {
   CRITIQUE: "bg-red-500",
 };
 
-
-function TaskCard({ title, status, priority, assigneeIds = [], users = [], onStatusChange, onClick }) {
+function TaskCard({
+  title,
+  status,
+  priority,
+  type,
+  assigneeIds = [],
+  users = [],
+  onStatusChange,
+  onClick,
+}) {
   function handleStatusClick(e) {
     e.stopPropagation();
     onStatusChange();
   }
-
 
   return (
     <div
       onClick={onClick}
       className="bg-white rounded-xl border border-slate-100 p-4 cursor-pointer hover:border-slate-200 hover:shadow-sm transition-all"
     >
-      <h3 className="text-[13.5px] font-medium text-slate-800 mb-2.5">{title}</h3>
-      <div className="flex items-center gap-2 mb-3">
+      <h3 className="text-[13.5px] font-medium text-slate-800 mb-2.5">
+        {title}
+      </h3>
+
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {type && <TaskTypeBadge type={type} size="xs" />}
+
         <span
           className={`inline-flex items-center rounded-full text-[10.5px] font-semibold px-2.5 py-1 ${
             STATUS_STYLES[status] ?? "bg-slate-100 text-slate-600"
@@ -37,16 +49,21 @@ function TaskCard({ title, status, priority, assigneeIds = [], users = [], onSta
         >
           {STATUS_LABEL[status] ?? status}
         </span>
+
         {priority && (
           <span
-            className={`w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[priority] ?? "bg-slate-300"}`}
+            className={`w-1.5 h-1.5 rounded-full ${
+              PRIORITY_DOT[priority] ?? "bg-slate-300"
+            }`}
             title={priority}
           />
         )}
       </div>
+
       <p className="text-[12px] text-slate-400 mb-3 truncate">
         {getAssigneeNames(assigneeIds, users) || "Non assigné"}
       </p>
+
       <div className="pt-3 border-t border-slate-50">
         <button
           onClick={handleStatusClick}
@@ -58,6 +75,5 @@ function TaskCard({ title, status, priority, assigneeIds = [], users = [], onSta
     </div>
   );
 }
-
 
 export default TaskCard;

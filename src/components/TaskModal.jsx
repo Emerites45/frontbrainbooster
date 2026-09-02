@@ -74,6 +74,11 @@ function TaskModal({
     }
   }
 
+  function handleArchive() {
+    onEditTask(task.id, { archived: true });
+    onClose();
+  }
+
   // =========================================================
   // RENDER
   // =========================================================
@@ -174,7 +179,7 @@ function TaskModal({
 
               {/* Status */}
 
-              <div className="mt-3">
+              <div className="mt-3 flex items-center gap-3">
                 <span
                   className={`inline-flex items-center rounded-full text-[11px] font-semibold px-2.5 py-1 ${
                     STATUS_STYLES[task.status] ??
@@ -183,6 +188,22 @@ function TaskModal({
                 >
                   {STATUS_LABEL[task.status] ?? task.status}
                 </span>
+
+                {task.status === "TERMINE" && !task.archived && (
+                  <button
+                    type="button"
+                    onClick={handleArchive}
+                    className="text-[12px] font-medium text-slate-400 hover:text-slate-600"
+                  >
+                    Archiver cette tâche
+                  </button>
+                )}
+
+                {task.archived && (
+                  <span className="text-[12px] text-slate-400">
+                    Archivée
+                  </span>
+                )}
               </div>
 
               {/* Description */}

@@ -167,6 +167,53 @@ export async function toggleUserActive(userId, active) {
   return updateUser(userId, { active });
 }
 
+// --- SPRINTS (Phase C — backlog & sprints) ---
+export async function fetchSprints({ projectId } = {}) {
+  const params = projectId ? `?projectId=${projectId}` : "";
+  const response = await fetch(`${API_URL}/sprints${params}`, {
+    headers: getAuthHeader(),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+export async function createSprint(sprintData) {
+  const response = await fetch(`${API_URL}/sprints`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(sprintData),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.message || `Erreur API: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function updateSprint(sprintId, updates) {
+  const response = await fetch(`${API_URL}/sprints/${sprintId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.json();
+}
+
+export async function deleteSprint(sprintId) {
+  const response = await fetch(`${API_URL}/sprints/${sprintId}`, {
+    method: "DELETE",
+    headers: getAuthHeader(),
+  });
+  if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+  return response.ok;
+}
+
 // --- ACTIONS HISTORY ---
 export async function fetchActions() {
   const response = await fetch(`${API_URL}/actions`, {

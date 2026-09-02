@@ -1,29 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
-import { fetchTimesheetEntries, fetchWeeklyReport } from "../api/api";
+import { fetchTimesheetEntries } from "../api/api";
 import { getWeekDays, toISODate, REGULAR_HOURS_TARGET } from "../utils/dashboardHelpers";
 
-const WEEKLY_TARGET_DEFAULT = REGULAR_HOURS_TARGET * 7; // 28h — TODO Sprint 3: rendre configurable par utilisateur
+const WEEKLY_TARGET_DEFAULT = REGULAR_HOURS_TARGET * 7;
 
 export function useUserPerformance(userId, weekStart, tasks = []) {
   const [entries, setEntries] = useState([]);
-  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
   const weekStartIso = toISODate(weekStart);
 
   useEffect(() => {
-    if (!userId) {
-      setEntries([]);
-      setReport(null);
-      return;
-    }
+    if (!userId) { setEntries([]); return; }
     setLoading(true);
-    Promise.all([
-      fetchTimesheetEntries({ userId, weekStart: weekStartIso }),
-      fetchWeeklyReport({ userId, weekStart: weekStartIso }),
-    ])
-      .then(([e, r]) => { setEntries(e); setReport(r); })
+    fetchTimesheetEntries({ userId, weekStart: weekStartIso })
+      .then(setEntries)
       .finally(() => setLoading(false));
   }, [userId, weekStartIso]);
 
@@ -34,29 +26,23 @@ export function useUserPerformance(userId, weekStart, tasks = []) {
 
   const analytics = useMemo(() => {
     if (!userId) return null;
-
     const totalTasks = userTasks.length;
     const completedTasks = userTasks.filter((t) => t.status === "TERMINE").length;
     const inProgressTasks = userTasks.filter((t) => t.status === "EN_COURS").length;
     const todoTasks = userTasks.filter((t) => t.status === "A_FAIRE").length;
     const taskCompletionRate = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
-
     const regularHours = entries.reduce((s, e) => s + (Number(e.regularHours) || 0), 0);
     const overtimeHours = entries.reduce((s, e) => s + (Number(e.overtimeHours) || 0), 0);
     const totalHours = regularHours + overtimeHours;
-
     const weeklyTarget = WEEKLY_TARGET_DEFAULT;
     const remainingHours = Math.max(0, weeklyTarget - totalHours);
     const targetCompletionRate = weeklyTarget === 0 ? 0 : Math.round((totalHours / weeklyTarget) * 100);
-    const targetStatus =
-      weeklyTarget === 0 ? "NONE" : totalHours > weeklyTarget ? "EXCEEDED" : totalHours === weeklyTarget ? "REACHED" : "BELOW";
-
+    const targetStatus = weeklyTarget === 0 ? "NONE" : totalHours > weeklyTarget ? "EXCEEDED" : totalHours === weeklyTarget ? "REACHED" : "BELOW";
     const dailyWorkingTime = weekDays.map((d) => {
       const iso = toISODate(d);
       const entry = entries.find((e) => e.date === iso);
       return { date: iso, hours: entry ? (Number(entry.regularHours) || 0) + (Number(entry.overtimeHours) || 0) : 0 };
     });
-
     return {
       totalTasks, completedTasks, inProgressTasks, todoTasks, taskCompletionRate,
       regularHours, overtimeHours, totalHours,
@@ -65,5 +51,5 @@ export function useUserPerformance(userId, weekStart, tasks = []) {
     };
   }, [userId, userTasks, entries, weekDays]);
 
-  return { entries, report, userTasks, analytics, loading };
+  return { entries, userTasks, analytics, loading };
 }

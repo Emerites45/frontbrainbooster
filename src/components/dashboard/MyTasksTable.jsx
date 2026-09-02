@@ -10,7 +10,7 @@ function MyTasksTable({ tasks, projects, title = "Mes tâches" }) {
   const projectName = (id) => projects.find((p) => p.id === id)?.name ?? "—";
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+    <div className="surface-card rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-50">
         <h2 className="text-[14.5px] font-semibold text-slate-900">{title}</h2>
       </div>

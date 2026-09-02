@@ -6,6 +6,8 @@ import {
   Pencil,
   Trash2,
   Paperclip,
+  Archive,
+  ChevronRight,
 } from "lucide-react";
 
 import TaskModal from "../TaskModal";
@@ -40,6 +42,11 @@ function TaskNode({
   const children = allTasks.filter(
     (t) => String(t.parentTaskId) === String(task.id)
   );
+  const hasChildren = children.length > 0;
+
+  // Niveau racine ouvert par défaut, tout le reste replié —
+  // les enfants ne sont montés dans le DOM que si expanded=true (fix perf 500+ sous-tâches).
+  const [expanded, setExpanded] = useState(level === 0);
 
   const assignedUsers = (task.assignments || [])
     .filter((a) => !a.unassignedAt)
@@ -49,6 +56,14 @@ function TaskNode({
   const names = assignedUsers
     .map((u) => u.firstName)
     .join(", ");
+
+  const doneChildren = children.filter(
+    (c) => c.status === "TERMINE"
+  ).length;
+
+  const progressLabel = hasChildren
+    ? `${doneChildren}/${children.length}`
+    : null;
 
   return (
     <div style={{ paddingLeft: level > 0 ? 24 : 0 }}>
@@ -60,7 +75,28 @@ function TaskNode({
         className="flex items-center justify-between gap-3 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 rounded-md px-1 -mx-1 transition-colors"
         onClick={() => onTaskClick(task)}
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {hasChildren ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((prev) => !prev);
+              }}
+              className="text-slate-400 hover:text-slate-600 shrink-0"
+              aria-label={expanded ? "Replier" : "Déplier"}
+            >
+              <ChevronRight
+                size={13}
+                className={`transition-transform ${
+                  expanded ? "rotate-90" : ""
+                }`}
+              />
+            </button>
+          ) : (
+            <span className="w-[13px] shrink-0" />
+          )}
+
           <span
             className={`w-1.5 h-1.5 rounded-full shrink-0 ${
               STATUS_DOT[task.status] ?? "bg-slate-300"
@@ -76,6 +112,12 @@ function TaskNode({
           >
             {task.title}
           </span>
+
+          {progressLabel && (
+            <span className="text-[11px] text-slate-400 shrink-0">
+              ({progressLabel})
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -94,16 +136,17 @@ function TaskNode({
         </div>
       </div>
 
-      {children.map((child) => (
-        <TaskNode
-          key={child.id}
-          task={child}
-          allTasks={allTasks}
-          users={users}
-          level={level + 1}
-          onTaskClick={onTaskClick}
-        />
-      ))}
+      {expanded &&
+        children.map((child) => (
+          <TaskNode
+            key={child.id}
+            task={child}
+            allTasks={allTasks}
+            users={users}
+            level={level + 1}
+            onTaskClick={onTaskClick}
+          />
+        ))}
     </div>
   );
 }
@@ -118,6 +161,7 @@ function ProjectDetailModal({
   onClose,
   onEdit,
   onDelete,
+  onArchive,
   onCreateSubtask,
   onEditTask,
   onDeleteTask,
@@ -196,6 +240,19 @@ function ProjectDetailModal({
                   </button>
                 )}
 
+                {/* Archive */}
+                {project.status === "TERMINE" && !project.archived && (
+                  <button
+                    type="button"
+                    onClick={() => onArchive?.(project.id)}
+                    className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                    aria-label="Archiver le projet"
+                    title="Archiver le projet"
+                  >
+                    <Archive size={16} />
+                  </button>
+                )}
+
                 {/* Delete */}
                 {onDelete && (
                   <button
@@ -240,6 +297,12 @@ function ProjectDetailModal({
                 {STATUS_LABEL[project.status] ??
                   project.status}
               </span>
+
+              {project.archived && (
+                <span className="text-[12px] text-slate-400">
+                  Archivé
+                </span>
+              )}
 
               {project.endDate && (
                 <span className="flex items-center gap-1.5">

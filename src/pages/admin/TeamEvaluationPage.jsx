@@ -3,10 +3,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchUsers, fetchDepartments, fetchTimesheetEntries } from "../../api/api";
 import { getWeekStart, getWeekDays, toISODate } from "../../utils/dashboardHelpers";
 
-function TeamEvaluationPage({ tasks = [] }) {
+function TeamEvaluationPage({ tasks = [], lockedDepartmentId, lockedDepartmentName }) {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [deptFilter, setDeptFilter] = useState("ALL");
+  const [deptFilter, setDeptFilter] = useState(lockedDepartmentId ? String(lockedDepartmentId) : "ALL");
   const [weekStart, setWeekStart] = useState(getWeekStart());
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +57,9 @@ function TeamEvaluationPage({ tasks = [] }) {
     <div className="px-8 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[20px] font-semibold text-slate-900">Évaluation par équipe</h1>
+          <h1 className="text-[20px] font-semibold text-slate-900">
+            Évaluation par équipe{lockedDepartmentName ? ` — ${lockedDepartmentName}` : ""}
+          </h1>
           <p className="text-[13px] text-slate-400 mt-0.5">Charge et complétion des tâches, membre par membre.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -69,15 +71,17 @@ function TeamEvaluationPage({ tasks = [] }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="rounded-lg border border-slate-200 text-[13px] text-slate-600 px-3 py-2 outline-none">
-          <option value="ALL">Tous les départements</option>
-          {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
+      <div className="flex items-center gap-3 flex-wrap">
+        {!lockedDepartmentId && (
+          <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="rounded-lg border border-slate-200 text-[13px] text-slate-600 px-3 py-2 outline-none">
+            <option value="ALL">Tous les départements</option>
+            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        )}
         <span className="text-[12.5px] text-slate-400">Moy. complétion tâches : {avgCompletion}% · Moy. objectif atteint : {avgTarget}%</span>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+      <div className="surface-card rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="bg-slate-50/60">

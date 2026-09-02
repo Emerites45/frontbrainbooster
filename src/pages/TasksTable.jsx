@@ -19,7 +19,7 @@ function TasksTable({ tasks, projects, users, onRowClick }) {
   const { pageItems, page, totalPages, rangeStart, rangeEnd, totalItems, goToPage } = usePagination(tasks, 10);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+    <div className="surface-card rounded-xl overflow-hidden">
       <table className="w-full">
         <thead>
           <tr className="bg-slate-50/60">

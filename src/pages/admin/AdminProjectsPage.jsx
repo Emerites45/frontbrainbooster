@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, FolderPlus, FolderKanban, CheckCircle2, AlertTriangle, TrendingUp } from "lucide-react";
-import { fetchDepartments, fetchUsers } from "../api/api";
-import StatsGrid from "../components/dashboard/StatsGrid";
-import ProjectsTable from "../components/dashboard/ProjectsTable";
-import CreateProjectModal from "../components/dashboard/CreateProjectModal";
-import { projectProgress } from "../utils/dashboardHelpers";
+import { fetchDepartments, fetchUsers } from "../../api/api";
+import StatsGrid from "../../components/dashboard/StatsGrid";
+import ProjectsTable from "../../components/dashboard/ProjectsTable";
+import CreateProjectModal from "../../components/dashboard/CreateProjectModal";
+import { projectProgress } from "../../utils/dashboardHelpers";
 
 
-function AdminProjectsPage({ projects = [], tasks = [], onCreateProject }) {
+function AdminProjectsPage({ projects: allProjects = [], tasks = [], onCreateProject }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [departments, setDepartments] = useState([]);
   const [users, setUsers] = useState([]);
@@ -16,6 +16,9 @@ function AdminProjectsPage({ projects = [], tasks = [], onCreateProject }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Vue active : les projets archivés n'apparaissent plus ici.
+  const projects = allProjects.filter((p) => !p.archived);
 
   useEffect(() => {
     Promise.all([fetchDepartments(), fetchUsers()])

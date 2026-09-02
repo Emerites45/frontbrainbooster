@@ -3,6 +3,21 @@ export const STATUS_LABEL = {
   EN_COURS: "En cours",
   TERMINE: "Terminé",
 };
+
+export const TASK_TYPE_LABEL = {
+  TACHE: "Tâche",
+  BUG: "Bug",
+  USER_STORY: "User Story",
+  EPIC: "Epic",
+  MILESTONE: "Jalon",
+};
+
+export const SPRINT_STATUS_LABEL = {
+  PLANNED: "Planifié",
+  ACTIVE: "En cours",
+  CLOSED: "Clôturé",
+};
+
 export function timeAgo(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -119,4 +134,109 @@ export function projectDepartmentIds(project) {
   if (Array.isArray(project.departmentIds) && project.departmentIds.length) return project.departmentIds;
   if (project.departmentId) return [project.departmentId];
   return [];
+}
+
+// =========================================================
+// BACKLOG / SPRINTS (Phase C)
+// =========================================================
+
+// Tâches du backlog d'un projet : pas encore assignées à un sprint,
+// et pas des sous-tâches (celles-ci suivent leur tâche parente).
+export function backlogTasks(projectId, tasks) {
+  return tasks.filter(
+    (t) => t.projectId === projectId && !t.sprintId && !t.parentTaskId
+  );
+}
+
+// Tâches d'un sprint donné.
+export function sprintTasks(sprint, tasks) {
+  return tasks.filter((t) => t.sprintId === sprint.id);
+}
+
+// Somme des story points d'un ensemble de tâches (0 si non renseigné).
+export function sumStoryPoints(tasks) {
+  return tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+}
+
+// Vélocité : points des tâches TERMINE dans le sprint / points totaux planifiés.
+export function sprintVelocity(sprint, tasks) {
+  const sTasks = sprintTasks(sprint, tasks);
+  const totalPoints = sumStoryPoints(sTasks);
+  const donePoints = sumStoryPoints(sTasks.filter((t) => t.status === "TERMINE"));
+  return {
+    totalPoints,
+    donePoints,
+    percent: totalPoints === 0 ? 0 : Math.round((donePoints / totalPoints) * 100),
+  };
+}
+
+// Données de burndown : points restants par jour du sprint, calculés à partir
+// de l'historique d'actions (même logique que computeTaskStats — la date de
+// complétion vient de l'action CHANGEMENT_STATUT, pas d'un champ statique).
+export function burndownData(sprint, tasks, actions = []) {
+  const sTasks = sprintTasks(sprint, tasks);
+  const sTaskIds = new Set(sTasks.map((t) => t.id));
+  const totalPoints = sumStoryPoints(sTasks);
+
+  const pointsById = Object.fromEntries(sTasks.map((t) => [t.id, t.storyPoints || 0]));
+
+  const completions = actions
+    .filter(
+      (a) =>
+        a.type_action === "CHANGEMENT_STATUT" &&
+        a.nouvelle_valeur === "TERMINE" &&
+        sTaskIds.has(a.id_tache)
+    )
+    .map((a) => ({ date: a.date_action.slice(0, 10), points: pointsById[a.id_tache] || 0 }));
+
+  const start = new Date(sprint.startDate);
+  const end = new Date(sprint.endDate);
+  const days = [];
+  let remaining = totalPoints;
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const iso = toISODate(d);
+    const doneToday = completions
+      .filter((c) => c.date === iso)
+      .reduce((sum, c) => sum + c.points, 0);
+    remaining -= doneToday;
+    days.push({ date: iso, remaining: Math.max(remaining, 0) });
+  }
+
+  return { totalPoints, days };
+}
+
+// Tâches bloquantes / bloquées, pour badges et alertes dashboard.
+export function blockingTasks(task, allTasks) {
+  return (task.blockedBy || [])
+    .map((id) => allTasks.find((t) => t.id === id))
+    .filter(Boolean);
+}
+
+export function isBlocked(task, allTasks) {
+  return blockingTasks(task, allTasks).some((b) => b.status !== "TERMINE");
+}
+
+export function describeAction(action, users = [], tasks = []) {
+  if (!action) return "Action inconnue";
+  
+  // Find user name if userId exists
+  const user = users.find(u => u.id === action.userId);
+  const userName = user ? `${user.firstName} ${user.lastName}` : "Un utilisateur";
+  
+  // Find task name if taskId exists
+  const task = tasks.find(t => t.id === action.taskId);
+  const taskName = task ? `"${task.title}"` : `la tâche #${action.taskId}`;
+
+  switch (action.type_action || action.type) {
+    case "CHANGEMENT_STATUT":
+      const statusLabel = STATUS_LABEL[action.nouvelle_valeur] || action.nouvelle_valeur;
+      return `${userName} a passé ${taskName} à "${statusLabel}"`;
+    case "CREATION_TACHE":
+      return `${userName} a créé ${taskName}`;
+    case "ASSIGNATION":
+      return `${userName} a assigné ${taskName}`;
+    default:
+      return action.description || `${userName} a effectué une action`;
+  }
 }

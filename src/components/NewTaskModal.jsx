@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-
+import AssigneePicker from "../components/dashboard/AssigneePicker";
 
 function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUser }) {
   const [title, setTitle] = useState("");
@@ -9,13 +9,12 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("MOYENNE");
-
+  const [type, setType] = useState("TACHE");
 
   const isAdmin = currentUser?.globalRoles?.includes("ADMIN");
   const myScrumMasterDept = (currentUser?.departmentRoles || []).find(
     (dr) => dr.role === "SCRUM_MASTER"
   );
-
 
   const availableProjects = isAdmin
     ? projects
@@ -23,18 +22,9 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
     ? projects.filter((p) => p.departmentId === myScrumMasterDept.departmentId)
     : [];
 
-
-  function handleAssigneeToggle(userId) {
-    setAssigneeIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-    );
-  }
-
-
   function handleSubmit(e) {
     e.preventDefault();
     if (!title.trim() || !projectId) return;
-
 
     onCreate({
       id: Date.now(),
@@ -45,10 +35,10 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
       assignments: assigneeIds,
       dueDate: dueDate || null,
       priority,
+      type,
     });
     onClose();
   }
-
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -62,7 +52,6 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
             <X size={18} />
           </button>
         </div>
-
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <input
@@ -79,7 +68,6 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
             rows={3}
             className="w-full rounded-lg border border-slate-200 text-[13.5px] px-3.5 py-2.5 outline-none focus:border-blue-400 resize-none"
           />
-
 
           <select
             value={projectId}
@@ -98,9 +86,24 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
             </p>
           )}
 
+          {/* Three-column horizontal layout for Metadata */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-[11.5px] text-slate-400 mb-1 block">
+                Type de tâche
+              </label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 text-[13.5px] px-3.5 py-2.5 outline-none focus:border-blue-400"
+              >
+                <option value="TACHE">Tâche</option>
+                <option value="BUG">Bug</option>
+                <option value="STORY">User Story</option>
+              </select>
+            </div>
 
-          <div className="flex gap-3">
-            <div className="flex-1">
+            <div>
               <label className="text-[11.5px] text-slate-400 mb-1 block">Échéance (optionnel)</label>
               <input
                 type="date"
@@ -109,7 +112,8 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
                 className="w-full rounded-lg border border-slate-200 text-[13.5px] px-3.5 py-2.5 outline-none focus:border-blue-400"
               />
             </div>
-            <div className="flex-1">
+
+            <div>
               <label className="text-[11.5px] text-slate-400 mb-1 block">Priorité</label>
               <select
                 value={priority}
@@ -124,46 +128,21 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
             </div>
           </div>
 
-
           <fieldset>
             <legend className="text-[12px] font-medium text-slate-500 mb-2">
               Assigner à (plusieurs possibles)
             </legend>
 
-
-            {users.length === 0 && (
+            {users.length === 0 ? (
               <p className="text-[12.5px] text-slate-400">Chargement des utilisateurs...</p>
+            ) : (
+              <AssigneePicker
+                users={users}
+                selectedIds={assigneeIds}
+                onChange={setAssigneeIds}
+              />
             )}
-
-
-            <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto">
-              {users.map((u) => {
-                const roleLabel = u.globalRoles?.[0] ?? u.departmentRoles?.[0]?.role ?? "MEMBER";
-                const deptLabel = u.departmentRoles?.[0]?.departmentName;
-                const checked = assigneeIds.includes(u.id);
-                return (
-                  <label
-                    key={u.id}
-                    className={`flex items-center gap-1.5 text-[12px] rounded-full px-2.5 py-1.5 border cursor-pointer transition-colors ${
-                      checked
-                        ? "bg-blue-50 border-blue-200 text-blue-700"
-                        : "border-slate-200 text-slate-500 hover:bg-slate-50"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => handleAssigneeToggle(u.id)}
-                      className="hidden"
-                    />
-                    {u.firstName} {u.lastName}
-                    {deptLabel && <span className="text-slate-400"> · {deptLabel}</span>}
-                  </label>
-                );
-              })}
-            </div>
           </fieldset>
-
 
           <button
             type="submit"
@@ -176,6 +155,5 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
     </div>
   );
 }
-
 
 export default NewTaskModal;

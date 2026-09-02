@@ -1,15 +1,19 @@
 import Sidebar from "./Sidebar";
+
 import {
   LayoutGrid,
   Users,
   FolderKanban,
   Building2,
   CheckSquare,
+  ListTodo,
   ScrollText,
   BarChart3,
   Settings as SettingsIcon,
   Calendar as CalendarIcon,
   Clock,
+  FileText,
+  Archive,
 } from "lucide-react";
 
 const ADMIN_NAV_SECTIONS = [
@@ -48,6 +52,11 @@ const ADMIN_NAV_SECTIONS = [
         path: "/admin/projects",
       },
       {
+        label: "Backlog & Sprints",
+        icon: ListTodo,
+        path: "/admin/backlog",
+      },
+      {
         label: "Équipes",
         icon: Building2,
         path: "/admin/teams",
@@ -61,6 +70,11 @@ const ADMIN_NAV_SECTIONS = [
         label: "Tâches",
         icon: CheckSquare,
         path: "/admin/tasks",
+      },
+      {
+        label: "Archives",
+        icon: Archive,
+        path: "/admin/archives",
       },
     ],
   },
@@ -77,6 +91,11 @@ const ADMIN_NAV_SECTIONS = [
         label: "Rapports",
         icon: BarChart3,
         path: "/admin/reports",
+      },
+      {
+        label: "Rapport de stage",
+        icon: FileText,
+        path: "/admin/intern-report",
       },
       {
         label: "Analytics",
@@ -98,7 +117,11 @@ const ADMIN_NAV_SECTIONS = [
   },
 ];
 
-function AdminSidebar({ onLogout }) {
+function AdminSidebar({
+  onLogout,
+  mobileOpen,
+  onMobileClose,
+}) {
   return (
     <Sidebar
       navSections={ADMIN_NAV_SECTIONS}
@@ -107,6 +130,8 @@ function AdminSidebar({ onLogout }) {
       ctaPath="/admin/projects?create=true"
       onLogout={onLogout}
       accent="blue"
+      mobileOpen={mobileOpen}
+      onMobileClose={onMobileClose}
     />
   );
 }

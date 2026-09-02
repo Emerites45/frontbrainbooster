@@ -61,7 +61,10 @@ function BoardPage({
   // =========================================================
 
   const searchedTasks = useMemo(() => {
-    let result = tasks.filter((task) => !task.parentTaskId);
+    // Tâches racines, en excluant les tâches archivées de la vue active.
+    let result = tasks.filter(
+      (task) => !task.parentTaskId && !task.archived
+    );
 
     // Filter: assigned to me
     if (activeFilter === "MINE") {

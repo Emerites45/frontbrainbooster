@@ -3,6 +3,7 @@ import { fetchUsers } from "../api/api";
 import StatsGrid from "../components/dashboard/StatsGrid";
 import WorkloadList from "../components/dashboard/WorkloadList";
 import ProjectsTable from "../components/dashboard/ProjectsTable";
+import TodayWidget from "../components/dashboard/TodayWidget";
 import { computeTaskStats, getAssigneeIds, projectDepartmentIds } from "../utils/dashboardHelpers";
 
 function ScrumMasterDashboardPage({ currentUser, tasks = [], projects = [] }) {
@@ -64,8 +65,9 @@ function ScrumMasterDashboardPage({ currentUser, tasks = [], projects = [] }) {
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <WorkloadList title="Charge de l'équipe" rows={workloadRows} emptyMessage="Aucun autre membre dans ce département pour l'instant." />
-        <ProjectsTable title="Projets du département" projects={deptProjects} tasks={deptTasks} />
+        <TodayWidget tasks={deptTasks} currentUser={currentUser} projects={deptProjects} />
       </div>
+      <ProjectsTable title="Projets du département" projects={deptProjects} tasks={deptTasks} />
     </div>
   );
 }

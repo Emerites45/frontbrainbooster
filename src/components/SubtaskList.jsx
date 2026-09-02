@@ -1,5 +1,36 @@
 import { useState } from "react";
 import { Check, Pencil, Trash2 } from "lucide-react";
+import AssigneePicker from "./dashboard/AssigneePicker";
+import { STATUS_LABEL } from "../utils/dashboardHelpers";
+
+const STATUS_BADGE_STYLES = {
+  A_FAIRE: "bg-yellow-pale text-blue-deep",
+  EN_COURS: "bg-blue-pale text-blue-deep",
+  TERMINE: "bg-green-pale text-blue-deep",
+};
+
+const STATUS_DOT_STYLES = {
+  A_FAIRE: "bg-a-faire",
+  EN_COURS: "bg-en-cours",
+  TERMINE: "bg-termine",
+};
+
+function StatusBadge({ status }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+        STATUS_BADGE_STYLES[status] ?? "bg-slate-100 text-slate-500"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          STATUS_DOT_STYLES[status] ?? "bg-slate-300"
+        }`}
+      />
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  );
+}
 
 function SubtaskList({ subtasks, users = [], onAddSubtask, onEditSubtask, onDeleteSubtask, onToggleStatus }) {
   const [title, setTitle] = useState("");
@@ -13,12 +44,6 @@ function SubtaskList({ subtasks, users = [], onAddSubtask, onEditSubtask, onDele
     onAddSubtask(title, assigneeIds);
     setTitle("");
     setAssigneeIds([]);
-  }
-
-  function toggleAssignee(userId) {
-    setAssigneeIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-    );
   }
 
   function startEdit(subtask) {
@@ -83,6 +108,7 @@ function SubtaskList({ subtasks, users = [], onAddSubtask, onEditSubtask, onDele
                       <span className="text-slate-400"> — {assigneeNames(subtask)}</span>
                     )}
                   </span>
+                  <StatusBadge status={subtask.status} />
                   <button
                     onClick={() => startEdit(subtask)}
                     className="text-slate-300 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
@@ -109,26 +135,12 @@ function SubtaskList({ subtasks, users = [], onAddSubtask, onEditSubtask, onDele
           placeholder="Nouvelle sous-tâche"
           className="w-full rounded-lg border border-slate-200 text-[13px] px-3 py-2 outline-none focus:border-blue-400"
         />
-        <div className="flex flex-wrap gap-2">
-          {users.map((u) => (
-            <label
-              key={u.id}
-              className={`flex items-center gap-1.5 text-[12px] rounded-full px-2.5 py-1 border cursor-pointer transition-colors ${
-                assigneeIds.includes(u.id)
-                  ? "bg-blue-50 border-blue-200 text-blue-700"
-                  : "border-slate-200 text-slate-500 hover:bg-slate-50"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={assigneeIds.includes(u.id)}
-                onChange={() => toggleAssignee(u.id)}
-                className="hidden"
-              />
-              {u.firstName} {u.lastName}
-            </label>
-          ))}
-        </div>
+        <AssigneePicker
+          users={users}
+          selectedIds={assigneeIds}
+          onChange={setAssigneeIds}
+          maxHeight={140}
+        />
         {assigneeIds.length === 0 && (
           <p className="text-[11.5px] text-slate-400">
             Aucun assigné sélectionné → assignée à toi-même par défaut.

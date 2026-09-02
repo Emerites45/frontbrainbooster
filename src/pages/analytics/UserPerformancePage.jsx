@@ -11,6 +11,7 @@ import TaskStatusBreakdown from "../../components/analytics/TaskStatusBreakdown"
 import PerformanceCommentSection from "../../components/analytics/PerformanceCommentSection";
 
 const DAY_LABELS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const RETRO_FIELDS = [["difficulties", "Difficultés"], ["solutions", "Solutions"], ["bilanPersonnel", "Bilan"], ["observations", "Observations"]];
 
 function UserPerformancePage({ tasks = [], projects = [], currentUser }) {
   const [users, setUsers] = useState([]);
@@ -22,7 +23,7 @@ function UserPerformancePage({ tasks = [], projects = [], currentUser }) {
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
   const weekStartIso = toISODate(weekStart);
   const numericUserId = selectedUserId ? Number(selectedUserId) : null;
-  const { entries, report, analytics, loading } = useUserPerformance(numericUserId, weekStart, tasks);
+  const { entries, analytics, loading } = useUserPerformance(numericUserId, weekStart, tasks);
   const selectedUser = users.find((u) => u.id === numericUserId);
 
   function changeWeek(delta) {
@@ -104,28 +105,28 @@ function UserPerformancePage({ tasks = [], projects = [], currentUser }) {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-slate-100 p-5">
+            <div className="surface-card rounded-xl p-5">
               <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">Working Time</h2>
               <WeeklyHoursChart days={weekDays.map(toISODate)} totalsByDate={totalsByDate} target={analytics.dailyTarget} />
             </div>
-            <div className="bg-white rounded-xl border border-slate-100 p-5">
+            <div className="surface-card rounded-xl p-5">
               <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">Objectif Time</h2>
               <ObjectifProgress analytics={analytics} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-slate-100 p-5">
+            <div className="surface-card rounded-xl p-5">
               <h2 className="text-[14.5px] font-semibold text-slate-900 mb-2">% Tasks Done</h2>
               <TasksGauge percent={analytics.totalTasks === 0 ? null : analytics.taskCompletionRate} />
             </div>
-            <div className="bg-white rounded-xl border border-slate-100 p-5">
+            <div className="surface-card rounded-xl p-5">
               <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">Répartition des tâches</h2>
               <TaskStatusBreakdown analytics={analytics} />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+          <div className="surface-card rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-50">
               <h2 className="text-[14.5px] font-semibold text-slate-900">Weekly Time Log</h2>
             </div>
@@ -164,16 +165,38 @@ function UserPerformancePage({ tasks = [], projects = [], currentUser }) {
             </table>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-100 p-5">
-            <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">Weekly Retrospective</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {[["difficulties", "Difficultés majeures rencontrées"], ["observations", "Observations (Target)"], ["solutions", "Solutions proposées"], ["bilanPersonnel", "Bilan personnel de fin de semaine"]].map(([field, label]) => (
-                <div key={field}>
-                  <p className="text-[11.5px] font-medium text-slate-400 mb-1.5">{label}</p>
-                  <p className="text-[13px] text-slate-700 whitespace-pre-wrap">{report?.[field] || "—"}</p>
-                </div>
-              ))}
-            </div>
+          <div className="surface-card rounded-xl p-5">
+            <h2 className="text-[14.5px] font-semibold text-slate-900 mb-4">Bilans journaliers</h2>
+            {weekDays.every((d) => {
+              const entry = entries.find((e) => e.date === toISODate(d));
+              return !entry || RETRO_FIELDS.every(([f]) => !entry[f]?.trim());
+            }) ? (
+              <p className="text-[13px] text-slate-400 text-center py-6">Aucun bilan rempli pour cette semaine.</p>
+            ) : (
+              <div className="space-y-2">
+                {weekDays.map((d, i) => {
+                  const iso = toISODate(d);
+                  const entry = entries.find((e) => e.date === iso);
+                  const hasRetro = entry && RETRO_FIELDS.some(([f]) => entry[f]?.trim());
+                  if (!hasRetro) return null;
+                  return (
+                    <details key={iso} className="rounded-lg border border-slate-100 px-3.5 py-2.5">
+                      <summary className="text-[12.5px] font-medium text-slate-700 cursor-pointer">
+                        {DAY_LABELS[i]} {d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
+                      </summary>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                        {RETRO_FIELDS.map(([field, label]) => (
+                          <div key={field}>
+                            <p className="text-[11px] font-medium text-slate-400 mb-1">{label}</p>
+                            <p className="text-[12.5px] text-slate-700">{entry[field] || "—"}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <PerformanceCommentSection

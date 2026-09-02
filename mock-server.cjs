@@ -198,6 +198,60 @@ app.delete('/tasks/:id', (req, res) => {
   res.status(204).end();
 });
 
+// --- SPRINTS (Phase C — backlog & sprints) ---
+// GET filtrable par projectId. POST/PATCH/DELETE suivent exactement le même
+// patron que les routes /projects ci-dessus.
+app.get('/sprints', (req, res) => {
+  const db = readDb();
+  const { projectId } = req.query;
+  let sprints = db.sprints || [];
+  if (projectId) sprints = sprints.filter((s) => s.projectId === Number(projectId));
+  res.json(sprints);
+});
+app.post('/sprints', (req, res) => {
+  const db = readDb();
+  const newSprint = { id: Date.now(), status: "ACTIVE", ...req.body };
+
+  db.sprints = db.sprints || [];
+
+  // Un seul sprint ACTIVE à la fois par projet — sinon activeSprintId
+  // côté front devient ambigu (find() prend le premier trouvé, pas
+  // forcément le dernier créé).
+  if (newSprint.status === "ACTIVE") {
+    const alreadyActive = db.sprints.find(
+      (s) => s.projectId === newSprint.projectId && s.status === "ACTIVE"
+    );
+    if (alreadyActive) {
+      return res.status(409).json({
+        message: `Un sprint est déjà actif sur ce projet : "${alreadyActive.name}". Clôturez-le avant d'en créer un nouveau.`,
+      });
+    }
+  }
+
+  db.sprints.push(newSprint);
+  writeDb(db);
+  res.status(201).json(newSprint);
+});
+app.patch('/sprints/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.sprints = (db.sprints || []).map((s) => (s.id === id ? { ...s, ...req.body } : s));
+  writeDb(db);
+  res.json(db.sprints.find((s) => s.id === id));
+});
+
+app.delete('/sprints/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  // On détache les tâches du sprint supprimé plutôt que de les perdre.
+  db.tasks = (db.tasks || []).map((t) =>
+    t.sprintId === id ? { ...t, sprintId: null } : t
+  );
+  db.sprints = (db.sprints || []).filter((s) => s.id !== id);
+  writeDb(db);
+  res.status(204).end();
+});
+
 // --- Journal d'actions (ACTION_HISTORY) — F5 ---
 // GET renvoie tout l'historique ; POST ajoute une entrée telle qu'envoyée par le
 // front (App.jsx génère déjà un id côté client via generateActionId(), on le
@@ -310,30 +364,6 @@ app.post('/timesheet-entries', (req, res) => {
   res.status(201).json(newEntry);
 });
 
-app.get('/weekly-reports', (req, res) => {
-  const db = readDb();
-  const { userId, weekStart } = req.query;
-  const report = (db.weeklyReports || []).find((r) => r.userId === Number(userId) && r.weekStart === weekStart);
-  res.json(report || null);
-});
-
-// Même logique d'upsert : un seul rapport par (userId, weekStart).
-app.post('/weekly-reports', (req, res) => {
-  const db = readDb();
-  db.weeklyReports = db.weeklyReports || [];
-  const { userId, weekStart } = req.body;
-  const idx = db.weeklyReports.findIndex((r) => r.userId === userId && r.weekStart === weekStart);
-  if (idx >= 0) {
-    db.weeklyReports[idx] = { ...db.weeklyReports[idx], ...req.body };
-    writeDb(db);
-    return res.json(db.weeklyReports[idx]);
-  }
-  const newReport = { id: Date.now(), ...req.body };
-  db.weeklyReports.push(newReport);
-  writeDb(db);
-  res.status(201).json(newReport);
-});
-
 app.get('/performance-comments', (req, res) => {
   const db = readDb();
   const { userId, weekStart } = req.query;
@@ -385,6 +415,10 @@ app.post('/notifications/mark-all-read', (req, res) => {
   res.status(204).end();
 });
 
+// --- WEEKLY REPORTS ---
+// weekStart fourni → un seul rapport (upsert unique par userId+weekStart).
+// weekStart absent → tableau complet des rapports de l'utilisateur (utilisé
+// par le rapport de stage).
 app.get('/weekly-reports', (req, res) => {
   const db = readDb();
   const { userId, weekStart } = req.query;
@@ -393,8 +427,24 @@ app.get('/weekly-reports', (req, res) => {
     const report = all.find((r) => r.userId === Number(userId) && r.weekStart === weekStart);
     return res.json(report || null);
   }
-  // Pas de weekStart : retourne tous les rapports de l'utilisateur — utilisé par le rapport de stage.
   res.json(all.filter((r) => r.userId === Number(userId)));
+});
+
+// Même logique d'upsert : un seul rapport par (userId, weekStart).
+app.post('/weekly-reports', (req, res) => {
+  const db = readDb();
+  db.weeklyReports = db.weeklyReports || [];
+  const { userId, weekStart } = req.body;
+  const idx = db.weeklyReports.findIndex((r) => r.userId === userId && r.weekStart === weekStart);
+  if (idx >= 0) {
+    db.weeklyReports[idx] = { ...db.weeklyReports[idx], ...req.body };
+    writeDb(db);
+    return res.json(db.weeklyReports[idx]);
+  }
+  const newReport = { id: Date.now(), ...req.body };
+  db.weeklyReports.push(newReport);
+  writeDb(db);
+  res.status(201).json(newReport);
 });
 
 

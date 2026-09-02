@@ -1,14 +1,17 @@
+
 import Sidebar from "./Sidebar";
 
 import {
   LayoutGrid,
   FolderKanban,
   CheckSquare,
+  ListTodo,
   Users,
   ScrollText,
   BarChart3,
   Clock,
   Settings as SettingsIcon,
+  FileText,
 } from "lucide-react";
 
 const SM_NAV_SECTIONS = [
@@ -37,6 +40,11 @@ const SM_NAV_SECTIONS = [
         path: "/scrum-master/projects",
       },
       {
+        label: "Backlog & Sprints",
+        icon: ListTodo,
+        path: "/scrum-master/backlog",
+      },
+      {
         label: "Tâches",
         icon: CheckSquare,
         path: "/scrum-master/tasks",
@@ -45,6 +53,11 @@ const SM_NAV_SECTIONS = [
         label: "Équipe",
         icon: Users,
         path: "/scrum-master/team",
+      },
+      {
+        label: "Évaluation équipe",
+        icon: BarChart3,
+        path: "/scrum-master/team-evaluation",
       },
     ],
   },
@@ -56,6 +69,11 @@ const SM_NAV_SECTIONS = [
         label: "Journal d'activité",
         icon: ScrollText,
         path: "/scrum-master/activity",
+      },
+      {
+        label: "Rapport de stage",
+        icon: FileText,
+        path: "/scrum-master/intern-report",
       },
       {
         label: "Analytics",
@@ -77,7 +95,12 @@ const SM_NAV_SECTIONS = [
   },
 ];
 
-function ScrumMasterSidebar({ deptName, onLogout }) {
+function ScrumMasterSidebar({
+  deptName,
+  onLogout,
+  mobileOpen,
+  onMobileClose,
+}) {
   return (
     <Sidebar
       navSections={SM_NAV_SECTIONS}
@@ -86,6 +109,8 @@ function ScrumMasterSidebar({ deptName, onLogout }) {
       ctaPath="/scrum-master/projects?create=true"
       onLogout={onLogout}
       accent="green"
+      mobileOpen={mobileOpen}
+      onMobileClose={onMobileClose}
     />
   );
 }

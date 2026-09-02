@@ -1,18 +1,40 @@
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
+
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AdminTopbar from "../../components/layout/AdminTopbar";
 
-/**
- * Layout partagé par toutes les pages /admin/*.
- * currentUser et onLogout viennent de App.jsx (source de vérité unique de
- * l'auth) — ce composant ne gère aucun state d'auth lui-même.
- */
-function AdminLayout({ currentUser, onLogout }) {
+function AdminLayout({
+  currentUser,
+  onLogout,
+  tasks,
+  projects,
+  users,
+}) {
+  const [mobileOpen, setMobileOpen] =
+    useState(false);
+
   return (
-    <div className="dashboard-shell flex min-h-screen">
-      <AdminSidebar onLogout={onLogout} />
+    <div className="flex min-h-screen bg-white">
+      <AdminSidebar
+        onLogout={onLogout}
+        mobileOpen={mobileOpen}
+        onMobileClose={() =>
+          setMobileOpen(false)
+        }
+      />
+
       <div className="flex-1 flex flex-col min-w-0">
-        <AdminTopbar currentUser={currentUser} />
+        <AdminTopbar
+          currentUser={currentUser}
+          onMenuClick={() =>
+            setMobileOpen(true)
+          }
+          tasks={tasks}
+          projects={projects}
+          users={users}
+        />
+
         <main className="flex-1 overflow-auto bg-white">
           <Outlet />
         </main>

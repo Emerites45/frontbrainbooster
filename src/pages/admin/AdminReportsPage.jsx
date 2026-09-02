@@ -48,7 +48,7 @@ function AdminReportsPage({ projects = [], tasks = [], departments = [] }) {
         ]}
       />
 
-      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+      <div className="surface-card rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-50">
           <h2 className="text-[14.5px] font-semibold text-slate-900">Synthèse par département</h2>
         </div>
