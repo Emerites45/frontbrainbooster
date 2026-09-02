@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";import AuthLayout from "../../components/AuthLayout";
+import { Link, useNavigate } from "react-router-dom";
+import AuthLayout from "../../components/AuthLayout";
 import aaprovidirLogo from "../../assets/aaprovidir-logo.png";
 import marinaImg from "../../assets/marina.png";
-import { loginUser } from "../../api/api";
+import { loginUser } from "../../api/auth.api";
 import "./LoginPage.css";
 
 function LoginPage({ onLogin }) {
@@ -18,11 +19,11 @@ function LoginPage({ onLogin }) {
     setError(null);
     setLoading(true);
     try {
-      const data = await loginUser(email, password); // vrai appel API
+      const data = await loginUser(email, password);
       if (onLogin) {
-        onLogin(data); // data contient { token, ... } venant du serveur
+        onLogin(data);
       }
-      navigate("/"); // redirection après succès
+      navigate("/");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -31,15 +32,14 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    // après
-<AuthLayout
-  fillRight={true}
-  rightContent={
-    <img src={marinaImg} alt="Nourrir un avenir radieux" className="showcase-image" />
-  }
->
+    <AuthLayout
+      fillRight={true}
+      rightContent={
+        <img src={marinaImg} alt="Nourrir un avenir radieux" className="showcase-image" />
+      }
+    >
       <div className="login-form-wrap">
-	<div className="login-logo">
+        <div className="login-logo">
           <img src={aaprovidirLogo} alt="Aaprovidir" className="logo-img" />
         </div>
         <div className="login-header">
@@ -122,7 +122,7 @@ function LoginPage({ onLogin }) {
 
         <p className="login-footer">
           Pas encore de compte ?{" "}
-          <a href="/signup" className="link">S'inscrire</a>
+          <Link to="/register" className="link">S'inscrire</Link>
         </p>
       </div>
     </AuthLayout>

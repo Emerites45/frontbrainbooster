@@ -24,14 +24,14 @@ ensureDbExists();
 function readDb() { return JSON.parse(fs.readFileSync(dbPath, 'utf-8')); }
 function writeDb(data) { fs.writeFileSync(dbPath, JSON.stringify(data, null, 2)); }
 
-app.post('/auth/signup', (req, res) => {
-  res.status(403).json({
-    message: "Inscription publique désactivée. Contactez un administrateur pour obtenir un accès.",
-  });
+// --- AUTH (prefixed to match the frontend's /api/v1/auth/* calls) ---
+
+app.post('/api/v1/auth/signup', (req, res) => {
+  res.status(403).send("Inscription publique désactivée. Contactez un administrateur pour obtenir un accès.");
 });
 
-app.post('/auth/login', (req, res) => {
-  const { email } = req.body;
+app.post('/api/v1/auth/login', (req, res) => {
+  const { email, password } = req.body;
   const db = readDb();
 
   const user = (db.users || []).find(
@@ -41,6 +41,15 @@ app.post('/auth/login', (req, res) => {
   if (!user) {
     return res.status(401).json({ message: 'Identifiants invalides' });
   }
+
+  // NOTE: this mock has no real password check yet — db.seed.json doesn't
+  // store a password field. Any password will currently succeed for a known
+  // email. If you want the mock to actually validate a password, add a
+  // "password" field per user in db.seed.json and uncomment the check below.
+  //
+  // if (password !== user.password) {
+  //   return res.status(401).json({ message: 'Identifiants invalides' });
+  // }
 
   res.json({
     token: 'fake-mock-token-' + Date.now() + '-' + user.id,
@@ -56,7 +65,40 @@ app.post('/auth/login', (req, res) => {
   });
 });
 
-app.post('/auth/change-password', (req, res) => {
+app.post('/api/v1/auth/forgot-password', (req, res) => {
+  const { email } = req.query;
+  const db = readDb();
+  const user = (db.users || []).find(
+    (u) => u.email.toLowerCase() === String(email || '').toLowerCase()
+  );
+
+  if (!user) {
+    return res.status(404).send("Aucun compte associé à cet email.");
+  }
+
+  // Mock: doesn't send a real email, just simulates success.
+  console.log(`[mock] Code de vérification envoyé (simulé) à ${email}`);
+  res.send("Un code de vérification a été envoyé à votre adresse email.");
+});
+
+app.post('/api/v1/auth/reset-password', (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  const db = readDb();
+  const user = (db.users || []).find(
+    (u) => u.email.toLowerCase() === String(email || '').toLowerCase()
+  );
+
+  if (!user) {
+    return res.status(404).send("Aucun compte associé à cet email.");
+  }
+
+  // Mock: doesn't validate the OTP for real, just simulates success.
+  user.mustChangePassword = false;
+  writeDb(db);
+  res.send("Mot de passe réinitialisé avec succès.");
+});
+
+app.post('/api/v1/auth/change-password', (req, res) => {
   const { userId } = req.body;
   const db = readDb();
   const user = db.users.find((u) => u.id === Number(userId));
@@ -111,6 +153,23 @@ app.post('/projects', (req, res) => {
   res.status(201).json(newProject);
 });
 
+app.patch('/projects/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.projects = db.projects.map((p) => (p.id === id ? { ...p, ...req.body } : p));
+  writeDb(db);
+  res.json(db.projects.find((p) => p.id === id));
+});
+
+app.delete('/projects/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.projects = db.projects.filter((p) => p.id !== id);
+  writeDb(db);
+  res.status(204).end();
+});
+
+
 app.get('/tasks', (req, res) => {
   res.json(readDb().tasks);
 });
@@ -154,6 +213,143 @@ app.post('/actions', (req, res) => {
   db.actions.push(newAction);
   writeDb(db);
   res.status(201).json(newAction);
+});
+
+app.patch('/users/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.users = db.users.map((u) => (u.id === id ? { ...u, ...req.body } : u));
+  writeDb(db);
+  res.json(db.users.find((u) => u.id === id));
+});
+
+app.get('/attachments', (req, res) => {
+  const db = readDb();
+  const { taskId, projectId } = req.query;
+  let attachments = db.attachments || [];
+  if (taskId) {
+    attachments = attachments.filter((a) => a.taskId === Number(taskId));
+  } else if (projectId) {
+    const taskIds = (db.tasks || []).filter((t) => t.projectId === Number(projectId)).map((t) => t.id);
+    attachments = attachments.filter((a) => taskIds.includes(a.taskId));
+  }
+  res.json(attachments);
+});
+
+app.post('/attachments', (req, res) => {
+  const db = readDb();
+  const newAttachment = { id: Date.now(), ...req.body, createdAt: new Date().toISOString() };
+  db.attachments = db.attachments || [];
+  db.attachments.push(newAttachment);
+  writeDb(db);
+  res.status(201).json(newAttachment);
+});
+
+app.delete('/attachments/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.attachments = (db.attachments || []).filter((a) => a.id !== id);
+  writeDb(db);
+  res.status(204).end();
+});
+
+
+app.get('/comments', (req, res) => {
+  const db = readDb();
+  const { taskId } = req.query;
+  let comments = db.comments || [];
+  if (taskId) comments = comments.filter((c) => c.taskId === Number(taskId));
+  res.json(comments);
+});
+
+app.post('/comments', (req, res) => {
+  const db = readDb();
+  const newComment = { id: Date.now(), ...req.body, createdAt: new Date().toISOString() };
+  db.comments = db.comments || [];
+  db.comments.push(newComment);
+  writeDb(db);
+  res.status(201).json(newComment);
+});
+
+app.delete('/comments/:id', (req, res) => {
+  const db = readDb();
+  const id = Number(req.params.id);
+  db.comments = (db.comments || []).filter((c) => c.id !== id);
+  writeDb(db);
+  res.status(204).end();
+});
+
+app.get('/timesheet-entries', (req, res) => {
+  const db = readDb();
+  const { userId, weekStart } = req.query;
+  let entries = db.timesheetEntries || [];
+  if (userId) entries = entries.filter((e) => e.userId === Number(userId));
+  if (weekStart) {
+    const start = new Date(weekStart);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    entries = entries.filter((e) => { const d = new Date(e.date); return d >= start && d < end; });
+  }
+  res.json(entries);
+});
+
+// POST fait un upsert : une entrée par (userId, date), pas de doublon possible.
+app.post('/timesheet-entries', (req, res) => {
+  const db = readDb();
+  db.timesheetEntries = db.timesheetEntries || [];
+  const { userId, date } = req.body;
+  const idx = db.timesheetEntries.findIndex((e) => e.userId === userId && e.date === date);
+  if (idx >= 0) {
+    db.timesheetEntries[idx] = { ...db.timesheetEntries[idx], ...req.body };
+    writeDb(db);
+    return res.json(db.timesheetEntries[idx]);
+  }
+  const newEntry = { id: Date.now(), ...req.body };
+  db.timesheetEntries.push(newEntry);
+  writeDb(db);
+  res.status(201).json(newEntry);
+});
+
+app.get('/weekly-reports', (req, res) => {
+  const db = readDb();
+  const { userId, weekStart } = req.query;
+  const report = (db.weeklyReports || []).find((r) => r.userId === Number(userId) && r.weekStart === weekStart);
+  res.json(report || null);
+});
+
+// Même logique d'upsert : un seul rapport par (userId, weekStart).
+app.post('/weekly-reports', (req, res) => {
+  const db = readDb();
+  db.weeklyReports = db.weeklyReports || [];
+  const { userId, weekStart } = req.body;
+  const idx = db.weeklyReports.findIndex((r) => r.userId === userId && r.weekStart === weekStart);
+  if (idx >= 0) {
+    db.weeklyReports[idx] = { ...db.weeklyReports[idx], ...req.body };
+    writeDb(db);
+    return res.json(db.weeklyReports[idx]);
+  }
+  const newReport = { id: Date.now(), ...req.body };
+  db.weeklyReports.push(newReport);
+  writeDb(db);
+  res.status(201).json(newReport);
+});
+
+app.get('/performance-comments', (req, res) => {
+  const db = readDb();
+  const { userId, weekStart } = req.query;
+  let comments = db.performanceComments || [];
+  if (userId) comments = comments.filter((c) => c.targetUserId === Number(userId));
+  if (weekStart) comments = comments.filter((c) => c.weekStart === weekStart);
+  res.json(comments);
+});
+
+app.post('/performance-comments', (req, res) => {
+  const db = readDb();
+  const newComment = { id: Date.now(), ...req.body, createdAt: new Date().toISOString() };
+  db.performanceComments = db.performanceComments || [];
+  db.performanceComments.push(newComment);
+  writeDb(db);
+  res.status(201).json(newComment);
 });
 
 const PORT = 3001;

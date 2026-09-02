@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import wallyLogo from "../assets/wally-logo.png";
 import marinaImg from "../assets/marina.png";
-import { loginUser } from "../api/api";
+import { loginUser } from "../api/auth.api";
 import "./login/LoginPage.css";
 
 function LoginPage({ onLogin }) {

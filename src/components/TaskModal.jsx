@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { X, Pencil, Trash2 } from "lucide-react";
 
 import SubtaskList from "./SubtaskList";
 import HistoryTimeline from "./HistoryTimeline";
+import AttachmentList from "./dashboard/AttachmentList";
+import CommentSection from "./dashboard/CommentSection";
 
 import {
   getAssigneeIds,
@@ -9,133 +12,49 @@ import {
   STATUS_LABEL,
 } from "../utils/dashboardHelpers";
 
-import "../pages/AdminDashboard.css";
-import "../pages/Board.css";
+const STATUS_STYLES = {
+  A_FAIRE: "bg-amber-50 text-amber-700",
+  EN_COURS: "bg-blue-50 text-blue-700",
+  TERMINE: "bg-green-50 text-green-700",
+};
 
 function TaskModal({
   task,
   allTasks = [],
   users = [],
-  currentUser,
   actions = [],
+  currentUser,
   onClose,
   onCreateSubtask,
   onEditTask,
   onDeleteTask,
+  onStatusChange,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-
-  const [title, setTitle] = useState(
-    task?.title ?? ""
+  const [title, setTitle] = useState(task.title ?? "");
+  const [description, setDescription] = useState(
+    task.description ?? ""
   );
 
-  const [description, setDescription] =
-    useState(task?.description ?? "");
+  // =========================================================
+  // DATA
+  // =========================================================
 
-  if (!task) {
-    return null;
-  }
+  const subtasks = allTasks.filter(
+    (t) => String(t.parentTaskId) === String(task.id)
+  );
 
-  /* =========================================================
-     RÔLES
-  ========================================================= */
+  const taskActions = actions.filter(
+    (a) => String(a.id_tache) === String(task.id)
+  );
 
-  const isAdmin =
-    currentUser?.globalRoles?.includes(
-      "ADMIN"
-    );
+  const assigneeIds = getAssigneeIds(task);
 
-  const isScrumMaster =
-    currentUser?.departmentRoles?.some(
-      (departmentRole) =>
-        departmentRole?.role ===
-        "SCRUM_MASTER"
-    );
-
-  const isSimpleMember =
-    !isAdmin && !isScrumMaster;
-
-  /* =========================================================
-     TÂCHE ASSIGNÉE AU MEMBER ?
-  ========================================================= */
-
-  const assigneeIds =
-    getAssigneeIds(task);
-
-  const isAssignedToCurrentUser =
-    assigneeIds.some(
-      (userId) =>
-        String(userId) ===
-        String(currentUser?.id)
-    );
-
-  /*
-   * Admin et Scrum Master gardent
-   * leurs droits actuels.
-   *
-   * Un MEMBER ne peut pas modifier
-   * ou supprimer la tâche principale.
-   */
-  const canEditMainTask =
-    isAdmin || isScrumMaster;
-
-  const canDeleteMainTask =
-    isAdmin || isScrumMaster;
-
-  /*
-   * Un simple MEMBER ne peut créer
-   * une sous-tâche que si la tâche
-   * principale lui est assignée.
-   *
-   * Admin / Scrum conservent leur
-   * fonctionnement existant.
-   */
-  const canCreateSubtask =
-    isAdmin ||
-    isScrumMaster ||
-    (isSimpleMember &&
-      isAssignedToCurrentUser);
-
-  /* =========================================================
-     SOUS-TÂCHES
-  ========================================================= */
-
-  const subtasks =
-    allTasks.filter(
-      (currentTask) =>
-        String(
-          currentTask.parentTaskId
-        ) === String(task.id)
-    );
-
-  /* =========================================================
-     HISTORIQUE
-  ========================================================= */
-
-  const taskActions =
-    actions.filter(
-      (action) =>
-        String(action.id_tache) ===
-        String(task.id)
-    );
-
-  /* =========================================================
-     MODIFICATION
-  ========================================================= */
+  // =========================================================
+  // HANDLERS
+  // =========================================================
 
   function handleSave() {
-    if (!canEditMainTask) {
-      console.error(
-        "Vous n'avez pas l'autorisation de modifier cette tâche."
-      );
-
-      return;
-    }
-
-    if (!onEditTask) {
-      return;
-    }
-
     onEditTask(task.id, {
       title,
       description,
@@ -144,313 +63,208 @@ function TaskModal({
     setIsEditing(false);
   }
 
-  /* =========================================================
-     SUPPRESSION
-  ========================================================= */
-
   function handleDelete() {
-    if (!canDeleteMainTask) {
-      console.error(
-        "Vous n'avez pas l'autorisation de supprimer cette tâche."
-      );
-
-      return;
-    }
-
-    if (!onDeleteTask) {
-      return;
-    }
-
-    const confirmed =
+    if (
       window.confirm(
         "Supprimer cette tâche et ses sous-tâches ?"
-      );
-
-    if (!confirmed) {
-      return;
+      )
+    ) {
+      onDeleteTask(task.id);
+      onClose();
     }
-
-    onDeleteTask(task.id);
-
-    onClose?.();
   }
 
-  /* =========================================================
-     CRÉATION SOUS-TÂCHE
-  ========================================================= */
-
-  function handleCreateSubtaskFromModal(
-    subtaskData
-  ) {
-    if (!canCreateSubtask) {
-      console.error(
-        "Vous ne pouvez pas créer de sous-tâche pour cette tâche."
-      );
-
-      return;
-    }
-
-    if (!onCreateSubtask) {
-      console.error(
-        "La fonction de création de sous-tâche n'est pas disponible."
-      );
-
-      return;
-    }
-
-    /*
-     * SubtaskList nous renvoie :
-     *
-     * {
-     *   title,
-     *   status,
-     *   assignments
-     * }
-     *
-     * Mais App.jsx attend :
-     *
-     * handleCreateSubtask(
-     *   parentTaskId,
-     *   title,
-     *   assignments
-     * )
-     *
-     * On fait donc l'adaptation ici.
-     */
-    onCreateSubtask(
-      task.id,
-      subtaskData.title,
-      subtaskData.assignments
-    );
-  }
-
-  /* =========================================================
-     FERMETURE MODAL
-  ========================================================= */
-
-  function handleOverlayClick() {
-    onClose?.();
-  }
-
-  function handleModalClick(event) {
-    event.stopPropagation();
-  }
-
-  /* =========================================================
-     AFFICHAGE
-  ========================================================= */
+  // =========================================================
+  // RENDER
+  // =========================================================
 
   return (
     <div
-      className="modal-overlay"
-      onClick={handleOverlayClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
     >
       <div
-        className="modal-content"
-        onClick={handleModalClick}
+        className="bg-white rounded-2xl w-full max-w-[560px] max-h-[85vh] overflow-y-auto shadow-xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* =========================
-            FERMETURE
-        ========================= */}
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
 
-        <button
-          type="button"
-          className="modal-close"
-          onClick={onClose}
-        >
-          Fermer
-        </button>
+        <div className="px-7 py-5 border-b border-slate-100">
+          {isEditing ? (
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 text-[15px] font-medium px-3.5 py-2.5 outline-none focus:border-blue-400"
+              />
 
-        {/* =========================
-            MODIFICATION ADMIN /
-            SCRUM MASTER
-        ========================= */}
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-slate-200 text-[13.5px] px-3.5 py-2.5 outline-none focus:border-blue-400 resize-none"
+              />
 
-        {isEditing &&
-        canEditMainTask ? (
-          <>
-            <input
-              value={title}
-              onChange={(event) =>
-                setTitle(
-                  event.target.value
-                )
-              }
-            />
-
-            <textarea
-              value={description}
-              onChange={(event) =>
-                setDescription(
-                  event.target.value
-                )
-              }
-            />
-
-            <div className="task-detail-actions">
-              <button
-                type="button"
-                className="btn-primary-sm"
-                onClick={handleSave}
-              >
-                Enregistrer
-              </button>
-
-              <button
-                type="button"
-                className="btn-status"
-                onClick={() =>
-                  setIsEditing(false)
-                }
-              >
-                Annuler
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* =========================
-                INFORMATIONS TÂCHE
-            ========================= */}
-
-            <h2>{task.title}</h2>
-
-            <span
-              className={`status-pill status-${task.status?.toLowerCase()}`}
-            >
-              {STATUS_LABEL[
-                task.status
-              ] ?? task.status}
-            </span>
-
-            <p>
-              {task.description ||
-                "Aucune description."}
-            </p>
-
-            <p className="task-detail-meta">
-              👤 Assigné(s) :{" "}
-              {getAssigneeNames(
-                assigneeIds,
-                users
-              )}
-            </p>
-
-            {/* =========================
-                ADMIN / SCRUM MASTER
-            ========================= */}
-
-            {canEditMainTask && (
-              <div className="task-detail-actions">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  className="btn-status"
-                  onClick={() =>
-                    setIsEditing(true)
-                  }
+                  onClick={handleSave}
+                  className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-medium px-4 py-2 transition-colors"
                 >
-                  Modifier
+                  Enregistrer
                 </button>
 
                 <button
                   type="button"
-                  className="btn-status"
-                  onClick={handleDelete}
+                  onClick={() => {
+                    setTitle(task.title ?? "");
+                    setDescription(task.description ?? "");
+                    setIsEditing(false);
+                  }}
+                  className="text-[13px] text-slate-500 hover:text-slate-700"
                 >
-                  Supprimer
+                  Annuler
                 </button>
               </div>
-            )}
+            </div>
+          ) : (
+            <>
+              {/* Title + actions */}
 
-            {/* =========================
-                MESSAGE MEMBER
-            ========================= */}
+              <div className="flex items-start justify-between gap-4">
+                <h2 className="text-[17px] font-semibold text-slate-900">
+                  {task.title}
+                </h2>
 
-            {isSimpleMember && (
-              <p className="task-member-info">
-                Cette tâche vous a été
-                assignée. Vous pouvez
-                modifier son statut depuis
-                la page « Mes tâches » et
-                créer des sous-tâches pour
-                organiser votre travail.
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                    aria-label="Modifier"
+                    title="Modifier"
+                  >
+                    <Pencil size={16} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="text-slate-400 hover:text-red-600 transition-colors"
+                    aria-label="Supprimer"
+                    title="Supprimer"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-slate-400 hover:text-slate-700 transition-colors"
+                    aria-label="Fermer"
+                    title="Fermer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Status */}
+
+              <div className="mt-3">
+                <span
+                  className={`inline-flex items-center rounded-full text-[11px] font-semibold px-2.5 py-1 ${
+                    STATUS_STYLES[task.status] ??
+                    "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {STATUS_LABEL[task.status] ?? task.status}
+                </span>
+              </div>
+
+              {/* Description */}
+
+              {task.description && (
+                <p className="mt-3 text-[13.5px] leading-6 text-slate-600 whitespace-pre-wrap">
+                  {task.description}
+                </p>
+              )}
+
+              {/* Assignees */}
+
+              <p className="mt-3 text-[13px] text-slate-500">
+                <span className="font-medium text-slate-700">
+                  Assigné(s) :
+                </span>{" "}
+                {getAssigneeNames(assigneeIds, users) || "—"}
               </p>
-            )}
-          </>
-        )}
+            </>
+          )}
+        </div>
 
-        {/* =============================
+        {/* =====================================================
             SOUS-TÂCHES
-        ============================= */}
+        ===================================================== */}
 
-        {canCreateSubtask ? (
+        <div className="px-7 py-5 border-b border-slate-50">
+          <h3 className="text-[13px] font-semibold text-slate-900 mb-3">
+            Sous-tâches
+          </h3>
+
           <SubtaskList
             subtasks={subtasks}
             users={users}
-            currentUser={
-              currentUser
+            onAddSubtask={(subtaskTitle, assignees) =>
+              onCreateSubtask(
+                task.id,
+                subtaskTitle,
+                assignees
+              )
             }
-            onCreateSubtask={
-              handleCreateSubtaskFromModal
-            }
+            onEditSubtask={onEditTask}
+            onDeleteSubtask={onDeleteTask}
+            onToggleStatus={onStatusChange}
           />
-        ) : (
-          <>
-            <h3>Sous-tâches</h3>
+        </div>
 
-            {subtasks.length === 0 ? (
-              <p>
-                Aucune sous-tâche.
-              </p>
-            ) : (
-              <div className="subtask-items">
-                {subtasks.map(
-                  (subtask) => (
-                    <div
-                      key={
-                        subtask.id
-                      }
-                      className="subtask-item"
-                    >
-                      <div>
-                        <strong>
-                          {
-                            subtask.title
-                          }
-                        </strong>
+        {/* =====================================================
+            COMMENTAIRES
+        ===================================================== */}
 
-                        <span>
-                          {STATUS_LABEL[
-                            subtask
-                              .status
-                          ] ??
-                            subtask.status}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </>
-        )}
+        <div className="px-7 py-5 border-b border-slate-50">
+          <h3 className="text-[13px] font-semibold text-slate-900 mb-3">
+            Commentaires
+          </h3>
 
-        {/* =============================
-            HISTORIQUE INTERNE
-        ============================= */}
+          <CommentSection taskId={task.id} currentUser={currentUser} />
+        </div>
 
-        {taskActions.length >
-          0 && (
-          <>
-            <h3>Historique</h3>
+        {/* =====================================================
+            FICHIERS / ATTACHMENTS
+        ===================================================== */}
 
-            <HistoryTimeline
-              actions={
-                taskActions
-              }
-            />
-          </>
-        )}
+        <div className="px-7 py-5 border-b border-slate-50">
+          <h3 className="text-[13px] font-semibold text-slate-900 mb-3">
+            Fichiers
+          </h3>
+
+          <AttachmentList taskId={task.id} />
+        </div>
+
+        {/* =====================================================
+            HISTORIQUE
+        ===================================================== */}
+
+        <div className="px-7 py-5">
+          <h3 className="text-[13px] font-semibold text-slate-900 mb-3">
+            Historique
+          </h3>
+
+          <HistoryTimeline actions={taskActions} />
+        </div>
       </div>
     </div>
   );
