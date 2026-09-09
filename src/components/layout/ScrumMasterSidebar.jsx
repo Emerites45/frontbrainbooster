@@ -1,4 +1,3 @@
-
 import Sidebar from "./Sidebar";
 
 import {
@@ -12,6 +11,9 @@ import {
   Clock,
   Settings as SettingsIcon,
   FileText,
+  GanttChartSquare,
+  Calendar as CalendarIcon,
+  Archive,
 } from "lucide-react";
 
 const SM_NAV_SECTIONS = [
@@ -22,6 +24,11 @@ const SM_NAV_SECTIONS = [
         label: "Tableau de bord",
         icon: LayoutGrid,
         path: "/scrum-master/dashboard",
+      },
+      {
+        label: "Calendrier",
+        icon: CalendarIcon,
+        path: "/scrum-master/calendar",
       },
       {
         label: "Mon suivi",
@@ -55,9 +62,9 @@ const SM_NAV_SECTIONS = [
         path: "/scrum-master/team",
       },
       {
-        label: "Évaluation équipe",
-        icon: BarChart3,
-        path: "/scrum-master/team-evaluation",
+        label: "Timeline",
+        icon: GanttChartSquare,
+        path: "/scrum-master/timeline",
       },
     ],
   },
@@ -69,6 +76,11 @@ const SM_NAV_SECTIONS = [
         label: "Journal d'activité",
         icon: ScrollText,
         path: "/scrum-master/activity",
+      },
+      {
+        label: "Évaluation équipe",
+        icon: BarChart3,
+        path: "/scrum-master/team-evaluation",
       },
       {
         label: "Rapport de stage",
@@ -93,6 +105,16 @@ const SM_NAV_SECTIONS = [
       },
     ],
   },
+
+  { 
+    label: "Archives",
+    items :[
+      {
+        icon: Archive,
+        path: "/scrum-master/archives"
+      },
+    ]
+  }
 ];
 
 function ScrumMasterSidebar({

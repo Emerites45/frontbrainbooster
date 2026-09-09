@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
-
-import {
-  Menu,
-  Search,
-} from "lucide-react";
+import { Menu, Search } from "lucide-react";
 
 import NotificationBell from "./NotificationBell";
 import GlobalSearchModal from "./GlobalSearchModal";
@@ -40,8 +36,7 @@ function AdminTopbar({
   projects = [],
   users = [],
 }) {
-  const [searchOpen, setSearchOpen] =
-    useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     function handleKey(e) {
@@ -54,29 +49,23 @@ function AdminTopbar({
       }
     }
 
-    document.addEventListener(
-      "keydown",
-      handleKey
-    );
+    document.addEventListener("keydown", handleKey);
 
     return () => {
-      document.removeEventListener(
-        "keydown",
-        handleKey
-      );
+      document.removeEventListener("keydown", handleKey);
     };
   }, []);
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-slate-100 bg-white sticky top-0 z-20">
+      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-4 md:px-8">
         {/* Partie gauche */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {/* Hamburger mobile */}
           <button
             type="button"
             onClick={onMenuClick}
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-50 shrink-0 transition-colors"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 hover:text-blue-600 md:hidden"
             aria-label="Ouvrir le menu"
           >
             <Menu size={20} />
@@ -85,22 +74,19 @@ function AdminTopbar({
           {/* Recherche */}
           <button
             type="button"
-            onClick={() =>
-              setSearchOpen(true)
-            }
-            className="hidden sm:flex items-center gap-2 rounded-xl px-3.5 py-2 w-[340px] bg-slate-50 border border-slate-100 text-left hover:border-slate-200 transition-colors"
+            onClick={() => setSearchOpen(true)}
+            className="hidden w-[340px] items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-2 text-left transition-colors hover:border-slate-200 sm:flex"
           >
             <Search
               size={16}
-              className="text-slate-400 shrink-0"
+              className="shrink-0 text-slate-400"
             />
 
-            <span className="text-[13px] text-slate-400 flex-1 truncate">
-              Rechercher projets, tâches,
-              utilisateurs...
+            <span className="flex-1 truncate text-[13px] text-slate-400">
+              Rechercher projets, tâches, utilisateurs...
             </span>
 
-            <kbd className="text-[10px] text-slate-400 border border-slate-200 rounded px-1.5 py-0.5 shrink-0">
+            <kbd className="shrink-0 rounded border border-slate-200 px-1.5 py-0.5 text-[10px] text-slate-400">
               ⌘K
             </kbd>
           </button>
@@ -108,55 +94,43 @@ function AdminTopbar({
 
         {/* Partie droite */}
         <div className="flex items-center gap-3 md:gap-5">
-          <NotificationBell
-            currentUser={currentUser}
-          />
+          <NotificationBell currentUser={currentUser} />
 
-          <div className="flex items-center gap-3 cursor-pointer pl-3 border-l border-slate-100">
+          <div className="flex cursor-pointer items-center gap-3 border-l border-slate-100 pl-3">
             {/* Informations utilisateur */}
-            <div className="text-right hidden sm:block">
-              <div className="text-[13.5px] font-bold text-slate-800 leading-none">
+            <div className="hidden text-right sm:block">
+              <div className="text-[13.5px] font-bold leading-none text-slate-800">
                 {currentUser
                   ? `${currentUser.firstName} ${currentUser.lastName}`
                   : "—"}
               </div>
 
-              <div className="text-[10px] text-lime-600 font-semibold mt-0.5">
-                {primaryRoleLabel(
-                  currentUser
-                )}
+              <div className="mt-0.5 text-[10px] font-semibold text-lime-600">
+                {primaryRoleLabel(currentUser)}
               </div>
             </div>
 
             {/* Avatar */}
             <Avatar
               userId={currentUser?.id}
-              firstName={
-                currentUser?.firstName
-              }
-              lastName={
-                currentUser?.lastName
-              }
-              photoUrl={
-                currentUser?.avatarUrl
-              }
+              firstName={currentUser?.firstName}
+              lastName={currentUser?.lastName}
+              photoUrl={currentUser?.avatarUrl}
               size="md"
             />
           </div>
         </div>
-
-        {/* Recherche globale */}
-        <GlobalSearchModal
-          open={searchOpen}
-          onClose={() =>
-            setSearchOpen(false)
-          }
-          tasks={tasks}
-          projects={projects}
-          users={users}
-          currentUser={currentUser}
-        />
       </div>
+
+      {/* Recherche globale */}
+      <GlobalSearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        tasks={tasks}
+        projects={projects}
+        users={users}
+        currentUser={currentUser}
+      />
     </>
   );
 }

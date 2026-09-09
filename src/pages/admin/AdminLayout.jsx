@@ -11,31 +11,45 @@ function AdminLayout({
   projects,
   users,
 }) {
-  const [mobileOpen, setMobileOpen] =
-    useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen">
+      {/* =========================
+          SIDEBAR
+          ========================= */}
       <AdminSidebar
         onLogout={onLogout}
         mobileOpen={mobileOpen}
-        onMobileClose={() =>
-          setMobileOpen(false)
-        }
+        onMobileClose={() => setMobileOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* =========================
+          MAIN APPLICATION AREA
+          ========================= */}
+      <div className="flex flex-1 flex-col min-w-0">
+        {/* =========================
+            TOPBAR
+            ========================= */}
         <AdminTopbar
           currentUser={currentUser}
-          onMenuClick={() =>
-            setMobileOpen(true)
-          }
+          onMenuClick={() => setMobileOpen(true)}
           tasks={tasks}
           projects={projects}
           users={users}
         />
 
-        <main className="flex-1 overflow-auto bg-white">
+        {/* =========================
+            PAGE CONTENT
+
+            IMPORTANT:
+            No bg-white here.
+
+            This allows the global
+            blue → cream gradient
+            from body to remain visible.
+            ========================= */}
+        <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
       </div>

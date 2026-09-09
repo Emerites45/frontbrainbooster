@@ -6,6 +6,7 @@ import {
 } from "../../utils/dashboardHelpers";
 import Pagination from "./Pagination";
 import Avatar from "../ui/Avatar";
+import { isProjectFullyDone } from "../../utils/dashboardHelpers"; // ajoute à ton import existant
 
 const STATUS_STYLES = {
   A_FAIRE: "bg-amber-50 text-amber-700",
@@ -58,6 +59,7 @@ function ProjectsTable({
 
               <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                 Statut
+                
               </th>
 
               <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">

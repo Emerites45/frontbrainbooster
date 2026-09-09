@@ -4,6 +4,8 @@ import { Camera, X } from "lucide-react";
 import Avatar from "../components/ui/Avatar";
 import { showToast } from "../utils/toast";
 
+import BackendStatusBadge from "../components/ui/BackendStatusBadge";
+
 function ParametresPage({ currentUser, onUpdateProfile }) {
   const [firstName, setFirstName] = useState(
     currentUser?.firstName ?? ""
@@ -201,6 +203,11 @@ function ParametresPage({ currentUser, onUpdateProfile }) {
               {roleLabel}
             </p>
           </div>
+        </div>
+
+        <div className="surface-card rounded-xl p-5">
+          <h2 className="text-[13.5px] font-semibold text-slate-800 mb-3">Connexion serveur</h2>
+          <BackendStatusBadge />
         </div>
 
         {/* Enregistrement */}

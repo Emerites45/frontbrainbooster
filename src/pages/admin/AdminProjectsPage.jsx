@@ -6,7 +6,7 @@ import StatsGrid from "../../components/dashboard/StatsGrid";
 import ProjectsTable from "../../components/dashboard/ProjectsTable";
 import CreateProjectModal from "../../components/dashboard/CreateProjectModal";
 import { projectProgress } from "../../utils/dashboardHelpers";
-
+import ProjectDetailModal from "../../components/dashboard/ProjectDetailModal";
 
 function AdminProjectsPage({ projects: allProjects = [], tasks = [], onCreateProject }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,6 +16,7 @@ function AdminProjectsPage({ projects: allProjects = [], tasks = [], onCreatePro
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [selectedProject, setSelectedProject] = useState(null);
 
   // Vue active : les projets archivés n'apparaissent plus ici.
   const projects = allProjects.filter((p) => !p.archived);
@@ -121,8 +122,10 @@ function AdminProjectsPage({ projects: allProjects = [], tasks = [], onCreatePro
         departments={departments}
         showDepartment
         showTeam
+        onProjectClick={setSelectedProject}
       />
 
+      
       {showCreateModal && (
         <CreateProjectModal
           departments={departments}
@@ -130,6 +133,17 @@ function AdminProjectsPage({ projects: allProjects = [], tasks = [], onCreatePro
           onCreate={onCreateProject}
         />
       )}
+
+      {selectedProject && (
+  <ProjectDetailModal
+    project={selectedProject}
+    tasks={tasks}
+    users={users}
+    departments={departments}
+    onClose={() => setSelectedProject(null)}
+  />
+)}
+
     </div>
   );
 }

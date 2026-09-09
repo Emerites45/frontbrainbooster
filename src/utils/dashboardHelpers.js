@@ -239,4 +239,8 @@ export function describeAction(action, users = [], tasks = []) {
     default:
       return action.description || `${userName} a effectué une action`;
   }
+}export function isProjectFullyDone(project, tasks) {
+  const projectTasks = tasks.filter((t) => t.projectId === project.id && !t.parentTaskId && !t.archived);
+  if (projectTasks.length === 0) return false;
+  return projectTasks.every((t) => t.status === "TERMINE");
 }

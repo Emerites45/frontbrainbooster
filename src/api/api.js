@@ -23,14 +23,16 @@ export async function registerUser(userData) {
   }
   return response.text();
 }
-
 export async function loginUser(email, password) {
   const response = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  if (!response.ok) throw new Error("Identifiants invalides");
+  if (!response.ok) {
+    const message = await response.text().catch(() => null);
+    throw new Error(message || "Identifiants invalides");
+  }
   return response.json();
 }
 

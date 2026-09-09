@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+
 import {
   HelpCircle,
   LogOut,
@@ -19,21 +20,19 @@ const ACCENTS = {
     iconBg: "bg-[var(--color-blue-pale)]",
     iconText: "text-[var(--color-blue)]",
   },
-
   green: {
-    activeBg: "bg-green-50",
-    activeText: "text-green-700",
-    cta: "bg-green-600 hover:bg-green-700",
-    iconBg: "bg-green-50",
-    iconText: "text-green-600",
+    activeBg: "bg-[var(--color-green-pale)]",
+    activeText: "text-[var(--color-green)]",
+    cta: "bg-[var(--color-green)] hover:opacity-90",
+    iconBg: "bg-[var(--color-green-pale)]",
+    iconText: "text-[var(--color-green)]",
   },
-
   yellow: {
-    activeBg: "bg-yellow-50",
-    activeText: "text-yellow-800",
-    cta: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
-    iconBg: "bg-yellow-50",
-    iconText: "text-yellow-600",
+    activeBg: "bg-[var(--color-yellow-pale)]",
+    activeText: "text-[var(--color-blue-deep)]",
+    cta: "bg-[var(--color-yellow)] hover:opacity-90 text-[var(--color-blue-deep)]",
+    iconBg: "bg-[var(--color-yellow-pale)]",
+    iconText: "text-[var(--color-blue-deep)]",
   },
 };
 
@@ -56,6 +55,7 @@ function Sidebar({
       {/* ================================
           MOBILE BACKDROP
       ================================= */}
+
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-30 md:hidden"
@@ -63,17 +63,27 @@ function Sidebar({
         />
       )}
 
+      {/* ================================
+          SIDEBAR
+      ================================= */}
+
       <aside
         className={`fixed md:sticky top-0 left-0 flex flex-col shrink-0 h-screen z-40 bg-white border-r border-slate-100 transition-all duration-200 w-[264px] ${
           collapsed ? "md:w-[76px]" : "md:w-[264px]"
-        } ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+        } ${
+          mobileOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
+        }`}
       >
         {/* ================================
             HEADER / LOGO
         ================================= */}
+
         <div className="flex items-center justify-between px-5 pt-5 pb-9">
           <div className="flex items-center gap-3 min-w-0">
             {/* Aaprovidir logo */}
+
             <div className="flex items-center justify-center shrink-0">
               <img
                 src={aaprovidirMark}
@@ -83,6 +93,7 @@ function Sidebar({
             </div>
 
             {/* Brand information */}
+
             {!collapsed && (
               <div className="min-w-0 leading-tight">
                 <div className="text-[15px] font-semibold text-slate-900 truncate">
@@ -97,6 +108,7 @@ function Sidebar({
           </div>
 
           {/* Mobile close button */}
+
           <button
             type="button"
             onClick={onMobileClose}
@@ -106,7 +118,8 @@ function Sidebar({
             <X size={18} />
           </button>
 
-          {/* Collapse button (desktop only) */}
+          {/* Desktop collapse button */}
+
           {!collapsed && (
             <button
               type="button"
@@ -122,6 +135,7 @@ function Sidebar({
         {/* ================================
             EXPAND BUTTON
         ================================= */}
+
         {collapsed && (
           <button
             type="button"
@@ -136,6 +150,7 @@ function Sidebar({
         {/* ================================
             NAVIGATION
         ================================= */}
+
         <nav
           className="flex-1 px-3 space-y-6 overflow-y-auto"
           onClick={onMobileClose}
@@ -143,6 +158,7 @@ function Sidebar({
           {navSections.map((section) => (
             <div key={section.label}>
               {/* Section title */}
+
               {!collapsed && (
                 <div className="px-3 mb-2 text-[12px] text-slate-400">
                   {section.label}
@@ -150,27 +166,36 @@ function Sidebar({
               )}
 
               {/* Section links */}
-              <div className="space-y-0.5">
-                {section.items?.map(({ label, icon: Icon, path }) => (
-                  <NavLink
-                    key={path}
-                    to={path}
-                    title={collapsed ? label : undefined}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-[11px] rounded-lg text-[14px] transition-colors ${
-                        isActive
-                          ? `${theme.activeBg} ${theme.activeText} font-medium`
-                          : "text-slate-600 hover:bg-slate-50 font-normal"
-                      } ${collapsed ? "md:justify-center md:px-0" : ""}`
-                    }
-                  >
-                    <Icon size={18} strokeWidth={1.8} />
 
-                    <span className={collapsed ? "md:hidden" : ""}>
-                      {label}
-                    </span>
-                  </NavLink>
-                ))}
+              <div className="space-y-0.5">
+                {section.items?.map(
+                  ({ label, icon: Icon, path }) => (
+                    <NavLink
+                      key={path}
+                      to={path}
+                      title={collapsed ? label : undefined}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-[11px] rounded-lg text-[14px] transition-colors ${
+                          isActive
+                            ? `${theme.activeBg} ${theme.activeText} font-medium`
+                            : "text-slate-600 hover:bg-slate-50 font-normal"
+                        } ${
+                          collapsed
+                            ? "md:justify-center md:px-0"
+                            : ""
+                        }`
+                      }
+                    >
+                      <Icon size={18} strokeWidth={1.8} />
+
+                      <span
+                        className={collapsed ? "md:hidden" : ""}
+                      >
+                        {label}
+                      </span>
+                    </NavLink>
+                  )
+                )}
               </div>
             </div>
           ))}
@@ -179,6 +204,7 @@ function Sidebar({
         {/* ================================
             CTA BUTTON
         ================================= */}
+
         {ctaLabel && ctaPath && (
           <div className="px-3 pb-3">
             <NavLink
@@ -188,7 +214,9 @@ function Sidebar({
             >
               <Plus size={18} strokeWidth={2} />
 
-              <span className={collapsed ? "md:hidden" : ""}>{ctaLabel}</span>
+              <span className={collapsed ? "md:hidden" : ""}>
+                {ctaLabel}
+              </span>
             </NavLink>
           </div>
         )}
@@ -196,12 +224,14 @@ function Sidebar({
         {/* ================================
             BOTTOM ACTIONS
         ================================= */}
+
         <div
           className={`px-6 pt-4 pb-2 border-t border-slate-100 flex flex-col gap-4 ${
             collapsed ? "md:items-center md:px-0" : ""
           }`}
         >
           {/* Help */}
+
           <NavLink
             to="/help"
             title={collapsed ? "Centre d'aide" : undefined}
@@ -215,6 +245,7 @@ function Sidebar({
           </NavLink>
 
           {/* Logout */}
+
           <button
             type="button"
             onClick={onLogout}
@@ -223,7 +254,9 @@ function Sidebar({
           >
             <LogOut size={16} />
 
-            <span className={collapsed ? "md:hidden" : ""}>Déconnexion</span>
+            <span className={collapsed ? "md:hidden" : ""}>
+              Déconnexion
+            </span>
           </button>
         </div>
       </aside>

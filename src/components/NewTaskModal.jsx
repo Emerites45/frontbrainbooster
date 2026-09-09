@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import AssigneePicker from "../components/dashboard/AssigneePicker";
+import { TASK_TYPES } from "../utils/taskTypes"; // ajoute cet import
 
 function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUser }) {
   const [title, setTitle] = useState("");
@@ -9,7 +10,7 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("MOYENNE");
-  const [type, setType] = useState("TACHE");
+  const [type, setType] = useState("TASK");
 
   const isAdmin = currentUser?.globalRoles?.includes("ADMIN");
   const myScrumMasterDept = (currentUser?.departmentRoles || []).find(
@@ -92,14 +93,11 @@ function NewTaskModal({ onClose, onCreate, users = [], projects = [], currentUse
               <label className="text-[11.5px] text-slate-400 mb-1 block">
                 Type de tâche
               </label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 text-[13.5px] px-3.5 py-2.5 outline-none focus:border-blue-400"
-              >
-                <option value="TACHE">Tâche</option>
-                <option value="BUG">Bug</option>
-                <option value="STORY">User Story</option>
+              <select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-lg border border-slate-200 text-[13.5px] px-3.5 py-2.5 outline-none focus:border-blue-400">
+                {Object.entries(TASK_TYPES).map(([key, cfg]) => (
+                  <option key={key} value={key}>{cfg.label}</option>
+                  ))
+                }
               </select>
             </div>
 

@@ -6,14 +6,14 @@ import {
   FolderKanban,
   Building2,
   CheckSquare,
-  ListTodo,
   ScrollText,
   BarChart3,
   Settings as SettingsIcon,
-  Calendar as CalendarIcon,
   Clock,
-  FileText,
   Archive,
+  Layers,
+  GanttChartSquare,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 
 const ADMIN_NAV_SECTIONS = [
@@ -52,19 +52,9 @@ const ADMIN_NAV_SECTIONS = [
         path: "/admin/projects",
       },
       {
-        label: "Backlog & Sprints",
-        icon: ListTodo,
-        path: "/admin/backlog",
-      },
-      {
         label: "Équipes",
         icon: Building2,
         path: "/admin/teams",
-      },
-      {
-        label: "Évaluation équipe",
-        icon: BarChart3,
-        path: "/admin/team-evaluation",
       },
       {
         label: "Tâches",
@@ -72,9 +62,14 @@ const ADMIN_NAV_SECTIONS = [
         path: "/admin/tasks",
       },
       {
-        label: "Archives",
-        icon: Archive,
-        path: "/admin/archives",
+        label: "Backlog",
+        icon: Layers,
+        path: "/admin/backlog",
+      },
+      {
+        label: "Timeline",
+        icon: GanttChartSquare,
+        path: "/admin/timeline",
       },
     ],
   },
@@ -93,14 +88,19 @@ const ADMIN_NAV_SECTIONS = [
         path: "/admin/reports",
       },
       {
-        label: "Rapport de stage",
-        icon: FileText,
-        path: "/admin/intern-report",
+        label: "Évaluation équipe",
+        icon: BarChart3,
+        path: "/admin/team-evaluation",
       },
       {
         label: "Analytics",
         icon: BarChart3,
         path: "/analytics/user-performance",
+      },
+      {
+        label: "Archives",
+        icon: Archive,
+        path: "/admin/archives",
       },
     ],
   },

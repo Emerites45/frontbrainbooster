@@ -94,7 +94,13 @@ function CalendarPage({ tasks = [], projects = [] }) {
                 >
                   {d}
                   {dayTasks.length > 0 && (
-                    <span className={`w-1 h-1 rounded-full mt-1 ${selected ? "bg-white" : "bg-blue-500"}`} />
+                    <div className="flex items-center gap-0.5 mt-1">
+                      {dayTasks.some((t) => t.type === "MILESTONE") ? (
+                        <span className="w-1.5 h-1.5 rotate-45 bg-amber-500" />
+                      ) : (
+                        <span className={`w-1 h-1 rounded-full ${selected ? "bg-white" : "bg-blue-500"}`} />
+                      )}
+                    </div>
                   )}
                 </button>
               );
@@ -112,8 +118,21 @@ function CalendarPage({ tasks = [], projects = [] }) {
           )}
           <div className="space-y-2">
             {selectedTasks.map((t) => (
-              <div key={t.id} className="rounded-lg p-3 bg-blue-50/60 border border-blue-100">
-                <p className="text-[12.5px] font-medium text-blue-900">{t.title}</p>
+              <div
+                key={t.id}
+                className={`rounded-lg p-3 border ${
+                  t.type === "MILESTONE"
+                    ? "bg-amber-50 border-amber-200"
+                    : "bg-blue-50/60 border-blue-100"
+                }`}
+              >
+                <p
+                  className={`text-[12.5px] font-medium ${
+                    t.type === "MILESTONE" ? "text-amber-900" : "text-blue-900"
+                  }`}
+                >
+                  {t.type === "MILESTONE" && "◆ "}{t.title}
+                </p>
                 <p className="text-[11px] text-slate-500 mt-0.5">{projectName(t.projectId)}</p>
               </div>
             ))}

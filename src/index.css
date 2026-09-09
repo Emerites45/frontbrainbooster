@@ -56,18 +56,43 @@
 :root {
   --navy: #0B438C;
   --navy-dark: #0D2C54;
+
   --cream: #F8F7F4;
+
   --text: #424242;
-  --text-light: #6b6b6b;
+  --text-light: #6B6B6B;
 
   --radius-card: 0.875rem;
 
-  --gradient-brand: linear-gradient(135deg, #0D2C54 0%, #0B438C 55%, #2A9D8F 100%);
-  --gradient-brand-soft: linear-gradient(135deg, #D0DCF0 0%, #C8F0EC 100%);
+  /* Brand gradients */
+  --gradient-brand:
+    linear-gradient(
+      135deg,
+      #0D2C54 0%,
+      #0B438C 55%,
+      #2A9D8F 100%
+    );
+
+  --gradient-brand-soft:
+    linear-gradient(
+      135deg,
+      #D0DCF0 0%,
+      #C8F0EC 100%
+    );
+
+  /* =======================================================
+     PAGE BACKGROUND
+     Bleu clair → gris très clair → crème
+     OPAQUE : pas de rgba ici
+     ======================================================= */
 
   --gradient-page:
-    radial-gradient(circle at 0% 0%, rgba(11, 67, 140, 0.035), transparent 45%),
-    radial-gradient(circle at 100% 100%, rgba(48, 160, 54, 0.03), transparent 45%);
+    linear-gradient(
+      135deg,
+      #bce1ff 0%,
+      #e9f0f6 45%,
+      #fafbf3 100%
+    );
 }
 
 /* =========================================================
@@ -75,24 +100,65 @@
    ========================================================= */
 
 @layer base {
+  html {
+    min-height: 100%;
+  }
+
   body {
     margin: 0;
+
+    min-height: 100vh;
+
     font-family: var(--font-sans);
     font-size: var(--text-body);
     font-weight: var(--font-weight-body);
+
     color: var(--color-text);
-    background: var(--gradient-page), var(--color-cream);
+
+    /*
+      IMPORTANT:
+      Le gradient est maintenant le vrai background
+      de la page, pas un gradient transparent posé
+      au-dessus du crème.
+    */
+    background: var(--gradient-page);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  #root {
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
     color: var(--color-blue-deep);
     margin: 0;
   }
 
-  h1 { font-size: var(--text-display); font-weight: var(--font-weight-display); }
-  h2 { font-size: var(--text-heading); font-weight: var(--font-weight-heading); }
-  h3, h4, h5, h6 { font-size: var(--text-subheading); font-weight: var(--font-weight-heading); }
+  h1 {
+    font-size: var(--text-display);
+    font-weight: var(--font-weight-display);
+  }
+
+  h2 {
+    font-size: var(--text-heading);
+    font-weight: var(--font-weight-heading);
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: var(--text-subheading);
+    font-weight: var(--font-weight-heading);
+  }
 }
 
 /* =========================================================
@@ -102,22 +168,38 @@
 @layer components {
   .surface-card {
     background-color: var(--color-card);
+
     border-radius: var(--radius-card);
+
     border: 1px solid var(--color-border);
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03);
+
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 1px 1px rgb(15 23 42 / 0.03);
   }
 
   .surface-card-interactive {
     background-color: var(--color-card);
+
     border-radius: var(--radius-card);
+
     border: 1px solid var(--color-border);
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 1px 1px rgb(15 23 42 / 0.03);
+
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+
     cursor: pointer;
   }
 
   .surface-card-interactive:hover {
-    box-shadow: 0 4px 14px rgb(15 23 42 / 0.06);
+    box-shadow:
+      0 4px 14px rgb(15 23 42 / 0.06);
+
     border-color: rgb(203 213 225 / 0.9);
   }
 
@@ -137,7 +219,62 @@
     color: var(--color-blue-deep);
   }
 
+  /*
+    IMPORTANT:
+    dashboard-shell ne doit PAS remettre un fond crème
+    opaque par-dessus le gradient global.
+  */
   .dashboard-shell {
-    background: var(--color-cream);
+    background: transparent;
   }
+}
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+
+@keyframes confetti-pop {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) rotate(180deg) translateY(-40px);
+    opacity: 0;
+  }
+}
+
+@keyframes check-bounce {
+  0% {
+    transform: scale(0.6);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-check-bounce {
+  animation: check-bounce 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slide-in-right 0.2s ease-out;
 }

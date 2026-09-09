@@ -1,10 +1,14 @@
+
 import { useState } from "react";
-import { X, Pencil, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+import { X, Pencil, Trash2, Lock } from "lucide-react";
 
 import SubtaskList from "./SubtaskList";
 import HistoryTimeline from "./HistoryTimeline";
 import AttachmentList from "./dashboard/AttachmentList";
 import CommentSection from "./dashboard/CommentSection";
+import TaskDependencyPicker from "./dashboard/TaskDependencyPicker";
 
 import {
   getAssigneeIds,
@@ -30,7 +34,10 @@ function TaskModal({
   onDeleteTask,
   onStatusChange,
 }) {
+  const navigate = useNavigate();
+
   const [isEditing, setIsEditing] = useState(false);
+
   const [title, setTitle] = useState(task.title ?? "");
   const [description, setDescription] = useState(
     task.description ?? ""
@@ -49,6 +56,24 @@ function TaskModal({
   );
 
   const assigneeIds = getAssigneeIds(task);
+
+  // =========================================================
+  // DEPENDENCIES
+  // =========================================================
+
+  const blockedByIds = task.blockedByTaskIds || [];
+
+  const blockingTasks = allTasks.filter((t) =>
+    blockedByIds.includes(t.id)
+  );
+
+  const blocksIds = allTasks.filter((t) =>
+    (t.blockedByTaskIds || []).includes(task.id)
+  );
+
+  const isBlocked = blockingTasks.some(
+    (t) => t.status !== "TERMINE"
+  );
 
   // =========================================================
   // HANDLERS
@@ -75,7 +100,10 @@ function TaskModal({
   }
 
   function handleArchive() {
-    onEditTask(task.id, { archived: true });
+    onEditTask(task.id, {
+      archived: true,
+    });
+
     onClose();
   }
 
@@ -206,6 +234,21 @@ function TaskModal({
                 )}
               </div>
 
+              {/* Page complète */}
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate(
+                    `/projects/${task.projectId}/tasks/${task.id}`
+                  );
+                }}
+                className="text-[11.5px] font-medium text-blue-600 hover:text-blue-700 mb-2"
+              >
+                Ouvrir en page complète →
+              </button>
+
               {/* Description */}
 
               {task.description && (
@@ -225,6 +268,26 @@ function TaskModal({
             </>
           )}
         </div>
+
+        {/* =====================================================
+            BLOCKED ALERT
+        ===================================================== */}
+
+        {isBlocked && (
+          <div className="mx-7 mt-4 flex items-center gap-2 rounded-lg bg-red-50 text-red-700 px-3 py-2 text-[12.5px]">
+            <Lock size={13} />
+
+            <span>
+              Bloquée par{" "}
+              {
+                blockingTasks.filter(
+                  (t) => t.status !== "TERMINE"
+                ).length
+              }{" "}
+              tâche(s) non terminée(s)
+            </span>
+          </div>
+        )}
 
         {/* =====================================================
             SOUS-TÂCHES
@@ -279,6 +342,40 @@ function TaskModal({
           </h3>
 
           <AttachmentList taskId={task.id} />
+        </div>
+
+        {/* =====================================================
+            DÉPENDANCES
+        ===================================================== */}
+
+        <div className="px-7 py-5 border-b border-slate-50">
+          <h3 className="text-[13px] font-semibold text-slate-900 mb-3">
+            Dépendances
+          </h3>
+
+          <p className="text-[11.5px] text-slate-400 mb-2">
+            Bloquée par :
+          </p>
+
+          <TaskDependencyPicker
+            allTasks={allTasks}
+            currentTaskId={task.id}
+            selectedIds={blockedByIds}
+            onChange={(ids) =>
+              onEditTask(task.id, {
+                blockedByTaskIds: ids,
+              })
+            }
+          />
+
+          {blocksIds.length > 0 && (
+            <p className="text-[11.5px] text-slate-400 mt-3">
+              Bloque :{" "}
+              {blocksIds
+                .map((t) => t.title)
+                .join(", ")}
+            </p>
+          )}
         </div>
 
         {/* =====================================================

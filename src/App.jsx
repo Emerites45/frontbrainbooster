@@ -47,6 +47,7 @@ import Navbar from "./components/Navbar";
 import ParametresPage from "./pages/ParametresPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import InternReportPage from "./pages/admin/InternReportPage";
+import TimelinePage from "./pages/admin/TimelinePage";
 
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/resetpassword/ForgotPasswordPage";
@@ -74,16 +75,24 @@ import CalendarPage from "./pages/CalendarPage";
 import ScrumMasterCalendarPage from "./pages/scrum-master/ScrumMasterCalendarPage";
 
 import MyTimesheetPage from "./pages/MyTimesheetPage";
+import TaskDetailPage from "./pages/TaskDetailPage";
 
 // User Performance Analytics
 import UserPerformancePage from "./pages/analytics/UserPerformancePage";
 import ArchivesPage from "./pages/admin/ArchivesPage";
+
+// Member
+import MemberLayout from "./pages/member/MemberLayout";
+
 // RBAC helpers
 import {
   isAdmin,
   isScrumMaster,
   isAdminOrScrumMaster,
+  isMember,
 } from "./utils/permissions";
+
+import ScrumMasterArchivesPage from "./pages/scrum-master/ScrumMasterArchivesPage";
 
 
 // Génère un id unique et robuste pour les entrées d'historique
@@ -535,6 +544,32 @@ const handleRestoreProject = (id, status) =>
     // Garde-fou : impossible de passer une tâche à TERMINE
     // si l'une de ses sous-tâches directes n'est pas elle-même terminée.
     if (nouveauStatut === "TERMINE") {
+      // Garde-fou : impossible de terminer une tâche si l'une de ses
+      // dépendances (tâches bloquantes) n'est pas elle-même terminée.
+        setTasks((prevTasks) =>
+          prevTasks.map((t) =>
+            (t.blockedByTaskIds || []).includes(taskId)
+            ? { ...t, blockedByTaskIds: t.blockedByTaskIds.filter((id) => id !== taskId) }
+            : t
+               )
+            );
+      const blockingTasks = tasks.filter((t) =>
+        (task.blockedByTaskIds || []).includes(t.id)
+      );
+      const unfinishedBlockers = blockingTasks.filter(
+        (t) => t.status !== "TERMINE"
+      );
+
+      if (unfinishedBlockers.length > 0) {
+        showToast({
+          type: "error",
+          message: `Bloquée par : ${unfinishedBlockers
+            .map((t) => t.title)
+            .join(", ")}`,
+        });
+        return;
+      }
+
       const unfinished = getUnfinishedSubtasksCount(taskId);
 
       if (unfinished > 0) {
@@ -900,7 +935,7 @@ const handleRestoreProject = (id, status) =>
                     ? "/admin/tasks"
                     : isScrumMasterUser
                       ? "/scrum-master/tasks"
-                      : "/dashboard"
+                      : "/member/dashboard"
                 }
                 replace
               />
@@ -938,72 +973,6 @@ const handleRestoreProject = (id, status) =>
                     handleSelectProject
                   }
                 />
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
-
-
-        {/* =========================
-            GENERAL DASHBOARD
-        ========================== */}
-
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute
-              isLoggedIn={
-                !!currentUser
-              }
-            >
-              <AppLayout
-                currentUser={
-                  currentUser
-                }
-                onLogout={
-                  handleLogout
-                }
-              >
-                {isAdminUser ? (
-                  <AdminDashboardPage
-                    tasks={
-                      visibleTasks
-                    }
-                    projects={
-                      projects
-                    }
-                    actions={
-                      actions
-                    }
-                    currentUser={
-                      currentUser
-                    }
-                  />
-                ) : isScrumMasterUser ? (
-                  <ScrumMasterDashboardPage
-                    tasks={
-                      visibleTasks
-                    }
-                    projects={
-                      projects
-                    }
-                    currentUser={
-                      currentUser
-                    }
-                  />
-                ) : (
-                  <MemberDashboardPage
-                    tasks={
-                      visibleTasks
-                    }
-                    projects={
-                      projects
-                    }
-                    currentUser={
-                      currentUser
-                    }
-                  />
-                )}
               </AppLayout>
             </ProtectedRoute>
           }
@@ -1129,6 +1098,23 @@ const handleRestoreProject = (id, status) =>
             path="backlog"
             element={
               <BacklogPage
+                projects={
+                  projects
+                }
+                tasks={
+                  visibleTasks
+                }
+                onEditTask={
+                  handleEditTask
+                }
+              />
+            }
+          />
+
+          <Route
+            path="timeline"
+            element={
+              <TimelinePage
                 projects={
                   projects
                 }
@@ -1431,6 +1417,23 @@ const handleRestoreProject = (id, status) =>
           />
 
           <Route
+            path="timeline"
+            element={
+              <TimelinePage
+                projects={
+                  projects
+                }
+                tasks={
+                  visibleTasks
+                }
+                onEditTask={
+                  handleEditTask
+                }
+              />
+            }
+          />
+
+          <Route
             path="tasks"
             element={
               <BoardPage
@@ -1556,6 +1559,257 @@ const handleRestoreProject = (id, status) =>
             }
           />
 
+          <Route
+          path="archives"
+          element={
+            <ScrumMasterArchivesPage
+              currentUser={currentUser}
+              tasks={tasks}
+              projects={projects}
+              onRestoreTask={handleRestoreTask}
+              onRestoreProject={handleRestoreProject}
+            />
+          }
+        />
+
+        </Route>
+
+
+        {/* =========================
+            MEMBER ROUTES
+        ========================== */}
+
+        <Route
+          path="/member"
+          element={
+            <RoleProtectedRoute
+              isLoggedIn={
+                !!currentUser
+              }
+              user={currentUser}
+              allowedCheck={
+                isMember
+              }
+            >
+              <MemberLayout
+                currentUser={
+                  currentUser
+                }
+                onLogout={
+                  handleLogout
+                }
+                tasks={
+                  visibleTasks
+                }
+                projects={
+                  projects
+                }
+                users={users}
+              />
+            </RoleProtectedRoute>
+          }
+        >
+
+          <Route
+            path="dashboard"
+            element={
+              <MemberDashboardPage
+                currentUser={
+                  currentUser
+                }
+                tasks={
+                  visibleTasks
+                }
+                projects={
+                  projects
+                }
+              />
+            }
+          />
+
+          <Route
+            path="tasks"
+            element={
+              <BoardPage
+                tasks={
+                  visibleTasks
+                }
+                users={users}
+                projects={
+                  projects
+                }
+                currentUser={
+                  currentUser
+                }
+                loading={
+                  loading
+                }
+                error={error}
+                selectedTask={
+                  selectedTask
+                }
+                setSelectedTask={
+                  setSelectedTask
+                }
+                actions={
+                  actions
+                }
+                onStatusChange={
+                  handleStatusChange
+                }
+                onCreateTask={
+                  handleCreateTask
+                }
+                onCreateSubtask={
+                  handleCreateSubtask
+                }
+                onEditTask={
+                  handleEditTask
+                }
+                onDeleteTask={
+                  handleDeleteTask
+                }
+              />
+            }
+          />
+
+          {/*
+            Note assumée, à trancher si besoin : on réutilise AdminProjectsPage
+            tel quel pour /member/projects (lecture/consultation — un Membre
+            n'a de toute façon pas le bouton "Créer un projet" dans sa
+            sidebar, donc il verra juste la liste). Si un Membre ne doit voir
+            aucun bouton créer/éditer/supprimer même en accédant à l'URL
+            directement, il faudra une prop readOnly sur AdminProjectsPage —
+            pas fait ici, flag ouvert comme les autres.
+          */}
+          <Route
+            path="projects"
+            element={
+              <AdminProjectsPage
+                projects={
+                  projects
+                }
+                tasks={
+                  visibleTasks
+                }
+                actions={
+                  actions
+                }
+                currentUser={
+                  currentUser
+                }
+                onCreateProject={
+                  handleCreateProject
+                }
+                onUpdateProject={
+                  handleUpdateProject
+                }
+                onDeleteProject={
+                  handleDeleteProject
+                }
+                onCreateSubtask={
+                  handleCreateSubtask
+                }
+                onEditTask={
+                  handleEditTask
+                }
+                onDeleteTask={
+                  handleDeleteTask
+                }
+                onStatusChange={
+                  handleStatusChange
+                }
+              />
+            }
+          />
+
+          <Route
+            path="calendar"
+            element={
+              <CalendarPage
+                tasks={
+                  visibleTasks
+                }
+                projects={
+                  projects
+                }
+              />
+            }
+          />
+
+          <Route
+            path="settings"
+            element={
+              <ParametresPage
+                currentUser={
+                  currentUser
+                }
+                onUpdateProfile={
+                  handleUpdateProfile
+                }
+              />
+            }
+          />
+
+        </Route>
+
+
+        {/* =========================
+            TASK DETAIL
+            Accessible to every logged-in user
+            Independent from /admin, /scrum-master and /member
+        ========================== */}
+
+        <Route
+          path="/projects/:projectId/tasks/:taskId"
+          element={
+            <ProtectedRoute
+              isLoggedIn={!!currentUser}
+            >
+              {isAdminUser ? (
+                <AdminLayout
+                  currentUser={currentUser}
+                  onLogout={handleLogout}
+                  tasks={visibleTasks}
+                  projects={projects}
+                  users={users}
+                />
+              ) : isScrumMasterUser ? (
+                <ScrumMasterLayout
+                  currentUser={currentUser}
+                  onLogout={handleLogout}
+                  tasks={visibleTasks}
+                  projects={projects}
+                  users={users}
+                />
+              ) : (
+                <MemberLayout
+                  currentUser={currentUser}
+                  onLogout={handleLogout}
+                  tasks={visibleTasks}
+                  projects={projects}
+                  users={users}
+                />
+              )}
+            </ProtectedRoute>
+          }
+        >
+          <Route
+            index
+            element={
+              <TaskDetailPage
+                tasks={visibleTasks}
+                projects={projects}
+                users={users}
+                actions={actions}
+                currentUser={currentUser}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
+                onCreateSubtask={handleCreateSubtask}
+                onStatusChange={handleStatusChange}
+              />
+            }
+          />
         </Route>
 
 
@@ -1588,8 +1842,24 @@ const handleRestoreProject = (id, status) =>
                   }
                   users={users}
                 />
-              ) : (
+              ) : isScrumMasterUser ? (
                 <ScrumMasterLayout
+                  currentUser={
+                    currentUser
+                  }
+                  onLogout={
+                    handleLogout
+                  }
+                  tasks={
+                    visibleTasks
+                  }
+                  projects={
+                    projects
+                  }
+                  users={users}
+                />
+              ) : (
+                <MemberLayout
                   currentUser={
                     currentUser
                   }
@@ -1657,8 +1927,24 @@ const handleRestoreProject = (id, status) =>
                   }
                   users={users}
                 />
-              ) : (
+              ) : isScrumMasterUser ? (
                 <ScrumMasterLayout
+                  currentUser={
+                    currentUser
+                  }
+                  onLogout={
+                    handleLogout
+                  }
+                  tasks={
+                    visibleTasks
+                  }
+                  projects={
+                    projects
+                  }
+                  users={users}
+                />
+              ) : (
+                <MemberLayout
                   currentUser={
                     currentUser
                   }
